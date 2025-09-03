@@ -51,6 +51,15 @@ Welcome to the comprehensive documentation for Huginn - the IFTTT-like platform 
   - [Reviewer Mode](development/modes/reviewer.md)
   - [Task Creation Mode](development/modes/task-creation.md)
 
+### API Documentation 🆕
+- [Complete API Documentation](api/) - Comprehensive API reference and integration guides
+  - [OpenAPI 3.0 Specification](api/openapi.yaml) - Formal API specification
+  - [Integration Guide](api/integration-guide.md) - Detailed integration patterns and examples
+  - [Python Client Library](api/examples/python-client.py) - Full-featured Python client
+  - [JavaScript Client Library](api/examples/javascript-client.js) - Complete Node.js/browser client
+  - [Webhook Examples](api/examples/webhook-examples.md) - Real-world webhook integration patterns
+  - [Postman Collection](api/examples/huginn-postman-collection.json) - API testing collection
+
 ### Resources
 - [Screenshots & Diagrams](images/) - Visual documentation and screenshots
 - [Changelog](CHANGES.md) - Version history and release notes

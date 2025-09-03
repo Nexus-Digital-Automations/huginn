@@ -1,0 +1,766 @@
+{
+  "info": {
+    "name": "Huginn API Collection",
+    "description": "Complete Postman collection for testing Huginn API endpoints",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "huginn_base_url",
+      "value": "https://your-huginn.com",
+      "description": "Base URL of your Huginn instance"
+    },
+    {
+      "key": "user_id",
+      "value": "1",
+      "description": "Your user ID"
+    },
+    {
+      "key": "session_cookie",
+      "value": "your-session-cookie",
+      "description": "Session cookie for authentication"
+    }
+  ],
+  "auth": {
+    "type": "noauth"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Set session cookie if available",
+          "if (pm.variables.get('session_cookie')) {",
+          "    pm.request.headers.add({",
+          "        key: 'Cookie',",
+          "        value: `_huginn_session=${pm.variables.get('session_cookie')}`",
+          "    });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Webhooks",
+      "description": "Webhook endpoints for receiving external data",
+      "item": [
+        {
+          "name": "Send POST Webhook",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event_type\": \"test_event\",\n  \"message\": \"Hello from Postman!\",\n  \"timestamp\": \"{{$timestamp}}\",\n  \"data\": {\n    \"user_id\": 12345,\n    \"action\": \"signup\",\n    \"email\": \"user@example.com\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{huginn_base_url}}/users/{{user_id}}/web_requests/{{agent_id}}/{{webhook_secret}}",
+              "host": ["{{huginn_base_url}}"],
+              "path": ["users", "{{user_id}}", "web_requests", "{{agent_id}}", "{{webhook_secret}}"]
+            },
+            "description": "Send webhook data to an agent"
+          },
+          "response": []
+        },
+        {
+          "name": "Send GET Webhook",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{huginn_base_url}}/users/{{user_id}}/web_requests/{{agent_id}}/{{webhook_secret}}?param1=value1&param2=value2",
+              "host": ["{{huginn_base_url}}"],
+              "path": ["users", "{{user_id}}", "web_requests", "{{agent_id}}", "{{webhook_secret}}"],
+              "query": [
+                {
+                  "key": "param1",
+                  "value": "value1"
+                },
+                {
+                  "key": "param2",
+                  "value": "value2"
+                }
+              ]
+            },
+            "description": "Send GET request to webhook agent"
+          },
+          "response": []
+        },
+        {
+          "name": "Get RSS Feed",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{huginn_base_url}}/users/{{user_id}}/web_requests/{{data_output_agent_id}}/{{feed_secret}}.xml",
+              "host": ["{{huginn_base_url}}"],
+              "path": ["users", "{{user_id}}", "web_requests", "{{data_output_agent_id}}", "{{feed_secret}}.xml"]
+            },
+            "description": "Get RSS feed from DataOutputAgent"
+          },
+          "response": []
+        },
+        {
+          "name": "Get JSON Feed",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{huginn_base_url}}/users/{{user_id}}/web_requests/{{data_output_agent_id}}/{{feed_secret}}.json",
+              "host": ["{{huginn_base_url}}"],
+              "path": ["users", "{{user_id}}", "web_requests", "{{data_output_agent_id}}", "{{feed_secret}}.json"]
+            },
+            "description": "Get JSON feed from DataOutputAgent"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Location (Legacy)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"latitude\": 37.7749,\n  \"longitude\": -122.4194,\n  \"accuracy\": 10,\n  \"timestamp\": \"{{$timestamp}}\"\n}"
+            },
+            "url": {
+              "raw": "{{huginn_base_url}}/users/{{user_id}}/update_location/{{location_secret}}",
+              "host": ["{{huginn_base_url}}"],
+              "path": ["users", "{{user_id}}", "update_location", "{{location_secret}}"]
+            },
+            "description": "Legacy endpoint for location updates"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Agents",
+      "description": "Agent management operations",
+      "item": [
+        {
+          "name": "List Agents",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{huginn_base_url}}/agents?page=1&sort=created_at&direction=desc",
+              "host": ["{{huginn_base_url}}"],
+              "path": ["agents"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "sort",
+                  "value": "created_at"
+                },
+                {
+                  "key": "direction",
+                  "value": "desc"
+                }
+              ]
+            },
+            "description": "Get paginated list of agents"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Agent Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{huginn_base_url}}/agents/{{agent_id}}",
+              "host": ["{{huginn_base_url}}"],
+              "path": ["agents", "{{agent_id}}"]
+            },
+            "description": "Get details of a specific agent"
+          },
+          "response": []
+        },
+        {
+          "name": "Create WebhookAgent",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"My Webhook Agent\",\n  \"type\": \"Agents::WebhookAgent\",\n  \"options\": {\n    \"secret\": \"{{$randomUUID}}\",\n    \"expected_receive_period_in_days\": 1,\n    \"payload_path\": \".\",\n    \"verbs\": \"post\",\n    \"response\": \"Event Created\",\n    \"code\": \"201\",\n    \"response_headers\": {\n      \"Access-Control-Allow-Origin\": \"*\"\n    }\n  }\n}"
+            },
+            "url": {
+              "raw": "{{huginn_base_url}}/agents",
+              "host": ["{{huginn_base_url}}"],
+              "path": ["agents"]
+            },
+            "description": "Create a new WebhookAgent"
+          },
+          "response": []
+        },
+        {
+          "name": "Create DataOutputAgent",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"My Data Feed\",\n  \"type\": \"Agents::DataOutputAgent\",\n  \"options\": {\n    \"secrets\": [\"{{$randomUUID}}\"],\n    \"expected_receive_period_in_days\": 2,\n    \"template\": {\n      \"title\": \"My Data Feed\",\n      \"description\": \"Real-time data updates\",\n      \"item\": {\n        \"title\": \"{{title}}\",\n        \"description\": \"{{description}}\",\n        \"link\": \"{{url}}\",\n        \"pubDate\": \"{{timestamp}}\"\n      }\n    },\n    \"events_to_show\": 20\n  }\n}"
+            },
+            "url": {
+              "raw": "{{huginn_base_url}}/agents",
+              "host": ["{{huginn_base_url}}"],
+              "path": ["agents"]
+            },
+            "description": "Create a new DataOutputAgent"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Agent",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Agent Name\",\n  \"disabled\": false,\n  \"options\": {\n    \"expected_receive_period_in_days\": 2\n  }\n}"
+            },
+            "url": {
+              "raw": "{{huginn_base_url}}/agents/{{agent_id}}",
+              "host": ["{{huginn_base_url}}"],
+              "path": ["agents", "{{agent_id}}"]
+            },
+            "description": "Update an existing agent"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Agent",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{huginn_base_url}}/agents/{{agent_id}}",
+              "host": ["{{huginn_base_url}}"],
+              "path": ["agents", "{{agent_id}}"]
+            },
+            "description": "Delete an agent permanently"
+          },
+          "response": []
+        },
+        {
+          "name": "Run Agent",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{huginn_base_url}}/agents/{{agent_id}}/run",
+              "host": ["{{huginn_base_url}}"],
+              "path": ["agents", "{{agent_id}}", "run"]
+            },
+            "description": "Manually run an agent"
+          },
+          "response": []
+        },
+        {
+          "name": "Re-emit Agent Events",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{huginn_base_url}}/agents/{{agent_id}}/reemit_events?delete_old_events=0",
+              "host": ["{{huginn_base_url}}"],
+              "path": ["agents", "{{agent_id}}", "reemit_events"],
+              "query": [
+                {
+                  "key": "delete_old_events",
+                  "value": "0",
+                  "description": "Set to 1 to delete old events"
+                }
+              ]
+            },
+            "description": "Re-emit all events from an agent"
+          },
+          "response": []
+        },
+        {
+          "name": "Clear Agent Events",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{huginn_base_url}}/agents/{{agent_id}}/remove_events",
+              "host": ["{{huginn_base_url}}"],
+              "path": ["agents", "{{agent_id}}", "remove_events"]
+            },
+            "description": "Remove all events from an agent"
+          },
+          "response": []
+        },
+        {
+          "name": "Clear Agent Memory",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{huginn_base_url}}/agents/{{agent_id}}/memory",
+              "host": ["{{huginn_base_url}}"],
+              "path": ["agents", "{{agent_id}}", "memory"]
+            },
+            "description": "Clear agent's memory"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Agent Type Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{huginn_base_url}}/agents/type_details?type=Agents::WebhookAgent",
+              "host": ["{{huginn_base_url}}"],
+              "path": ["agents", "type_details"],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "Agents::WebhookAgent"
+                }
+              ]
+            },
+            "description": "Get details about a specific agent type"
+          },
+          "response": []
+        },
+        {
+          "name": "Validate Agent Option",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"Agents::WebhookAgent\",\n  \"options\": {\n    \"secret\": \"test-secret\",\n    \"expected_receive_period_in_days\": 1\n  }\n}"
+            },
+            "url": {
+              "raw": "{{huginn_base_url}}/agents/validate?attribute=secret",
+              "host": ["{{huginn_base_url}}"],
+              "path": ["agents", "validate"],
+              "query": [
+                {
+                  "key": "attribute",
+                  "value": "secret"
+                }
+              ]
+            },
+            "description": "Validate a specific agent option"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Events",
+      "description": "Event management operations",
+      "item": [
+        {
+          "name": "List All Events",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{huginn_base_url}}/events?page=1",
+              "host": ["{{huginn_base_url}}"],
+              "path": ["events"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Get paginated list of all events"
+          },
+          "response": []
+        },
+        {
+          "name": "List Agent Events",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{huginn_base_url}}/events?page=1&agent_id={{agent_id}}",
+              "host": ["{{huginn_base_url}}"],
+              "path": ["events"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "agent_id",
+                  "value": "{{agent_id}}"
+                }
+              ]
+            },
+            "description": "Get events from a specific agent"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Event Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{huginn_base_url}}/events/{{event_id}}",
+              "host": ["{{huginn_base_url}}"],
+              "path": ["events", "{{event_id}}"]
+            },
+            "description": "Get details of a specific event"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Event",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{huginn_base_url}}/events/{{event_id}}",
+              "host": ["{{huginn_base_url}}"],
+              "path": ["events", "{{event_id}}"]
+            },
+            "description": "Delete a specific event"
+          },
+          "response": []
+        },
+        {
+          "name": "Re-emit Event",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{huginn_base_url}}/events/{{event_id}}/reemit",
+              "host": ["{{huginn_base_url}}"],
+              "path": ["events", "{{event_id}}", "reemit"]
+            },
+            "description": "Re-emit a specific event"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Scenarios",
+      "description": "Scenario management operations",
+      "item": [
+        {
+          "name": "List Scenarios",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{huginn_base_url}}/scenarios?page=1",
+              "host": ["{{huginn_base_url}}"],
+              "path": ["scenarios"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Get paginated list of scenarios"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Scenario Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{huginn_base_url}}/scenarios/{{scenario_id}}",
+              "host": ["{{huginn_base_url}}"],
+              "path": ["scenarios", "{{scenario_id}}"]
+            },
+            "description": "Get details of a specific scenario"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Scenario",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"My Test Scenario\",\n  \"description\": \"A scenario for testing purposes\",\n  \"public\": false,\n  \"tag_fg_color\": \"#ffffff\",\n  \"tag_bg_color\": \"#3498db\",\n  \"agent_ids\": []\n}"
+            },
+            "url": {
+              "raw": "{{huginn_base_url}}/scenarios",
+              "host": ["{{huginn_base_url}}"],
+              "path": ["scenarios"]
+            },
+            "description": "Create a new scenario"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Scenario",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Scenario Name\",\n  \"description\": \"Updated description\",\n  \"public\": false\n}"
+            },
+            "url": {
+              "raw": "{{huginn_base_url}}/scenarios/{{scenario_id}}",
+              "host": ["{{huginn_base_url}}"],
+              "path": ["scenarios", "{{scenario_id}}"]
+            },
+            "description": "Update an existing scenario"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Scenario",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{huginn_base_url}}/scenarios/{{scenario_id}}?mode=scenario_only",
+              "host": ["{{huginn_base_url}}"],
+              "path": ["scenarios", "{{scenario_id}}"],
+              "query": [
+                {
+                  "key": "mode",
+                  "value": "scenario_only",
+                  "description": "Use 'agents_and_scenario' to delete agents too"
+                }
+              ]
+            },
+            "description": "Delete a scenario"
+          },
+          "response": []
+        },
+        {
+          "name": "Export Scenario",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{huginn_base_url}}/scenarios/{{scenario_id}}/export",
+              "host": ["{{huginn_base_url}}"],
+              "path": ["scenarios", "{{scenario_id}}", "export"]
+            },
+            "description": "Export scenario as JSON file"
+          },
+          "response": []
+        },
+        {
+          "name": "Enable/Disable All Scenario Agents",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"scenario\": {\n    \"disabled\": \"false\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{huginn_base_url}}/scenarios/{{scenario_id}}/enable_or_disable_all_agents",
+              "host": ["{{huginn_base_url}}"],
+              "path": ["scenarios", "{{scenario_id}}", "enable_or_disable_all_agents"]
+            },
+            "description": "Enable or disable all agents in a scenario"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Jobs (Admin Only)",
+      "description": "Background job management",
+      "item": [
+        {
+          "name": "List Jobs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{huginn_base_url}}/jobs?page=1",
+              "host": ["{{huginn_base_url}}"],
+              "path": ["jobs"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Get paginated list of delayed jobs (admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Job",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{huginn_base_url}}/jobs/{{job_id}}",
+              "host": ["{{huginn_base_url}}"],
+              "path": ["jobs", "{{job_id}}"]
+            },
+            "description": "Delete a specific job (admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Run Job",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{huginn_base_url}}/jobs/{{job_id}}/run",
+              "host": ["{{huginn_base_url}}"],
+              "path": ["jobs", "{{job_id}}", "run"]
+            },
+            "description": "Queue job for execution (admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete All Failed Jobs",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{huginn_base_url}}/jobs/destroy_failed",
+              "host": ["{{huginn_base_url}}"],
+              "path": ["jobs", "destroy_failed"]
+            },
+            "description": "Remove all failed jobs (admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Retry Queued Jobs",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{huginn_base_url}}/jobs/retry_queued",
+              "host": ["{{huginn_base_url}}"],
+              "path": ["jobs", "retry_queued"]
+            },
+            "description": "Retry all jobs awaiting retry (admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete All Jobs",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{huginn_base_url}}/jobs",
+              "host": ["{{huginn_base_url}}"],
+              "path": ["jobs"]
+            },
+            "description": "Delete all non-running jobs (admin only)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "System",
+      "description": "System status and monitoring",
+      "item": [
+        {
+          "name": "Get Worker Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{huginn_base_url}}/worker_status",
+              "host": ["{{huginn_base_url}}"],
+              "path": ["worker_status"]
+            },
+            "description": "Get current worker and system status"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Worker Status Since Event ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{huginn_base_url}}/worker_status?since_id={{event_id}}",
+              "host": ["{{huginn_base_url}}"],
+              "path": ["worker_status"],
+              "query": [
+                {
+                  "key": "since_id",
+                  "value": "{{event_id}}"
+                }
+              ]
+            },
+            "description": "Get worker status with events since specific ID"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

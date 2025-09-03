@@ -210,8 +210,8 @@ module Agents
 
       events =
         if (event_ids = memory[:event_ids]) &&
-            memory[:events_order] == events_order &&
-            memory[:events_to_show] >= events_to_show
+           memory[:events_order] == events_order &&
+           memory[:events_to_show] >= events_to_show
           received_events.where(id: event_ids).to_a
         else
           memory[:last_event_id] = nil

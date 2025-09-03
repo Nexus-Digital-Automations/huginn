@@ -2,31 +2,6 @@
   "project": "huginn",
   "tasks": [
     {
-      "id": "task_1756878353167_4yra253ul",
-      "title": "Fix auto-correctable Ruby style violations (1,892 issues)",
-      "description": "Run rubocop with auto-correct to fix the 1,892 autocorrectable style violations found in the codebase. This includes frozen string literals, string quote preferences, spacing issues, and basic formatting problems.",
-      "mode": "DEVELOPMENT",
-      "category": "linter-error",
-      "priority": "high",
-      "status": "pending",
-      "dependencies": [],
-      "important_files": [
-        "app/",
-        "lib/",
-        "config/"
-      ],
-      "success_criteria": [
-        "All autocorrectable rubocop offenses fixed",
-        "Rubocop run confirms fixes applied",
-        "No regression in functionality"
-      ],
-      "estimate": "",
-      "requires_research": false,
-      "subtasks": [],
-      "created_at": "2025-09-03T05:45:53.167Z",
-      "auto_research_created": false
-    },
-    {
       "id": "task_1756874454344_init",
       "title": "Initialize project tasks from development directory",
       "description": "Analyze all files in the development directory and create appropriate tasks based on their content. This includes reviewing development guidelines, mode-specific instructions, and any existing documentation to create a comprehensive task list that covers all aspects of the project setup and development workflow. ALL CODE AND FEATURES MUST BE PRODUCTION-READY - NO SIMPLIFIED OR MOCK IMPLEMENTATIONS.",
@@ -105,6 +80,57 @@
       "requires_research": false,
       "subtasks": [],
       "created_at": "2025-09-03T05:46:17.507Z",
+      "auto_research_created": false
+    },
+    {
+      "id": "task_1756878361815_t0u3lunej",
+      "title": "Fix Ruby method complexity and size violations",
+      "description": "Address the method and class complexity issues found by rubocop including methods too long (>10 lines), classes too long (>100 lines), cyclomatic complexity >7, and ABC size violations. Refactor code for maintainability.",
+      "mode": "DEVELOPMENT",
+      "category": "linter-error",
+      "priority": "high",
+      "status": "pending",
+      "dependencies": [],
+      "important_files": [
+        "app/models/agent.rb",
+        "app/controllers/",
+        "app/models/agents/"
+      ],
+      "success_criteria": [
+        "All Metrics/* cop violations resolved",
+        "Methods refactored to meet size limits",
+        "Class complexity reduced to acceptable levels"
+      ],
+      "estimate": "",
+      "requires_research": false,
+      "subtasks": [],
+      "created_at": "2025-09-03T05:46:01.815Z",
+      "auto_research_created": false
+    },
+    {
+      "id": "task_1756878368879_n4y56ajgt",
+      "title": "Add missing class and module documentation comments",
+      "description": "Add comprehensive documentation comments to all classes and modules that are missing Style/Documentation annotations. Ensure all public classes have proper RDoc-style documentation explaining their purpose, usage, and examples.",
+      "mode": "DEVELOPMENT",
+      "category": "linter-error",
+      "priority": "medium",
+      "status": "pending",
+      "dependencies": [],
+      "important_files": [
+        "app/models/",
+        "app/controllers/",
+        "app/concerns/",
+        "lib/"
+      ],
+      "success_criteria": [
+        "All Style/Documentation violations resolved",
+        "Every class and module has descriptive documentation",
+        "Documentation follows RDoc standards"
+      ],
+      "estimate": "",
+      "requires_research": false,
+      "subtasks": [],
+      "created_at": "2025-09-03T05:46:08.879Z",
       "auto_research_created": false
     },
     {
@@ -201,61 +227,6 @@
       "subtasks": [],
       "is_review_task": true,
       "strike_number": 3
-    },
-    {
-      "id": "task_1756878361815_t0u3lunej",
-      "title": "Fix Ruby method complexity and size violations",
-      "description": "Address the method and class complexity issues found by rubocop including methods too long (>10 lines), classes too long (>100 lines), cyclomatic complexity >7, and ABC size violations. Refactor code for maintainability.",
-      "mode": "DEVELOPMENT",
-      "category": "linter-error",
-      "priority": "high",
-      "status": "pending",
-      "dependencies": [
-        "task_1756878353167_4yra253ul"
-      ],
-      "important_files": [
-        "app/models/agent.rb",
-        "app/controllers/",
-        "app/models/agents/"
-      ],
-      "success_criteria": [
-        "All Metrics/* cop violations resolved",
-        "Methods refactored to meet size limits",
-        "Class complexity reduced to acceptable levels"
-      ],
-      "estimate": "",
-      "requires_research": false,
-      "subtasks": [],
-      "created_at": "2025-09-03T05:46:01.815Z",
-      "auto_research_created": false
-    },
-    {
-      "id": "task_1756878368879_n4y56ajgt",
-      "title": "Add missing class and module documentation comments",
-      "description": "Add comprehensive documentation comments to all classes and modules that are missing Style/Documentation annotations. Ensure all public classes have proper RDoc-style documentation explaining their purpose, usage, and examples.",
-      "mode": "DEVELOPMENT",
-      "category": "linter-error",
-      "priority": "medium",
-      "status": "pending",
-      "dependencies": [
-        "task_1756878353167_4yra253ul"
-      ],
-      "important_files": [
-        "app/models/",
-        "app/controllers/",
-        "app/concerns/",
-        "lib/"
-      ],
-      "success_criteria": [
-        "All Style/Documentation violations resolved",
-        "Every class and module has descriptive documentation",
-        "Documentation follows RDoc standards"
-      ],
-      "estimate": "",
-      "requires_research": false,
-      "subtasks": [],
-      "created_at": "2025-09-03T05:46:08.879Z",
-      "auto_research_created": false
     },
     {
       "id": "task_1756874454344_9edq6zlub",

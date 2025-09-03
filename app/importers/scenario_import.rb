@@ -48,9 +48,9 @@ class ScenarioImport
 
   def parsed_data
     @parsed_data ||= begin
-                       data && JSON.parse(data)
+      data && JSON.parse(data)
     rescue StandardError
-                       {}
+      {}
     end || {}
   end
 
@@ -134,9 +134,9 @@ class ScenarioImport
   def validate_data
     if data.present?
       @parsed_data = begin
-                       JSON.parse(data)
+        JSON.parse(data)
       rescue StandardError
-                       {}
+        {}
       end
       if (%w[name guid agents] - @parsed_data.keys).length.positive?
         errors.add(:base, 'The provided data does not appear to be a valid Scenario.')
@@ -280,9 +280,9 @@ class ScenarioImport
     def each_field
       boolean = [['True', 'true'], ['False', 'false']]
       yield 'name', name if name.requires_merge?
-      yield 'schedule', schedule, Agent::SCHEDULES.map do |s|
-  [AgentHelper.builtin_schedule_name(s), s]
-                                  end if self['schedule'].present? && schedule.requires_merge?
+      yield('schedule', schedule, Agent::SCHEDULES.map do |s|
+        [AgentHelper.builtin_schedule_name(s), s]
+      end) if self['schedule'].present? && schedule.requires_merge?
       if self['keep_events_for'].present? && keep_events_for.requires_merge?
         yield 'keep_events_for', keep_events_for, Agent::EVENT_RETENTION_SCHEDULES
       end

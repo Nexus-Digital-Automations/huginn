@@ -55,16 +55,16 @@ class AgentsController < ApplicationController
     initialize_presenter
 
     render json: {
-        can_be_scheduled: @agent.can_be_scheduled?,
-        default_schedule: @agent.default_schedule,
-        can_receive_events: @agent.can_receive_events?,
-        can_create_events: @agent.can_create_events?,
-        can_control_other_agents: @agent.can_control_other_agents?,
-        can_dry_run: @agent.can_dry_run?,
-        options: @agent.default_options,
-        description_html: @agent.html_description,
-        oauthable: render_to_string(partial: 'oauth_dropdown', locals: { agent: @agent }),
-        form_options: render_to_string(partial: 'options', locals: { agent: @agent }),
+      can_be_scheduled: @agent.can_be_scheduled?,
+      default_schedule: @agent.default_schedule,
+      can_receive_events: @agent.can_receive_events?,
+      can_create_events: @agent.can_create_events?,
+      can_control_other_agents: @agent.can_control_other_agents?,
+      can_dry_run: @agent.can_dry_run?,
+      options: @agent.default_options,
+      description_html: @agent.html_description,
+      oauthable: render_to_string(partial: 'oauth_dropdown', locals: { agent: @agent }),
+      form_options: render_to_string(partial: 'options', locals: { agent: @agent }),
     }
   end
 

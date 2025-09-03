@@ -43,13 +43,13 @@ class ApplicationController < ActionController::Base
   def filtered_agent_return_link(options = {})
     case ret = params[:return].presence || options[:return]
     when 'show'
-        if @agent && !@agent.destroyed?
-          agent_path(@agent)
-        else
-          agents_path
-        end
+      if @agent && !@agent.destroyed?
+        agent_path(@agent)
+      else
+        agents_path
+      end
     when /\A#{(Regexp.escape scenarios_path)}/, /\A#{(Regexp.escape agents_path)}/, /\A#{(Regexp.escape events_path)}/
-        ret
+      ret
     end
   end
   helper_method :filtered_agent_return_link
@@ -61,8 +61,8 @@ class ApplicationController < ActionController::Base
       return
     end
 
-        @twitter_oauth_key    = @twitter_agent.options['consumer_key'].presence || @twitter_agent.credential('twitter_consumer_key')
-        @twitter_oauth_secret = @twitter_agent.options['consumer_secret'].presence || @twitter_agent.credential('twitter_consumer_secret')
+    @twitter_oauth_key    = @twitter_agent.options['consumer_key'].presence || @twitter_agent.credential('twitter_consumer_key')
+    @twitter_oauth_secret = @twitter_agent.options['consumer_secret'].presence || @twitter_agent.credential('twitter_consumer_secret')
   end
 
   def outdated_docker_registry_check

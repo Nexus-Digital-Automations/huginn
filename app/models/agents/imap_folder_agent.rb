@@ -595,7 +595,7 @@ module Agents
           [mail]
         end.select { |part|
           if part.multipart? || part.attachment? || !part.text? ||
-              !mime_types.include?(part.mime_type)
+             !mime_types.include?(part.mime_type)
             false
           else
             part.extend(Scrubbed)

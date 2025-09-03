@@ -14,7 +14,7 @@ module WeiboConcern
     unless options['app_key'].present? &&
            options['app_secret'].present? &&
            options['access_token'].present?
-        errors.add(:base, 'app_key, app_secret and access_token are required')
+      errors.add(:base, 'app_key, app_secret and access_token are required')
     end
   end
 

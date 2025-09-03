@@ -6,7 +6,7 @@
 
 Huginn is a system for building agents that perform automated tasks for you online.  They can read the web, watch for events, and take actions on your behalf.  Huginn's Agents create and consume events, propagating them along a directed graph.  Think of it as a hackable version of IFTTT or Zapier on your own server.  You always know who has your data.  You do.
 
-![the origin of the name](https://raw.githubusercontent.com/huginn/huginn/master/doc/imgs/the-name.png)
+![the origin of the name](docs/images/the-name.png)
 
 #### Here are some of the things that you can do with Huginn:
 
@@ -41,21 +41,23 @@ Please checkout the [Huginn Introductory Screencast](http://vimeo.com/61976251)!
 
 And now, some example screenshots.  Below them are instructions to get you started.
 
-![Example list of agents](https://raw.githubusercontent.com/huginn/huginn/master/doc/imgs/your-agents.png)
+![Example list of agents](docs/images/your-agents.png)
 
-![Event flow diagram](https://raw.githubusercontent.com/huginn/huginn/master/doc/imgs/diagram.png)
+![Event flow diagram](docs/images/diagram.png)
 
-![Detecting peaks in Twitter](https://raw.githubusercontent.com/huginn/huginn/master/doc/imgs/peaks.png)
+![Detecting peaks in Twitter](docs/images/peaks.png)
 
-![Logging your location over time](https://raw.githubusercontent.com/huginn/huginn/master/doc/imgs/my-locations.png)
+![Logging your location over time](docs/images/my-locations.png)
 
-![Making a new agent](https://raw.githubusercontent.com/huginn/huginn/master/doc/imgs/new-agent.png)
+![Making a new agent](docs/images/new-agent.png)
 
 ## Getting Started
 
+📖 **For comprehensive documentation, see [docs/README.md](docs/README.md)**
+
 ### Docker
 
-The quickest and easiest way to check out Huginn is to use the official Docker image. Have a look at the [documentation](https://github.com/huginn/huginn/blob/master/doc/docker/install.md).
+The quickest and easiest way to check out Huginn is to use the official Docker image. Have a look at the [documentation](docs/installation/docker/install.md).
 
 ### Local Installation
 
@@ -106,7 +108,7 @@ Please see [the Huginn Wiki](https://github.com/huginn/huginn/wiki#deploying-hug
 
 ### Heroku
 
-Try Huginn on Heroku: [![Deploy](https://www.herokucdn.com/deploy/button.png)](https://heroku.com/deploy) (Takes a few minutes to setup. Read the [documentation](https://github.com/huginn/huginn/blob/master/doc/heroku/install.md) while you are waiting and be sure to click 'View it' after launch!) Huginn launches only on a paid subscription plan for Heroku. For non-experimental use, we strongly recommend Heroku's 1GB paid plan or our Docker container.
+Try Huginn on Heroku: [![Deploy](https://www.herokucdn.com/deploy/button.png)](https://heroku.com/deploy) (Takes a few minutes to setup. Read the [documentation](docs/installation/heroku/install.md) while you are waiting and be sure to click 'View it' after launch!) Huginn launches only on a paid subscription plan for Heroku. For non-experimental use, we strongly recommend Heroku's 1GB paid plan or our Docker container.
 
 ### OpenShift
 
@@ -130,7 +132,7 @@ The templates should work on a v3 installation or the current v4 online.
 
 ### Manual installation on any server
 
-Have a look at the [installation guide](https://github.com/huginn/huginn/blob/master/doc/manual/README.md).
+Have a look at the [installation guide](docs/installation/manual/README.md).
 
 ### Optional Setup
 

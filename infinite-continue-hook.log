@@ -1,0 +1,67 @@
+{
+  "execution": {
+    "timestamp": "2025-09-03T04:45:50.453Z",
+    "projectRoot": "/Users/jeremyparker/Desktop/Claude Coding Projects/huginn",
+    "hookVersion": "1.0.0",
+    "nodeVersion": "v22.19.0",
+    "platform": "darwin",
+    "arch": "arm64",
+    "pid": 87135,
+    "cwd": "/Users/jeremyparker/Desktop/Claude Coding Projects/huginn",
+    "endTimestamp": "2025-09-03T04:45:50.464Z",
+    "durationMs": 11
+  },
+  "input": {
+    "sessionId": "1e0d8bc5-a5f8-4aa4-8010-61f0e6cd97df",
+    "transcriptPath": "/Users/jeremyparker/.claude/projects/-Users-jeremyparker-Desktop-Claude-Coding-Projects-huginn/1e0d8bc5-a5f8-4aa4-8010-61f0e6cd97df.jsonl",
+    "stopHookActive": false,
+    "rawInput": {
+      "session_id": "1e0d8bc5-a5f8-4aa4-8010-61f0e6cd97df",
+      "transcript_path": "/Users/jeremyparker/.claude/projects/-Users-jeremyparker-Desktop-Claude-Coding-Projects-huginn/1e0d8bc5-a5f8-4aa4-8010-61f0e6cd97df.jsonl",
+      "cwd": "/Users/jeremyparker/Desktop/Claude Coding Projects/huginn",
+      "hook_event_name": "Stop",
+      "stop_hook_active": false
+    }
+  },
+  "projectState": {},
+  "decisions": [],
+  "flow": [
+    {
+      "timestamp": "2025-09-03T04:45:50.458Z",
+      "message": "Raw input data: \"{\"session_id\":\"1e0d8bc5-a5f8-4aa4-8010-61f0e6cd97df\",\"transcript_path\":\"/Users/jeremyparker/.claude/projects/-Users-jeremyparker-Desktop-Claude-Coding-Projects-huginn/1e0d8bc5-a5f8-4aa4-8010-61f0e6cd97df.jsonl\",\"cwd\":\"/Users/jeremyparker/Desktop/Claude Coding Projects/huginn\",\"hook_event_name\":\"Stop\",\"stop_hook_active\":false}\""
+    },
+    {
+      "timestamp": "2025-09-03T04:45:50.458Z",
+      "message": "Input data length: 327"
+    },
+    {
+      "timestamp": "2025-09-03T04:45:50.458Z",
+      "message": "Received input from Claude Code"
+    },
+    {
+      "timestamp": "2025-09-03T04:45:50.458Z",
+      "message": "Received Stop event from Claude Code"
+    },
+    {
+      "timestamp": "2025-09-03T04:45:50.464Z",
+      "message": "Found 0 total agents in TODO.json"
+    },
+    {
+      "timestamp": "2025-09-03T04:45:50.464Z",
+      "message": "Active agents found: 0, Stale agents removed: 0"
+    },
+    {
+      "timestamp": "2025-09-03T04:45:50.464Z",
+      "message": "No active agents detected - need agent initialization"
+    },
+    {
+      "timestamp": "2025-09-03T04:45:50.464Z",
+      "message": "Exiting with code 2: No active agents - providing initialization guidance"
+    }
+  ],
+  "output": {
+    "exitCode": 2,
+    "exitReason": "No active agents - providing initialization guidance"
+  },
+  "errors": []
+}

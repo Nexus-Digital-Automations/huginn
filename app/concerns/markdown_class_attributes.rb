@@ -1,10 +1,14 @@
+# frozen_string_literal: true
+
 module MarkdownClassAttributes
+
   extend ActiveSupport::Concern
 
   module ClassMethods
+
     def markdown_class_attributes(*attributes)
       attributes.each do |attribute|
-        class_eval <<-RUBY
+        class_eval <<-RUBY, __FILE__, __LINE__ + 1
           def html_#{attribute}
             Kramdown::Document.new(#{attribute}, auto_ids: false).to_html.html_safe
           end
@@ -28,5 +32,7 @@ module MarkdownClassAttributes
         RUBY
       end
     end
+
   end
+
 end

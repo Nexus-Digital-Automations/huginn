@@ -2,6 +2,43 @@
   "project": "huginn",
   "tasks": [
     {
+      "id": "task_1756878353167_4yra253ul",
+      "title": "Fix auto-correctable Ruby style violations (1,892 issues)",
+      "description": "Run rubocop with auto-correct to fix the 1,892 autocorrectable style violations found in the codebase. This includes frozen string literals, string quote preferences, spacing issues, and basic formatting problems.",
+      "mode": "DEVELOPMENT",
+      "category": "linter-error",
+      "priority": "high",
+      "status": "in_progress",
+      "dependencies": [],
+      "important_files": [
+        "app/",
+        "lib/",
+        "config/"
+      ],
+      "success_criteria": [
+        "All autocorrectable rubocop offenses fixed",
+        "Rubocop run confirms fixes applied",
+        "No regression in functionality"
+      ],
+      "estimate": "",
+      "requires_research": false,
+      "subtasks": [],
+      "created_at": "2025-09-03T05:45:53.167Z",
+      "auto_research_created": false,
+      "assigned_agent": "development_session_1756878070337_1_general_f9b109e6",
+      "started_at": "2025-09-03T05:54:01.397Z",
+      "claimed_by": "development_session_1756878070337_1_general_f9b109e6",
+      "agent_assignment_history": [
+        {
+          "agentId": "development_session_1756878070337_1_general_f9b109e6",
+          "role": "primary",
+          "assignedAt": "2025-09-03T05:54:01.397Z",
+          "reassignReason": null,
+          "claimPriority": "normal"
+        }
+      ]
+    },
+    {
       "id": "task_1756874454344_init",
       "title": "Initialize project tasks from development directory",
       "description": "Analyze all files in the development directory and create appropriate tasks based on their content. This includes reviewing development guidelines, mode-specific instructions, and any existing documentation to create a comprehensive task list that covers all aspects of the project setup and development workflow. ALL CODE AND FEATURES MUST BE PRODUCTION-READY - NO SIMPLIFIED OR MOCK IMPLEMENTATIONS.",
@@ -54,13 +91,42 @@
       ]
     },
     {
+      "id": "task_1756878377507_higvm0ujl",
+      "title": "Fix critical rubocop parsing errors (9 errors)",
+      "description": "Investigate and fix the 9 critical parsing errors reported by rubocop including Layout/IndentationWidth, Layout/FirstHashElementIndentation, Layout/ArrayAlignment, Layout/ArgumentAlignment, and Layout/MultilineOperationIndentation issues that are preventing proper linting analysis.",
+      "mode": "DEVELOPMENT",
+      "category": "linter-error",
+      "priority": "critical",
+      "status": "pending",
+      "dependencies": [],
+      "important_files": [
+        "app/concerns/weibo_concern.rb",
+        "app/controllers/agents_controller.rb",
+        "app/controllers/application_controller.rb",
+        "app/importers/scenario_import.rb",
+        "app/models/agents/data_output_agent.rb",
+        "app/models/agents/imap_folder_agent.rb",
+        "app/models/agents/trigger_agent.rb"
+      ],
+      "success_criteria": [
+        "All rubocop parsing errors resolved",
+        "Rubocop can analyze entire codebase without errors",
+        "No Layout/* cop failures"
+      ],
+      "estimate": "",
+      "requires_research": false,
+      "subtasks": [],
+      "created_at": "2025-09-03T05:46:17.507Z",
+      "auto_research_created": false
+    },
+    {
       "id": "task_1756876575679_dzpzats6q",
       "title": "Install Ruby on Rails framework",
       "description": "Rails is not currently installed on the system but is required for Huginn (Rails ~> 7.0.1). Install Rails framework to enable bundle install and development.",
       "mode": "DEVELOPMENT",
       "category": "build-error",
       "priority": "high",
-      "status": "in_progress",
+      "status": "pending",
       "dependencies": [],
       "important_files": [
         "Gemfile"
@@ -75,14 +141,20 @@
       "subtasks": [],
       "created_at": "2025-09-03T05:16:15.679Z",
       "auto_research_created": false,
-      "started_at": "2025-09-03T05:24:30.622Z",
-      "claimed_by": "agent_1756877070622",
-      "assigned_agent": "agent_1756877070622",
+      "started_at": null,
+      "claimed_by": null,
+      "assigned_agent": null,
       "agent_assignment_history": [
         {
           "agent": "agent_1756877070622",
           "action": "claimed",
           "timestamp": "2025-09-03T05:24:30.622Z"
+        },
+        {
+          "agent": "system",
+          "action": "auto_reset_stale",
+          "timestamp": "2025-09-03T05:46:49.214Z",
+          "reason": "Task stale for 22 minutes"
         }
       ]
     },
@@ -93,7 +165,7 @@
       "mode": "DEVELOPMENT",
       "category": "build-error",
       "priority": "high",
-      "status": "in_progress",
+      "status": "pending",
       "dependencies": [],
       "important_files": [
         "Gemfile",
@@ -109,56 +181,22 @@
       "subtasks": [],
       "created_at": "2025-09-03T05:16:12.502Z",
       "auto_research_created": false,
-      "started_at": "2025-09-03T05:27:02.963Z",
-      "claimed_by": "agent_1756877222963",
-      "assigned_agent": "agent_1756877222963",
+      "started_at": null,
+      "claimed_by": null,
+      "assigned_agent": null,
       "agent_assignment_history": [
         {
           "agent": "agent_1756877222963",
           "action": "claimed",
           "timestamp": "2025-09-03T05:27:02.963Z"
+        },
+        {
+          "agent": "system",
+          "action": "auto_reset_stale",
+          "timestamp": "2025-09-03T05:46:49.214Z",
+          "reason": "Task stale for 20 minutes"
         }
       ]
-    },
-    {
-      "id": "task_1756876574703_e4q7szhrl",
-      "title": "Install and configure database system (MySQL or PostgreSQL)",
-      "description": "Huginn requires either MySQL or PostgreSQL. System has PostgreSQL available via psql but no MySQL. Configure database system and connection for development environment.",
-      "mode": "DEVELOPMENT",
-      "category": "missing-feature",
-      "priority": "high",
-      "status": "pending",
-      "dependencies": [],
-      "important_files": [
-        "config/database.yml",
-        ".env"
-      ],
-      "success_criteria": [
-        "Database system is installed and running",
-        "Database connection is configured",
-        "Can connect to database successfully"
-      ],
-      "estimate": "",
-      "requires_research": true,
-      "subtasks": [],
-      "created_at": "2025-09-03T05:16:14.710Z",
-      "auto_research_created": true
-    },
-    {
-      "id": "task_1756874454346_review2",
-      "title": "Review Strike 2: Verify no lint errors exist in the codebase with enterprise-grade standards",
-      "description": "Perform a comprehensive code review with focus on: Verify no lint errors exist in the codebase with enterprise-grade standards\n\nCheck the entire codebase and ensure this criterion is met.\n\n## CRITICAL FAILURE RESPONSE PROTOCOL\n\nIF LINT ERRORS FOUND: Create specific tasks with appropriate categories to achieve zero lint errors:\n- Linting tool setup and configuration tasks (category: 'linter-error')\n- Code style correction tasks (category: 'linter-error')\n- Import organization tasks (category: 'linter-error')\n- Naming convention fixes tasks (category: 'linter-error')\n- Dead code removal tasks (category: 'refactor')\n\nCRITICAL: Use TaskManager API to add these tasks immediately when lint errors are detected. Follow production-ready standards, not quick fixes.\n\n## SUCCESS CRITERIA\n- Mark this review task as completed ONLY if the criterion is fully met\n- If criterion fails, you MUST create remediation tasks using TaskManager API before marking review as completed\n- All new tasks should be actionable, specific, and include proper dependencies/important_files parameters\n\n## TASK CREATION REQUIREMENT\nWhen creating remediation tasks, ensure each task includes:\n- Clear success criteria\n- Appropriate category (linter-error, build-error, missing-feature, bug, enhancement, etc.)\n- Specific file dependencies\n- Realistic time estimates\n- High priority for critical issues\n- Production-ready implementation requirements\n\nUse the task-creation.md guidelines for optimal task structure.",
-      "mode": "REVIEWER",
-      "category": "chore",
-      "priority": "high",
-      "status": "pending",
-      "dependencies": [],
-      "important_files": [],
-      "requires_research": false,
-      "created_at": "2025-09-03T04:40:54.345Z",
-      "subtasks": [],
-      "is_review_task": true,
-      "strike_number": 2
     },
     {
       "id": "task_1756874454347_review3",
@@ -175,6 +213,61 @@
       "subtasks": [],
       "is_review_task": true,
       "strike_number": 3
+    },
+    {
+      "id": "task_1756878361815_t0u3lunej",
+      "title": "Fix Ruby method complexity and size violations",
+      "description": "Address the method and class complexity issues found by rubocop including methods too long (>10 lines), classes too long (>100 lines), cyclomatic complexity >7, and ABC size violations. Refactor code for maintainability.",
+      "mode": "DEVELOPMENT",
+      "category": "linter-error",
+      "priority": "high",
+      "status": "pending",
+      "dependencies": [
+        "task_1756878353167_4yra253ul"
+      ],
+      "important_files": [
+        "app/models/agent.rb",
+        "app/controllers/",
+        "app/models/agents/"
+      ],
+      "success_criteria": [
+        "All Metrics/* cop violations resolved",
+        "Methods refactored to meet size limits",
+        "Class complexity reduced to acceptable levels"
+      ],
+      "estimate": "",
+      "requires_research": false,
+      "subtasks": [],
+      "created_at": "2025-09-03T05:46:01.815Z",
+      "auto_research_created": false
+    },
+    {
+      "id": "task_1756878368879_n4y56ajgt",
+      "title": "Add missing class and module documentation comments",
+      "description": "Add comprehensive documentation comments to all classes and modules that are missing Style/Documentation annotations. Ensure all public classes have proper RDoc-style documentation explaining their purpose, usage, and examples.",
+      "mode": "DEVELOPMENT",
+      "category": "linter-error",
+      "priority": "medium",
+      "status": "pending",
+      "dependencies": [
+        "task_1756878353167_4yra253ul"
+      ],
+      "important_files": [
+        "app/models/",
+        "app/controllers/",
+        "app/concerns/",
+        "lib/"
+      ],
+      "success_criteria": [
+        "All Style/Documentation violations resolved",
+        "Every class and module has descriptive documentation",
+        "Documentation follows RDoc standards"
+      ],
+      "estimate": "",
+      "requires_research": false,
+      "subtasks": [],
+      "created_at": "2025-09-03T05:46:08.879Z",
+      "auto_research_created": false
     },
     {
       "id": "task_1756874454344_9edq6zlub",
@@ -200,33 +293,6 @@
   "strikes_completed_last_run": false,
   "last_hook_activation": 1756874454344,
   "agents": {
-    "development_session_1756877018643_1_general_820a38a3": {
-      "name": "development Agent",
-      "role": "development",
-      "specialization": [],
-      "status": "active",
-      "assignedTasks": [],
-      "lastHeartbeat": "2025-09-03T05:23:38.644Z",
-      "parentAgentId": null,
-      "capabilities": [
-        "file-operations",
-        "linting",
-        "testing",
-        "build-fixes",
-        "refactoring"
-      ],
-      "workload": 0,
-      "maxConcurrentTasks": 5,
-      "createdAt": "2025-09-03T05:23:38.644Z",
-      "sessionId": "session_1756877018643",
-      "metadata": {
-        "renewedAt": "2025-09-03T05:40:08.886Z",
-        "renewalReason": "Agent reinitialization requested"
-      },
-      "lastRenewal": "2025-09-03T05:26:55.820Z",
-      "renewalCount": 1,
-      "agentId": "development_session_1756877018643_1_general_820a38a3"
-    },
     "development_session_1756878070337_1_general_f9b109e6": {
       "name": "development Agent",
       "role": "development",
@@ -246,7 +312,13 @@
       "maxConcurrentTasks": 5,
       "createdAt": "2025-09-03T05:41:10.337Z",
       "sessionId": "session_1756878070337",
-      "metadata": {}
+      "metadata": {
+        "renewedAt": "2025-09-03T05:46:55.680Z",
+        "renewalReason": "Agent reinitialization requested"
+      },
+      "lastRenewal": "2025-09-03T05:46:55.680Z",
+      "renewalCount": 1,
+      "agentId": "development_session_1756878070337_1_general_f9b109e6"
     }
   },
   "current_task_index": 0,

@@ -1,4 +1,7 @@
+# frozen_string_literal: true
+
 module TumblrConcern
+
   extend ActiveSupport::Concern
 
   included do
@@ -8,11 +11,11 @@ module TumblrConcern
   end
 
   def tumblr_consumer_key
-    ENV['TUMBLR_OAUTH_KEY']
+    ENV.fetch('TUMBLR_OAUTH_KEY', nil)
   end
 
   def tumblr_consumer_secret
-    ENV['TUMBLR_OAUTH_SECRET']
+    ENV.fetch('TUMBLR_OAUTH_SECRET', nil)
   end
 
   def tumblr_oauth_token
@@ -30,7 +33,8 @@ module TumblrConcern
       config.oauth_token = tumblr_oauth_token
       config.oauth_token_secret = tumblr_oauth_token_secret
     end
-    
+
     Tumblr::Client.new
   end
+
 end

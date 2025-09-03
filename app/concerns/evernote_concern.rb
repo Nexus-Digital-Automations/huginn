@@ -1,4 +1,7 @@
+# frozen_string_literal: true
+
 module EvernoteConcern
+
   extend ActiveSupport::Concern
 
   included do
@@ -13,24 +16,24 @@ module EvernoteConcern
 
   def evernote_client
     EvernoteOAuth::Client.new(
-      token:           evernote_oauth_token,
-      consumer_key:    evernote_consumer_key,
+      token: evernote_oauth_token,
+      consumer_key: evernote_consumer_key,
       consumer_secret: evernote_consumer_secret,
-      sandbox:         use_sandbox?
+      sandbox: use_sandbox?
     )
   end
 
   private
 
   def use_sandbox?
-    ENV["USE_EVERNOTE_SANDBOX"] == "true"
+    ENV['USE_EVERNOTE_SANDBOX'] == 'true'
   end
 
   def validate_evernote_options
     unless evernote_consumer_key.present? &&
-      evernote_consumer_secret.present? &&
-      evernote_oauth_token.present?
-      errors.add(:base, "Evernote ENV variables and a Service are required")
+           evernote_consumer_secret.present? &&
+           evernote_oauth_token.present?
+      errors.add(:base, 'Evernote ENV variables and a Service are required')
     end
   end
 
@@ -43,6 +46,7 @@ module EvernoteConcern
   end
 
   def evernote_oauth_token
-    service && service.token
+    service&.token
   end
+
 end

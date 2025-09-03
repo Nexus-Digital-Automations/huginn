@@ -1,19 +1,22 @@
+# frozen_string_literal: true
+
 module DotHelper
+
   def render_agents_diagram(agents, layout: nil)
-    if svg = dot_to_svg(agents_dot(agents, rich: true, layout:))
+    if (svg = dot_to_svg(agents_dot(agents, rich: true, layout:)))
       decorate_svg(svg, agents).html_safe
     else
       # Google chart request url
-      faraday = Faraday.new { |builder|
+      faraday = Faraday.new do |builder|
         builder.request :url_encoded
         builder.adapter Faraday.default_adapter
-      }
+      end
       response = faraday.post('https://chart.googleapis.com/chart', { cht: 'gv', chl: agents_dot(agents) })
 
       case response.status
       when 200
         # Display Base64-Encoded images
-        tag('img', src: 'data:image/jpg;base64,' + Base64.encode64(response.body))
+        tag('img', src: "data:image/jpg;base64,#{Base64.encode64(response.body)}")
       when 400
         "The diagram can't be displayed because it has too many nodes. Max allowed is 80."
       when 413
@@ -24,18 +27,8 @@ module DotHelper
     end
   end
 
-  private def dot_to_svg(dot)
-    command = ENV['USE_GRAPHVIZ_DOT'] or return nil
-
-    IO.popen(%W[#{command} -Tsvg -q1 -o/dev/stdout /dev/stdin], 'w+') do |rw|
-      rw.print dot
-      rw.close_write
-      rw.read
-    rescue StandardError
-    end
-  end
-
   class DotDrawer
+
     def initialize(vars = {})
       @dot = ''
       vars.each do |key, value|
@@ -47,9 +40,9 @@ module DotHelper
       @dot
     end
 
-    def self.draw(*args, &block)
+    def self.draw(*args, &)
       drawer = new(*args)
-      drawer.instance_exec(&block)
+      drawer.instance_exec(&)
       drawer.to_s
     end
 
@@ -57,7 +50,7 @@ module DotHelper
       @dot << string
     end
 
-    ENDL = ';'.freeze
+    ENDL = ';'
 
     def endl
       @dot << ENDL
@@ -67,9 +60,9 @@ module DotHelper
       # Backslash escaping seems to work for the backslash itself,
       # though it's not documented in the DOT language docs.
       string.gsub(/[\\"\n]/,
-                  "\\" => "\\\\",
-                  "\"" => "\\\"",
-                  "\n" => "\\n")
+                  '\\' => '\\\\',
+                  '"' => '\"',
+                  "\n" => '\\n')
     end
 
     def id(value)
@@ -84,10 +77,10 @@ module DotHelper
     end
 
     def ids(values)
-      values.each_with_index { |id, i|
-        raw ' ' if i > 0
+      values.each_with_index do |id, i|
+        raw ' ' if i.positive?
         id id
-      }
+      end
     end
 
     def attr_list(attrs = nil)
@@ -97,12 +90,12 @@ module DotHelper
       return if attrs.empty?
 
       raw '['
-      attrs.each_with_index { |(key, value), i|
-        raw ',' if i > 0
+      attrs.each_with_index do |(key, value), i|
+        raw ',' if i.positive?
         id key
         raw '='
         id value
-      }
+      end
       raw ']'
     end
 
@@ -126,31 +119,43 @@ module DotHelper
       endl
     end
 
-    def block(*ids, &block)
+    def block(*ids)
       ids ids
       raw '{'
-      block.call
+      yield
       raw '}'
     end
+
   end
 
   private
 
-  def draw(vars = {}, &block)
-    DotDrawer.draw(vars, &block)
+    def dot_to_svg(dot)
+        command = ENV.fetch('USE_GRAPHVIZ_DOT', nil) or return nil
+
+        IO.popen(%W[#{command} -Tsvg -q1 -o/dev/stdout /dev/stdin], 'w+') do |rw|
+          rw.print dot
+          rw.close_write
+          rw.read
+        rescue StandardError
+        end
+    end
+
+  def draw(vars = {}, &)
+    DotDrawer.draw(vars, &)
   end
 
   def agents_dot(agents, rich: false, layout: nil)
     draw(agents:,
          agent_id: ->(agent) { 'a%d' % agent.id },
-         agent_label: ->(agent) {
-           agent.name.gsub(/(.{20}\S*)\s+/) {
+         agent_label: lambda { |agent|
+           agent.name.gsub(/(.{20}\S*)\s+/) do
              # Fold after every 20+ characters
-             $1 + "\n"
-           }
+             "#{::Regexp.last_match(1)}\n"
+           end
          },
          agent_url: ->(agent) { agent_path(agent.id) },
-         rich:) {
+         rich:) do
       @disabled = '#999999'
 
       def agent_node(agent)
@@ -172,11 +177,9 @@ module DotHelper
              color: (@disabled if agent.unavailable? || receiver.unavailable?))
       end
 
-      block('digraph', 'Agent Event Flow') {
+      block('digraph', 'Agent Event Flow') do
         layout ||= ENV['DIAGRAM_DEFAULT_LAYOUT'].presence
-        if rich && /\A[a-z]+\z/ === layout
-          statement 'graph', layout:, overlap: 'false'
-        end
+        statement 'graph', layout:, overlap: 'false' if rich && /\A[a-z]+\z/ === layout
         statement 'node',
                   shape: 'box',
                   style: 'rounded',
@@ -188,46 +191,46 @@ module DotHelper
                   fontsize: 10,
                   fontname: ('Helvetica' if rich)
 
-        agents.each.with_index { |agent, _index|
+        agents.each.with_index do |agent, _index|
           agent_node(agent)
 
           [
             *agent.receivers,
-            *(agent.control_targets if agent.can_control_other_agents?)
-          ].each { |receiver|
+            *(agent.control_targets if agent.can_control_other_agents?),
+          ].each do |receiver|
             agent_edge(agent, receiver) if agents.include?(receiver)
-          }
-        }
-      }
-    }
+          end
+        end
+      end
+    end
   end
 
   def decorate_svg(xml, agents)
     svg = Nokogiri::XML(xml).at('svg')
 
-    Nokogiri::HTML::Document.new.tap { |doc|
-      doc << root = Nokogiri::XML::Node.new('div', doc) { |div|
+    Nokogiri::HTML::Document.new.tap do |doc|
+      doc << root = Nokogiri::XML::Node.new('div', doc) do |div|
         div['class'] = 'agent-diagram'
-      }
+      end
 
       svg['class'] = 'diagram'
 
       root << svg
-      root << overlay_container = Nokogiri::XML::Node.new('div', doc) { |div|
+      root << overlay_container = Nokogiri::XML::Node.new('div', doc) do |div|
         div['class'] = 'overlay-container'
-      }
-      overlay_container << overlay = Nokogiri::XML::Node.new('div', doc) { |div|
+      end
+      overlay_container << overlay = Nokogiri::XML::Node.new('div', doc) do |div|
         div['class'] = 'overlay'
-      }
+      end
 
-      svg.xpath('//xmlns:g[@class="node"]', svg.namespaces).each { |node|
+      svg.xpath('//xmlns:g[@class="node"]', svg.namespaces).each do |node|
         agent_id = (node.xpath('./xmlns:title/text()', svg.namespaces).to_s[/\d+/] or next).to_i
         agent = agents.find { |a| a.id == agent_id }
 
         count = agent.events_count
-        next unless count && count > 0
+        next unless count && count.positive?
 
-        overlay << Nokogiri::XML::Node.new('a', doc) { |badge|
+        overlay << Nokogiri::XML::Node.new('a', doc) do |badge|
           badge['id'] = id = 'b%d' % agent_id
           badge['class'] = 'badge'
           badge['href'] = agent_events_path(agent)
@@ -237,7 +240,7 @@ module DotHelper
 
           node['data-badge-id'] = id
 
-          badge << Nokogiri::XML::Node.new('span', doc) { |label|
+          badge << Nokogiri::XML::Node.new('span', doc) do |label|
             # a dummy label only to obtain the background color
             label['class'] = [
               'label',
@@ -247,13 +250,14 @@ module DotHelper
                 'label-success'
               else
                 'label-danger'
-              end
+              end,
             ].join(' ')
             label['style'] = 'display: none'
-          }
-        }
-      }
+          end
+        end
+      end
       # See also: app/assets/diagram.js
-    }.at('div.agent-diagram').to_s
+    end.at('div.agent-diagram').to_s
   end
+
 end

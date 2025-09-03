@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 module EventHeadersConcern
+
   private
 
   def validate_event_headers_options!
@@ -31,7 +32,7 @@ module EventHeadersConcern
     when nil, String
       key.presence
     else
-      raise ArgumentError, "if provided, event_headers_key must be a string"
+      raise ArgumentError, 'if provided, event_headers_key must be a string'
     end
   end
 
@@ -51,11 +52,12 @@ module EventHeadersConcern
       when nil
         nil
       else
-        raise ArgumentError, "if provided, event_headers must be an array of strings or a comma separated string"
+        raise ArgumentError, 'if provided, event_headers must be an array of strings or a comma separated string'
       end
 
     {
-      key => names ? hash.slice(*names.map(&normalize)) : hash
+      key => names ? hash.slice(*names.map(&normalize)) : hash,
     }
   end
+
 end

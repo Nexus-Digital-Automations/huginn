@@ -1,5 +1,9 @@
+# frozen_string_literal: true
+
 module Agents
+
   class ChangeDetectorAgent < Agent
+
     cannot_be_scheduled!
 
     description <<~MD
@@ -27,13 +31,13 @@ module Agents
     def default_options
       {
         'property' => '{{output}}',
-        'expected_update_period_in_days' => 1
+        'expected_update_period_in_days' => 1,
       }
     end
 
     def validate_options
       unless options['property'].present? && options['expected_update_period_in_days'].present?
-        errors.add(:base, "The property and expected_update_period_in_days fields are all required.")
+        errors.add(:base, 'The property and expected_update_period_in_days fields are all required.')
       end
     end
 
@@ -70,11 +74,13 @@ module Agents
     end
 
     def last_property
-      self.memory['last_property']
+      memory['last_property']
     end
 
     def update_memory(property)
-      self.memory['last_property'] = property
+      memory['last_property'] = property
     end
+
   end
+
 end

@@ -1,14 +1,17 @@
+# frozen_string_literal: true
+
 require 'ostruct'
 
 # This is a helper class for managing Scenario imports, used by the ScenarioImportsController.  This class behaves much
 # like a normal ActiveRecord object, with validations and callbacks.  However, it is never persisted to the database.
 class ScenarioImport
+
   include ActiveModel::Model
   include ActiveModel::Callbacks
   include ActiveModel::Validations::Callbacks
 
-  DANGEROUS_AGENT_TYPES = %w[Agents::ShellCommandAgent]
-  URL_REGEX = /\Ahttps?:\/\//i
+  DANGEROUS_AGENT_TYPES = %w[Agents::ShellCommandAgent].freeze
+  URL_REGEX = %r{\Ahttps?://}i
 
   attr_accessor :file, :url, :data, :do_import, :merges
 
@@ -18,7 +21,8 @@ class ScenarioImport
   before_validation :fetch_url
 
   validate :validate_presence_of_file_url_or_data
-  validates_format_of :url, :with => URL_REGEX, :allow_nil => true, :allow_blank => true, :message => "appears to be invalid"
+  validates_format_of :url, with: URL_REGEX, allow_nil: true, allow_blank: true,
+                            message: 'appears to be invalid'
   validate :validate_data
   validate :generate_diff
 
@@ -35,7 +39,7 @@ class ScenarioImport
   end
 
   def existing_scenario
-    @existing_scenario ||= user.scenarios.find_by(:guid => parsed_data["guid"])
+    @existing_scenario ||= user.scenarios.find_by(guid: parsed_data['guid'])
   end
 
   def dangerous?
@@ -43,7 +47,11 @@ class ScenarioImport
   end
 
   def parsed_data
-    @parsed_data ||= (data && JSON.parse(data) rescue {}) || {}
+    @parsed_data ||= begin
+                       data && JSON.parse(data)
+    rescue StandardError
+                       {}
+    end || {}
   end
 
   def agent_diffs
@@ -51,7 +59,7 @@ class ScenarioImport
   end
 
   def import_confirmed?
-    do_import == "1"
+    do_import == '1'
   end
 
   def import(options = {})
@@ -65,21 +73,21 @@ class ScenarioImport
     tag_bg_color = parsed_data['tag_bg_color']
     icon = parsed_data['icon']
     source_url = parsed_data['source_url'].presence || nil
-    @scenario = user.scenarios.where(:guid => guid).first_or_initialize
+    @scenario = user.scenarios.where(guid: guid).first_or_initialize
     @scenario.update!(name: name, description: description,
-                                 source_url: source_url, public: false,
-                                 tag_fg_color: tag_fg_color,
-                                 tag_bg_color: tag_bg_color,
-                                 icon: icon)
+                      source_url: source_url, public: false,
+                      tag_fg_color: tag_fg_color,
+                      tag_bg_color: tag_bg_color,
+                      icon: icon)
 
     unless options[:skip_agents]
       created_agents = agent_diffs.map do |agent_diff|
-        agent = agent_diff.agent || Agent.build_for_type("Agents::" + agent_diff.type.incoming, user)
+        agent = agent_diff.agent || Agent.build_for_type("Agents::#{agent_diff.type.incoming}", user)
         agent.guid = agent_diff.guid.incoming
-        agent.attributes = { :name => agent_diff.name.updated,
-                             :disabled => agent_diff.disabled.updated, # == "true"
-                             :options => agent_diff.options.updated,
-                             :scenario_ids => [@scenario.id] }
+        agent.attributes = { name: agent_diff.name.updated,
+                             disabled: agent_diff.disabled.updated, # == "true"
+                             options: agent_diff.options.updated,
+                             scenario_ids: [@scenario.id] }
         agent.schedule = agent_diff.schedule.updated if agent_diff.schedule.present?
         agent.keep_events_for = agent_diff.keep_events_for.updated if agent_diff.keep_events_for.present?
         agent.propagate_immediately = agent_diff.propagate_immediately.updated if agent_diff.propagate_immediately.present? # == "true"
@@ -116,22 +124,22 @@ class ScenarioImport
   protected
 
   def parse_file
-    if data.blank? && file.present?
-      self.data = file.read.force_encoding(Encoding::UTF_8)
-    end
+    self.data = file.read.force_encoding(Encoding::UTF_8) if data.blank? && file.present?
   end
 
   def fetch_url
-    if data.blank? && url.present? && url =~ URL_REGEX
-      self.data = Faraday.get(url).body
-    end
+    self.data = Faraday.get(url).body if data.blank? && url.present? && url =~ URL_REGEX
   end
 
   def validate_data
     if data.present?
-      @parsed_data = JSON.parse(data) rescue {}
-      if (%w[name guid agents] - @parsed_data.keys).length > 0
-        errors.add(:base, "The provided data does not appear to be a valid Scenario.")
+      @parsed_data = begin
+                       JSON.parse(data)
+      rescue StandardError
+                       {}
+      end
+      if (%w[name guid agents] - @parsed_data.keys).length.positive?
+        errors.add(:base, 'The provided data does not appear to be a valid Scenario.')
         self.data = nil
       end
     else
@@ -141,7 +149,7 @@ class ScenarioImport
 
   def validate_presence_of_file_url_or_data
     unless file.present? || url.present? || data.present?
-      errors.add(:base, "Please provide either a Scenario JSON File or a Public Scenario URL.")
+      errors.add(:base, 'Please provide either a Scenario JSON File or a Public Scenario URL.')
     end
   end
 
@@ -151,7 +159,7 @@ class ScenarioImport
       agent_diff = AgentDiff.new(agent_data, parsed_data['schema_version'])
       if existing_scenario
         # If this Agent exists already, update the AgentDiff with the local version's information.
-        agent_diff.diff_with! existing_scenario.agents.find_by(:guid => agent_data['guid'])
+        agent_diff.diff_with! existing_scenario.agents.find_by(guid: agent_data['guid'])
 
         begin
           # Update the AgentDiff with any hand-merged changes coming from the UI.  This only happens when this
@@ -172,7 +180,9 @@ class ScenarioImport
   # of either one or two values.  The first value is the incoming value, the second is the existing value, if
   # it differs from the incoming value.
   class AgentDiff < OpenStruct
+
     class FieldDiff
+
       attr_accessor :incoming, :current, :updated
 
       def initialize(incoming)
@@ -188,6 +198,7 @@ class ScenarioImport
       def requires_merge?
         @requires_merge
       end
+
     end
 
     def initialize(agent_data, schema_version)
@@ -198,8 +209,8 @@ class ScenarioImport
       store! agent_data
     end
 
-    BASE_FIELDS = %w[name schedule keep_events_for propagate_immediately disabled guid]
-    FIELDS_REQUIRING_TRANSLATION = %w[keep_events_for]
+    BASE_FIELDS = %w[name schedule keep_events_for propagate_immediately disabled guid].freeze
+    FIELDS_REQUIRING_TRANSLATION = %w[keep_events_for].freeze
 
     def agent_exists?
       !!agent
@@ -214,14 +225,14 @@ class ScenarioImport
     end
 
     def store!(agent_data)
-      self.type = FieldDiff.new(agent_data["type"].split("::").pop)
+      self.type = FieldDiff.new(agent_data['type'].split('::').pop)
       self.options = FieldDiff.new(agent_data['options'] || {})
       BASE_FIELDS.each do |option|
-        if agent_data.has_key?(option)
-          value = agent_data[option]
-          value = send(:"translate_#{option}", value) if option.in?(FIELDS_REQUIRING_TRANSLATION)
-          self[option] = FieldDiff.new(value)
-        end
+        next unless agent_data.key?(option)
+
+        value = agent_data[option]
+        value = send(:"translate_#{option}", value) if option.in?(FIELDS_REQUIRING_TRANSLATION)
+        self[option] = FieldDiff.new(value)
       end
     end
 
@@ -251,6 +262,7 @@ class ScenarioImport
 
       BASE_FIELDS.each do |field|
         next unless self[field].present?
+
         self[field].set_current(agent.send(field))
 
         @requires_merge ||= self[field].requires_merge?
@@ -258,26 +270,32 @@ class ScenarioImport
     end
 
     def update_from!(merges)
-      each_field do |field, value, selection_options|
+      each_field do |field, value, _selection_options|
         value.updated = merges[field]
       end
 
-      if options.requires_merge?
-        options.updated = JSON.parse(merges['options'])
-      end
+      options.updated = JSON.parse(merges['options']) if options.requires_merge?
     end
 
     def each_field
-      boolean = [["True", "true"], ["False", "false"]]
+      boolean = [['True', 'true'], ['False', 'false']]
       yield 'name', name if name.requires_merge?
-      yield 'schedule', schedule, Agent::SCHEDULES.map {|s| [AgentHelper.builtin_schedule_name(s), s] } if self['schedule'].present? && schedule.requires_merge?
-      yield 'keep_events_for', keep_events_for, Agent::EVENT_RETENTION_SCHEDULES if self['keep_events_for'].present? && keep_events_for.requires_merge?
-      yield 'propagate_immediately', propagate_immediately, boolean if self['propagate_immediately'].present? && propagate_immediately.requires_merge?
+      yield 'schedule', schedule, Agent::SCHEDULES.map do |s|
+  [AgentHelper.builtin_schedule_name(s), s]
+                                  end if self['schedule'].present? && schedule.requires_merge?
+      if self['keep_events_for'].present? && keep_events_for.requires_merge?
+        yield 'keep_events_for', keep_events_for, Agent::EVENT_RETENTION_SCHEDULES
+      end
+      if self['propagate_immediately'].present? && propagate_immediately.requires_merge?
+        yield 'propagate_immediately', propagate_immediately, boolean
+      end
       yield 'disabled', disabled, boolean if disabled.requires_merge?
     end
 
     def agent_instance
-      "Agents::#{self.type.updated}".constantize.new
+      "Agents::#{type.updated}".constantize.new
     end
+
   end
+
 end

@@ -1,5 +1,9 @@
+# frozen_string_literal: true
+
 module Agents
+
   class CsvAgent < Agent
+
     include FormConfigurable
     include FileHandling
 
@@ -14,7 +18,7 @@ module Agents
         'output' => 'event_per_row',
         'with_header' => 'true',
         'data_path' => '$.data',
-        'data_key' => 'data'
+        'data_key' => 'data',
       }
     end
 
@@ -81,7 +85,7 @@ module Agents
 
       "Events will looks like this:\n\n    " +
         Utils.pretty_print({
-          interpolated['data_key'] => data
+          interpolated['data_key'] => data,
         })
     end
 
@@ -98,7 +102,7 @@ module Agents
         errors.add(:base, "The 'with_header' options is required and must be set to 'true' or 'false'")
       end
       if options['mode'] == 'serialize' && options['data_path'].blank?
-        errors.add(:base, "When mode is set to serialize data_path has to be present.")
+        errors.add(:base, 'When mode is set to serialize data_path has to be present.')
       end
     end
 
@@ -159,7 +163,7 @@ module Agents
     def parse(incoming_events)
       incoming_events.each do |event|
         mo = interpolated(event)
-        next unless io = local_get_io(event)
+        next unless (io = local_get_io(event))
 
         if mo['output'] == 'event_per_row'
           parse_csv(io, mo) do |payload|
@@ -172,7 +176,7 @@ module Agents
     end
 
     def local_get_io(event)
-      if io = get_io(event)
+      if (io = get_io(event))
         io
       else
         Utils.value_at(event.payload, interpolated['data_path'])
@@ -218,5 +222,7 @@ module Agents
     def extract_options(mo)
       mo['use_fields'].split(',').map(&:strip)
     end
+
   end
+
 end

@@ -1,9 +1,12 @@
+# frozen_string_literal: true
+
 require 'utils'
 
 # Agent is the core class in Huginn, representing a configurable, schedulable, reactive system with memory that can
 # be sub-classed for many different purposes.  Agents can emit Events, as well as receive them and react in many different ways.
 # The basic Agent API is detailed on the Huginn wiki: https://github.com/huginn/huginn/wiki/Creating-a-new-agent
 class Agent < ActiveRecord::Base
+
   include AssignableTypes
   include MarkdownClassAttributes
   include JsonSerializedField
@@ -16,7 +19,7 @@ class Agent < ActiveRecord::Base
 
   markdown_class_attributes :description, :event_description
 
-  load_types_in "Agents"
+  load_types_in 'Agents'
 
   SCHEDULES = %w[
     every_1m every_2m every_5m every_10m every_30m
@@ -25,16 +28,16 @@ class Agent < ActiveRecord::Base
     midnight 1am 2am 3am 4am 5am 6am 7am 8am 9am 10am 11am
     noon 1pm 2pm 3pm 4pm 5pm 6pm 7pm 8pm 9pm 10pm 11pm
     never
-  ]
+  ].freeze
 
   EVENT_RETENTION_SCHEDULES = [
-    ["Forever", 0], ['1 hour', 1.hour], ['6 hours', 6.hours], ["1 day", 1.day],
+    ['Forever', 0], ['1 hour', 1.hour], ['6 hours', 6.hours], ['1 day', 1.day],
     *(
-      [2, 3, 4, 5, 7, 14, 21, 30, 45, 90, 180, 365].map { |n|
+      [2, 3, 4, 5, 7, 14, 21, 30, 45, 90, 180, 365].map do |n|
         ["#{n} days", n.days]
-      }
+      end
     )
-  ]
+  ].freeze
 
   json_serialize :options, :memory
 
@@ -57,29 +60,29 @@ class Agent < ActiveRecord::Base
 
   belongs_to :user, inverse_of: :agents
   belongs_to :service, inverse_of: :agents, optional: true
-  has_many :events, -> { order("events.id desc") }, dependent: :delete_all, inverse_of: :agent
-  has_one  :most_recent_event, -> { order("events.id desc") }, inverse_of: :agent, class_name: "Event"
-  has_many :logs, -> { order("agent_logs.id desc") }, dependent: :delete_all, inverse_of: :agent, class_name: "AgentLog"
-  has_many :links_as_source, dependent: :delete_all, foreign_key: "source_id", class_name: "Link",
+  has_many :events, -> { order('events.id desc') }, dependent: :delete_all, inverse_of: :agent
+  has_one  :most_recent_event, -> { order('events.id desc') }, inverse_of: :agent, class_name: 'Event'
+  has_many :logs, -> { order('agent_logs.id desc') }, dependent: :delete_all, inverse_of: :agent, class_name: 'AgentLog'
+  has_many :links_as_source, dependent: :delete_all, foreign_key: 'source_id', class_name: 'Link',
                              inverse_of: :source
-  has_many :links_as_receiver, dependent: :delete_all, foreign_key: "receiver_id", class_name: "Link",
+  has_many :links_as_receiver, dependent: :delete_all, foreign_key: 'receiver_id', class_name: 'Link',
                                inverse_of: :receiver
-  has_many :sources, through: :links_as_receiver, class_name: "Agent", inverse_of: :receivers
-  has_many :received_events, -> { order("events.id desc") }, through: :sources, class_name: "Event", source: :events
-  has_many :receivers, through: :links_as_source, class_name: "Agent", inverse_of: :sources
+  has_many :sources, through: :links_as_receiver, class_name: 'Agent', inverse_of: :receivers
+  has_many :received_events, -> { order('events.id desc') }, through: :sources, class_name: 'Event', source: :events
+  has_many :receivers, through: :links_as_source, class_name: 'Agent', inverse_of: :sources
   has_many :control_links_as_controller, dependent: :delete_all, foreign_key: 'controller_id',
                                          class_name: 'ControlLink', inverse_of: :controller
   has_many :control_links_as_control_target, dependent: :delete_all, foreign_key: 'control_target_id',
                                              class_name: 'ControlLink', inverse_of: :control_target
-  has_many :controllers, through: :control_links_as_control_target, class_name: "Agent", inverse_of: :control_targets
-  has_many :control_targets, through: :control_links_as_controller, class_name: "Agent", inverse_of: :controllers
+  has_many :controllers, through: :control_links_as_control_target, class_name: 'Agent', inverse_of: :control_targets
+  has_many :control_targets, through: :control_links_as_controller, class_name: 'Agent', inverse_of: :controllers
   has_many :scenario_memberships, dependent: :destroy, inverse_of: :agent
   has_many :scenarios, through: :scenario_memberships, inverse_of: :agents
 
   scope :active,   -> { where(disabled: false, deactivated: false) }
   scope :inactive, -> { where(disabled: true).or(where(deactivated: true)) }
 
-  scope :of_type, ->(type) {
+  scope :of_type, lambda { |type|
     case type
     when Agent
       where(type: type.class.to_s)
@@ -109,9 +112,9 @@ class Agent < ActiveRecord::Base
     false
   end
 
-  def receive_web_request(params, method, format)
+  def receive_web_request(_params, _method, _format)
     # Implement me in your subclass of Agent.
-    ["not implemented", 404, "text/plain", {}] # last two elements in response array are optional
+    ['not implemented', 404, 'text/plain', {}] # last two elements in response array are optional
   end
 
   # alternate method signature for receive_web_request
@@ -120,7 +123,7 @@ class Agent < ActiveRecord::Base
 
   # Implement me in your subclass to decide if your Agent is working.
   def working?
-    raise "Implement me in your subclass"
+    raise 'Implement me in your subclass'
   end
 
   def build_event(event)
@@ -137,13 +140,13 @@ class Agent < ActiveRecord::Base
       event.save!
       event
     else
-      error "This Agent cannot create events!"
+      error 'This Agent cannot create events!'
     end
   end
 
   def credential(name)
     @credential_cache ||= {}
-    if @credential_cache.has_key?(name)
+    if @credential_cache.key?(name)
       @credential_cache[name]
     else
       @credential_cache[name] = user.user_credentials.where(credential_name: name).first.try(:credential_value)
@@ -156,21 +159,21 @@ class Agent < ActiveRecord::Base
   end
 
   def new_event_expiration_date
-    keep_events_for > 0 ? keep_events_for.seconds.from_now : nil
+    keep_events_for.positive? ? keep_events_for.seconds.from_now : nil
   end
 
   def update_event_expirations!
-    if keep_events_for == 0
+    if keep_events_for.zero?
       events.update_all expires_at: nil
     else
-      events.update_all "expires_at = " + rdbms_date_add("created_at", "SECOND", keep_events_for.to_i)
+      events.update_all "expires_at = #{rdbms_date_add('created_at', 'SECOND', keep_events_for.to_i)}"
     end
   end
 
   def trigger_web_request(request)
     params = request.params.except(:action, :controller, :agent_id, :user_id, :format)
     if respond_to?(:receive_webhook)
-      Rails.logger.warn "DEPRECATED: The .receive_webhook method is deprecated, please switch your Agent to use .receive_web_request."
+      Rails.logger.warn 'DEPRECATED: The .receive_webhook method is deprecated, please switch your Agent to use .receive_web_request.'
       receive_webhook(params).tap do
         self.last_web_request_at = Time.now
         save!
@@ -269,7 +272,7 @@ class Agent < ActiveRecord::Base
   end
 
   def set_last_checked_event_id
-    if can_receive_events? && newest_event_id = Event.maximum(:id)
+    if can_receive_events? && (newest_event_id = Event.maximum(:id))
       self.last_checked_event_id = newest_event_id
     end
   end
@@ -285,9 +288,7 @@ class Agent < ActiveRecord::Base
   attr_accessor :current_event
 
   def validate_schedule
-    unless cannot_be_scheduled?
-      errors.add(:schedule, "is not a valid schedule") unless SCHEDULES.include?(schedule.to_s)
-    end
+    errors.add(:schedule, 'is not a valid schedule') if !cannot_be_scheduled? && !SCHEDULES.include?(schedule.to_s)
   end
 
   def validate_options
@@ -302,8 +303,6 @@ class Agent < ActiveRecord::Base
       true
     when false, 'false'
       false
-    else
-      nil
     end
   end
 
@@ -316,20 +315,21 @@ class Agent < ActiveRecord::Base
   # Class Methods
 
   class << self
+
     def build_clone(original)
       new(original.slice(
-        :type, :options, :service_id, :schedule, :controller_ids, :control_target_ids,
-        :source_ids, :receiver_ids, :keep_events_for, :propagate_immediately, :scenario_ids
-      )) { |clone|
+            :type, :options, :service_id, :schedule, :controller_ids, :control_target_ids,
+            :source_ids, :receiver_ids, :keep_events_for, :propagate_immediately, :scenario_ids
+          )) do |clone|
         # Give it a unique name
         2.step do |i|
-          name = '%s (%d)' % [original.name, i]
+          name = format('%s (%d)', original.name, i)
           unless exists?(name:)
             clone.name = name
             break
           end
         end
-      }
+      end
     end
 
     def cannot_be_scheduled!
@@ -400,14 +400,12 @@ class Agent < ActiveRecord::Base
     def receive!(options = {})
       Agent.transaction do
         scope = Agent
-          .select("agents.id AS receiver_agent_id, sources.type AS source_agent_type, agents.type AS receiver_agent_type, events.id AS event_id")
-          .joins("JOIN links ON (links.receiver_id = agents.id)")
-          .joins("JOIN agents AS sources ON (links.source_id = sources.id)")
-          .joins("JOIN events ON (events.agent_id = sources.id AND events.id > links.event_id_at_creation)")
-          .where("NOT agents.disabled AND NOT agents.deactivated AND (agents.last_checked_event_id IS NULL OR events.id > agents.last_checked_event_id)")
-        if options[:only_receivers].present?
-          scope = scope.where("agents.id in (?)", options[:only_receivers])
-        end
+                .select('agents.id AS receiver_agent_id, sources.type AS source_agent_type, agents.type AS receiver_agent_type, events.id AS event_id')
+                .joins('JOIN links ON (links.receiver_id = agents.id)')
+                .joins('JOIN agents AS sources ON (links.source_id = sources.id)')
+                .joins('JOIN events ON (events.agent_id = sources.id AND events.id > links.event_id_at_creation)')
+                .where('NOT agents.disabled AND NOT agents.deactivated AND (agents.last_checked_event_id IS NULL OR events.id > agents.last_checked_event_id)')
+        scope = scope.where('agents.id in (?)', options[:only_receivers]) if options[:only_receivers].present?
 
         sql = scope.to_sql
 
@@ -437,7 +435,7 @@ class Agent < ActiveRecord::Base
 
         {
           agent_count: agents_to_events.keys.length,
-          event_count: agents_to_events.values.flatten.uniq.compact.length
+          event_count: agents_to_events.values.flatten.uniq.compact.length,
         }
       end
     end
@@ -464,9 +462,9 @@ class Agent < ActiveRecord::Base
     # Schedule `async_check`s for every Agent on the given schedule.  This is normally called by `run_schedule` once
     # per type of agent, so you can override this to define custom bulk check behavior for your custom Agent type.
     def bulk_check(schedule)
-      raise "Call #bulk_check on the appropriate subclass of Agent" if self == Agent
+      raise 'Call #bulk_check on the appropriate subclass of Agent' if self == Agent
 
-      where("NOT disabled AND NOT deactivated AND schedule = ?", schedule).pluck("agents.id").each do |agent_id|
+      where('NOT disabled AND NOT deactivated AND schedule = ?', schedule).pluck('agents.id').each do |agent_id|
         async_check(agent_id)
       end
     end
@@ -476,13 +474,11 @@ class Agent < ActiveRecord::Base
     def async_check(agent_id)
       AgentCheckJob.perform_later(agent_id)
     end
-  end
 
-  public def to_liquid
-    Drop.new(self)
   end
 
   class Drop < LiquidDroppable::Drop
+
     def type
       @object.short_type
     end
@@ -501,13 +497,15 @@ class Agent < ActiveRecord::Base
       disabled
       keep_events_for
       propagate_immediately
-    ]
+    ].freeze
 
-    METHODS.each { |attr|
-      define_method(attr) {
+    METHODS.each do |attr|
+      next if method_defined?(attr)
+
+      define_method(attr) do
         @object.__send__(attr)
-      } unless method_defined?(attr)
-    }
+      end
+    end
 
     def working
       @object.working?
@@ -519,5 +517,13 @@ class Agent < ActiveRecord::Base
         Rails.application.config.action_mailer.default_url_options
       )
     end
+
   end
+
+  public
+
+    def to_liquid
+        Drop.new(self)
+    end
+
 end

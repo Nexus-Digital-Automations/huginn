@@ -1,10 +1,14 @@
+# frozen_string_literal: true
+
 require 'uri'
 
 module Agents
+
   class AftershipAgent < Agent
+
     cannot_receive_events!
 
-    default_schedule "every_10m"
+    default_schedule 'every_10m'
 
     description <<~MD
       The Aftership agent allows you to track your shipment from aftership and emit them into events.
@@ -97,8 +101,8 @@ module Agents
     end
 
     def validate_options
-      errors.add(:base, "You need to specify a api key") unless options['api_key'].present?
-      errors.add(:base, "You need to specify a path request") unless options['path'].present?
+      errors.add(:base, 'You need to specify a api key') unless options['api_key'].present?
+      errors.add(:base, 'You need to specify a path request') unless options['path'].present?
     end
 
     def check
@@ -110,7 +114,7 @@ module Agents
     private
 
     def base_url
-      "https://api.aftership.com/v4/"
+      'https://api.aftership.com/v4/'
     end
 
     def event_url
@@ -120,10 +124,12 @@ module Agents
     def request_options
       {
         headers: {
-          "aftership-api-key" => interpolated['api_key'],
-          "Content-Type" => "application/json",
-        }
+          'aftership-api-key' => interpolated['api_key'],
+          'Content-Type' => 'application/json',
+        },
       }
     end
+
   end
+
 end

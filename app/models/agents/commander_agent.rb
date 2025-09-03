@@ -1,5 +1,9 @@
+# frozen_string_literal: true
+
 module Agents
+
   class CommanderAgent < Agent
+
     include AgentControllerConcern
 
     cannot_create_events!
@@ -50,5 +54,7 @@ module Agents
         end
       end
     end
+
   end
+
 end

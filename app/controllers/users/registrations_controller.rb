@@ -1,5 +1,9 @@
+# frozen_string_literal: true
+
 module Users
+
   class RegistrationsController < Devise::RegistrationsController
+
     after_action :create_default_scenario, only: :create
 
     private
@@ -7,5 +11,7 @@ module Users
     def create_default_scenario
       DefaultScenarioImporter.import(@user) if @user.persisted?
     end
+
   end
+
 end

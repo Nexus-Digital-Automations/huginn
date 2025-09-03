@@ -1,4 +1,7 @@
+# frozen_string_literal: true
+
 class EventsController < ApplicationController
+
   before_action :load_event, except: [:index, :show]
 
   def index
@@ -48,4 +51,5 @@ class EventsController < ApplicationController
   def load_event
     @event = current_user.events.find(params[:id])
   end
+
 end

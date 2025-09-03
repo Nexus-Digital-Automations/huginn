@@ -1,6 +1,9 @@
+# frozen_string_literal: true
+
 # :markup: markdown
 
 module LiquidInterpolatable
+
   extend ActiveSupport::Concern
 
   included do
@@ -15,7 +18,7 @@ module LiquidInterpolatable
 
   def validate_interpolation
     interpolated
-  rescue Liquid::ZeroDivisionError => e
+  rescue Liquid::ZeroDivisionError
     # Ignore error (likely due to possibly missing variables on "divided_by")
   rescue Liquid::Error => e
     errors.add(:options, "has an error with Liquid templating: #{e.message}")
@@ -83,9 +86,9 @@ module LiquidInterpolatable
       when String
         interpolate_string(options)
       when ActiveSupport::HashWithIndifferentAccess, Hash
-        options.each_with_object(ActiveSupport::HashWithIndifferentAccess.new) { |(key, value), memo|
+        options.each_with_object(ActiveSupport::HashWithIndifferentAccess.new) do |(key, value), memo|
           memo[key] = interpolate_options(value)
-        }
+        end
       when Array
         options.map { |value| interpolate_options(value) }
       else
@@ -110,6 +113,7 @@ module LiquidInterpolatable
   end
 
   class Context < Liquid::Context
+
     def initialize(agent)
       outer_scope = { '_agent_' => agent }
 
@@ -129,10 +133,12 @@ module LiquidInterpolatable
         other.scopes == @scopes &&
         other.registers == @registers
     end
+
   end
 
   require 'uri'
   module Filters
+
     # Percent encoding for URI conforming to RFC 3986.
     # Ref: http://tools.ietf.org/html/rfc3986#page-12
     def uri_escape(string)
@@ -191,7 +197,7 @@ module LiquidInterpolatable
             response = http.head(uri)
             case response.status
             when 301, 302, 303, 307
-              if location = response['location']
+              if (location = response['location'])
                 uri += Utils.normalize_uri(location)
                 next
               end
@@ -228,14 +234,14 @@ module LiquidInterpolatable
 
     # Escape a string for use in XPath expression
     def to_xpath(string)
-      subs = string.to_s.scan(/\G(?:\A\z|[^"]+|[^']+)/).map { |x|
+      subs = string.to_s.scan(/\G(?:\A\z|[^"]+|[^']+)/).map do |x|
         case x
         when /"/
           %('#{x}')
         else
           %("#{x}")
         end
-      }
+      end
       if subs.size == 1
         subs.first
       else
@@ -344,23 +350,23 @@ module LiquidInterpolatable
           Rails.logger
         else
           require 'logger'
-          Logger.new(STDERR)
+          Logger.new($stderr)
         end
     end
 
-    BACKSLASH = "\\".freeze
+    BACKSLASH = '\\'
 
     UNESCAPE = {
-      "a" => "\a",
-      "b" => "\b",
-      "e" => "\e",
-      "f" => "\f",
-      "n" => "\n",
-      "r" => "\r",
-      "s" => " ",
-      "t" => "\t",
-      "v" => "\v",
-    }
+      'a' => "\a",
+      'b' => "\b",
+      'e' => "\e",
+      'f' => "\f",
+      'n' => "\n",
+      'r' => "\r",
+      's' => ' ',
+      't' => "\t",
+      'v' => "\v",
+    }.freeze
 
     # Unescape a replacement text for use in the second argument of
     # gsub/sub.  The following escape sequences are recognized:
@@ -389,53 +395,63 @@ module LiquidInterpolatable
     # style character codes ("\C-x", "\M-\C-x" etc.) are also omitted
     # from this implementation.
     def unescape_replacement(s)
-      s.gsub(/\\(?:([\d+&`'\\]|k<\w+>)|u\{([[:xdigit:]]+)\}|x([[:xdigit:]]{2})|(.))/) {
-        if c = $1
+      s.gsub(/\\(?:([\d+&`'\\]|k<\w+>)|u\{([[:xdigit:]]+)\}|x([[:xdigit:]]{2})|(.))/) do
+        if (c = ::Regexp.last_match(1))
           BACKSLASH + c
-        elsif c = ($2 && [$2.to_i(16)].pack('U')) ||
-            ($3 && [$3.to_i(16)].pack('C'))
+        elsif (c = (::Regexp.last_match(2) && [::Regexp.last_match(2).to_i(16)].pack('U')) ||
+                  (::Regexp.last_match(3) && [::Regexp.last_match(3).to_i(16)].pack('C')))
           if c == BACKSLASH
             BACKSLASH + c
           else
             c
           end
         else
-          UNESCAPE[$4] || $4
+          UNESCAPE[::Regexp.last_match(4)] || ::Regexp.last_match(4)
         end
-      }
+      end
     end
+
   end
   Liquid::Template.register_filter(LiquidInterpolatable::Filters)
 
   module Tags
+
     class Credential < Liquid::Tag
+
       def initialize(tag_name, name, tokens)
         super
         @credential_name = name.strip
       end
 
       def render(context)
-        context.registers[:agent].credential(@credential_name) || ""
+        context.registers[:agent].credential(@credential_name) || ''
       end
+
     end
 
     class LineBreak < Liquid::Tag
-      def render(context)
+
+      def render(_context)
         "\n"
       end
+
     end
 
     class Uuidv4 < Liquid::Tag
-      def render(context)
+
+      def render(_context)
         SecureRandom.uuid
       end
+
     end
+
   end
   Liquid::Template.register_tag('credential', LiquidInterpolatable::Tags::Credential)
   Liquid::Template.register_tag('line_break', LiquidInterpolatable::Tags::LineBreak)
   Liquid::Template.register_tag('uuidv4', LiquidInterpolatable::Tags::Uuidv4)
 
   module Blocks
+
     # Replace every occurrence of a given regex pattern in the first
     # "in" block with the result of the "with" block in which the
     # variable `match` is set for each iteration, which can be used as
@@ -466,6 +482,7 @@ module LiquidInterpolatable
     #     John A. Doe
     #
     class RegexReplace < Liquid::Block
+
       Syntax = /\A\s*(#{Liquid::QuotedFragment})(?:\s+in)?\s*\z/
 
       def initialize(tag_name, markup, tokens)
@@ -473,7 +490,7 @@ module LiquidInterpolatable
 
         case markup
         when Syntax
-          @regexp = $1
+          @regexp = ::Regexp.last_match(1)
         else
           raise Liquid::SyntaxError, 'Syntax Error in regex_replace tag - Valid syntax: regex_replace pattern in'
         end
@@ -482,10 +499,10 @@ module LiquidInterpolatable
       end
 
       def parse(tokens)
-        if more = parse_body(@in_block, tokens)
+        return unless parse_body(@in_block, tokens)
+
           @with_block = Liquid::BlockBody.new
           parse_body(@with_block, tokens)
-        end
       end
 
       def nodelist
@@ -497,7 +514,7 @@ module LiquidInterpolatable
       end
 
       def unknown_tag(tag, markup, tokens)
-        return super unless tag == 'with'.freeze
+        return super unless tag == 'with'
 
         @with_block = Liquid::BlockBody.new
       end
@@ -511,7 +528,7 @@ module LiquidInterpolatable
 
         subject = @in_block.render(context)
 
-        subject.send(first? ? :sub : :gsub, regexp) {
+        subject.send(first? ? :sub : :gsub, regexp) do
           next '' unless @with_block
 
           m = Regexp.last_match
@@ -519,17 +536,20 @@ module LiquidInterpolatable
             m.names.each do |name|
               context[name] = m[name]
             end
-            context['match'.freeze] = m
+            context['match'] = m
             @with_block.render(context)
           end
-        }
+        end
       end
 
       def first?
-        @tag_name.end_with?('_first'.freeze)
+        @tag_name.end_with?('_first')
       end
+
     end
+
   end
   Liquid::Template.register_tag('regex_replace',       LiquidInterpolatable::Blocks::RegexReplace)
   Liquid::Template.register_tag('regex_replace_first', LiquidInterpolatable::Blocks::RegexReplace)
+
 end

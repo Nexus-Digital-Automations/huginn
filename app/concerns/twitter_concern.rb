@@ -1,4 +1,7 @@
+# frozen_string_literal: true
+
 module TwitterConcern
+
   extend ActiveSupport::Concern
 
   included do
@@ -7,19 +10,19 @@ module TwitterConcern
     validate :validate_twitter_options
     valid_oauth_providers :twitter
 
-    gem_dependency_check {
+    gem_dependency_check do
       defined?(Twitter) &&
         Devise.omniauth_providers.include?(:twitter) &&
         ENV['TWITTER_OAUTH_KEY'].present? &&
         ENV['TWITTER_OAUTH_SECRET'].present?
-    }
+    end
   end
 
   def validate_twitter_options
     unless twitter_consumer_key.present? &&
-        twitter_consumer_secret.present? &&
-        twitter_oauth_token.present? &&
-        twitter_oauth_token_secret.present?
+           twitter_consumer_secret.present? &&
+           twitter_oauth_token.present? &&
+           twitter_oauth_token_secret.present?
       errors.add(
         :base,
         "Twitter consumer_key, consumer_secret, oauth_token, and oauth_token_secret are required to authenticate with the Twitter API.  You can provide these as options to this Agent, or as Credentials with the same names, but starting with 'twitter_'."
@@ -36,11 +39,11 @@ module TwitterConcern
   end
 
   def twitter_oauth_token
-    service && service.token
+    service&.token
   end
 
   def twitter_oauth_token_secret
-    service && service.secret
+    service&.secret
   end
 
   def twitter
@@ -56,7 +59,7 @@ module TwitterConcern
     '&amp;' => '&',
     '&lt;' => '<',
     '&gt;' => '>',
-  }
+  }.freeze
   RE_HTML_ENTITIES = Regexp.union(HTML_ENTITIES.keys)
 
   def format_tweet(tweet)
@@ -76,12 +79,12 @@ module TwitterConcern
 
     text = (attrs[:full_text] || attrs[:text])&.dup or return attrs
 
-    expanded_text = text.dup.tap { |text|
+    expanded_text = text.dup.tap do |text|
       attrs.dig(:entities, :urls)&.reverse_each do |entity|
         from, to = entity[:indices]
         text[from...to] = entity[:expanded_url]
       end
-    }
+    end
     text.gsub!(RE_HTML_ENTITIES, HTML_ENTITIES)
     expanded_text.gsub!(RE_HTML_ENTITIES, HTML_ENTITIES)
 
@@ -94,11 +97,12 @@ module TwitterConcern
   module_function :format_tweet
 
   module ClassMethods
+
     def twitter_dependencies_missing
       if ENV['TWITTER_OAUTH_KEY'].blank? || ENV['TWITTER_OAUTH_SECRET'].blank?
-        "## Set TWITTER_OAUTH_KEY and TWITTER_OAUTH_SECRET in your environment to use Twitter Agents."
+        '## Set TWITTER_OAUTH_KEY and TWITTER_OAUTH_SECRET in your environment to use Twitter Agents.'
       elsif !defined?(Twitter) || !Devise.omniauth_providers.include?(:twitter)
-        "## Include the `twitter`, `omniauth-twitter`, and `cantino-twitter-stream` gems in your Gemfile to use Twitter Agents."
+        '## Include the `twitter`, `omniauth-twitter`, and `cantino-twitter-stream` gems in your Gemfile to use Twitter Agents.'
       end
     end
 
@@ -128,10 +132,13 @@ module TwitterConcern
         }
       MD
     end
+
   end
+
 end
 
 class Twitter::Error
+
   remove_const :FORBIDDEN_MESSAGES
 
   FORBIDDEN_MESSAGES = proc do |message|
@@ -149,4 +156,5 @@ class Twitter::Error
       Twitter::Error::AlreadyRetweeted
     end
   end
+
 end

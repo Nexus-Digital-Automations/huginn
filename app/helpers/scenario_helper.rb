@@ -1,8 +1,11 @@
+# frozen_string_literal: true
+
 module ScenarioHelper
+
   def style_colors(scenario)
     {
       color: scenario.tag_fg_color || default_scenario_fg_color,
-      background_color: scenario.tag_bg_color || default_scenario_bg_color
+      background_color: scenario.tag_bg_color || default_scenario_bg_color,
     }.map { |key, value| "#{key.to_s.dasherize}:#{value}" }.join(';')
   end
 
@@ -18,4 +21,5 @@ module ScenarioHelper
   def default_scenario_fg_color
     '#FFFFFF'
   end
+
 end

@@ -1,4 +1,7 @@
+# frozen_string_literal: true
+
 module DryRunnable
+
   extend ActiveSupport::Concern
 
   def dry_run!(event = nil)
@@ -6,15 +9,15 @@ module DryRunnable
 
     log = StringIO.new
     @dry_run_started_at = Time.zone.now
-    @dry_run_logger = Logger.new(log).tap { |logger|
+    @dry_run_logger = Logger.new(log).tap do |logger|
       logger.formatter = proc { |severity, datetime, progname, message|
-        elapsed_time = '%02d:%02d:%02d' % 2.times.inject([datetime - @dry_run_started_at]) { |(x, *xs)|
+        elapsed_time = format('%02d:%02d:%02d', 2.times.inject([datetime - @dry_run_started_at]) do |(x, *xs)|
           [*x.divmod(60), *xs]
-        }
+        end)
 
         "[#{elapsed_time}] #{severity} -- #{progname}: #{message}\n"
       }
-    }
+    end
     @dry_run_results = {
       events: [],
     }
@@ -26,7 +29,7 @@ module DryRunnable
       @dry_run_started_at = Time.zone.now
       @dry_run_logger.info('Dry Run started')
       if event
-        raise "This agent cannot receive an event!" unless can_receive_events?
+        raise 'This agent cannot receive an event!' unless can_receive_events?
 
         receive([event])
       else
@@ -40,7 +43,7 @@ module DryRunnable
 
     @dry_run_results.update(
       memory:,
-      log: log.string,
+      log: log.string
     )
   ensure
     @dry_run = false
@@ -55,6 +58,7 @@ module DryRunnable
   end
 
   module Wrapper
+
     attr_accessor :results
 
     def logger
@@ -99,8 +103,10 @@ module DryRunnable
         @dry_run_results[:events] << event.payload
         event
       else
-        error "This Agent cannot create events!"
+        error 'This Agent cannot create events!'
       end
     end
+
   end
+
 end

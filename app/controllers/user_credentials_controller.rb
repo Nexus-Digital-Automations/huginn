@@ -1,4 +1,7 @@
+# frozen_string_literal: true
+
 class UserCredentialsController < ApplicationController
+
   include SortableTable
 
   def index
@@ -8,9 +11,9 @@ class UserCredentialsController < ApplicationController
 
     respond_to do |format|
       format.html
-      format.json {
+      format.json do
         send_data Utils.pretty_jsonify(@user_credentials.limit(nil).as_json), disposition: 'attachment'
-      }
+      end
     end
   end
 
@@ -19,18 +22,21 @@ class UserCredentialsController < ApplicationController
       file = params[:file]
       content = JSON.parse(file.read)
       new_credentials = content.map do |hash|
-        current_user.user_credentials.build(hash.slice("credential_name", "credential_value", "mode"))
+        current_user.user_credentials.build(hash.slice('credential_name', 'credential_value', 'mode'))
       end
 
       respond_to do |format|
         if new_credentials.map(&:save).all?
-          format.html { redirect_to user_credentials_path, notice: "The file was successfully uploaded."}
+          format.html { redirect_to user_credentials_path, notice: 'The file was successfully uploaded.' }
         else
-          format.html { redirect_to user_credentials_path, notice: 'One or more of the uploaded credentials was not imported due to an error. Perhaps an existing credential had the same name?'}
+          format.html do
+            redirect_to user_credentials_path,
+                        notice: 'One or more of the uploaded credentials was not imported due to an error. Perhaps an existing credential had the same name?'
+          end
         end
       end
     else
-      redirect_to user_credentials_path, notice: "No file was chosen to be uploaded." 
+      redirect_to user_credentials_path, notice: 'No file was chosen to be uploaded.'
     end
   end
 
@@ -55,7 +61,7 @@ class UserCredentialsController < ApplicationController
         format.html { redirect_to user_credentials_path, notice: 'Your credential was successfully created.' }
         format.json { render json: @user_credential, status: :created, location: @user_credential }
       else
-        format.html { render action: "new" }
+        format.html { render action: 'new' }
         format.json { render json: @user_credential.errors, status: :unprocessable_entity }
       end
     end
@@ -69,7 +75,7 @@ class UserCredentialsController < ApplicationController
         format.html { redirect_to user_credentials_path, notice: 'Your credential was successfully updated.' }
         format.json { head :no_content }
       else
-        format.html { render action: "edit" }
+        format.html { render action: 'edit' }
         format.json { render json: @user_credential.errors, status: :unprocessable_entity }
       end
     end
@@ -90,4 +96,5 @@ class UserCredentialsController < ApplicationController
   def user_credential_params
     params.require(:user_credential).permit(:credential_name, :credential_value, :mode)
   end
+
 end

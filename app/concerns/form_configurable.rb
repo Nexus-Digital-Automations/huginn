@@ -1,4 +1,7 @@
+# frozen_string_literal: true
+
 module FormConfigurable
+
   extend ActiveSupport::Concern
 
   included do
@@ -14,34 +17,29 @@ module FormConfigurable
   end
 
   def validate_option(method)
-    if self.respond_to? "validate_#{method}".to_sym
-      self.send("validate_#{method}".to_sym)
+    if respond_to? "validate_#{method}".to_sym
+      send("validate_#{method}".to_sym)
     else
       false
     end
   end
 
   def complete_option(method)
-    if self.respond_to? "complete_#{method}".to_sym
-      self.send("complete_#{method}".to_sym)
-    end
+    send("complete_#{method}".to_sym) if respond_to? "complete_#{method}".to_sym
   end
 
   module ClassMethods
+
     def form_configurable(name, *args)
       options = args.extract_options!.reverse_merge(roles: [], type: :string)
 
-      if args.all?(Symbol)
-        options.assert_valid_keys([:type, :roles, :values, :ace, :cache_response, :html_options])
-      end
+      options.assert_valid_keys([:type, :roles, :values, :ace, :cache_response, :html_options]) if args.all?(Symbol)
 
       if options[:type] == :array && (options[:values].blank? || !options[:values].is_a?(Array))
-        raise ArgumentError.new('When using :array as :type you need to provide the :values as an Array')
+        raise ArgumentError, 'When using :array as :type you need to provide the :values as an Array'
       end
 
-      if options[:roles].is_a?(Symbol)
-        options[:roles] = [options[:roles]]
-      end
+      options[:roles] = [options[:roles]] if options[:roles].is_a?(Symbol)
 
       case options[:type]
       when :array
@@ -73,11 +71,13 @@ module FormConfigurable
     end
 
     def form_configurable_fields
-      self._form_configurable_fields
+      _form_configurable_fields
     end
 
     def form_configurable_attributes
       form_configurable_fields.keys
     end
+
   end
+
 end

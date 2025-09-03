@@ -1,4 +1,7 @@
+# frozen_string_literal: true
+
 module DropboxConcern
+
   extend ActiveSupport::Concern
 
   included do
@@ -25,11 +28,11 @@ module DropboxConcern
   end
 
   def oauth_token
-    service && service.token
+    service&.token
   end
 
   def oauth_token_secret
-    service && service.secret
+    service&.secret
   end
 
 end

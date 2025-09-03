@@ -1,0 +1,451 @@
+# RuboCop Configuration for Huginn
+# Enterprise-Grade Ruby Style Guide Configuration
+# 
+# This configuration enforces high-quality, maintainable Ruby code following
+# enterprise standards with appropriate customizations for the Huginn Rails application.
+#
+# Last Updated: 2025-09-03
+# RuboCop Version: 1.51.0
+# Ruby Version: >= 3.2.4
+# Rails Version: ~> 7.0.1
+
+# === CORE CONFIGURATION ===
+
+require:
+  - rubocop-performance
+  - rubocop-rspec
+
+AllCops:
+  # Target Ruby version for compatibility checking
+  TargetRubyVersion: 3.2
+  
+  
+  # Include additional Ruby file types
+  Include:
+    - '**/*.rb'
+    - '**/*.rake'
+    - '**/Gemfile'
+    - '**/Rakefile'
+    - '**/config.ru'
+    - '**/*.gemspec'
+    - '**/Capfile'
+  
+  # Exclude vendor code and generated files from linting
+  Exclude:
+    - 'vendor/**/*'
+    - 'db/schema.rb'
+    - 'db/migrate/*.rb'
+    - 'bin/**/*'
+    - 'node_modules/**/*'
+    - 'tmp/**/*'
+    - 'log/**/*'
+    - 'coverage/**/*'
+    - '.bundle/**/*'
+    - 'huginn.wiki/**/*'  # Wiki files are external
+    - 'spec/cassettes/**/*'  # VCR cassettes
+    - 'config/initializers/devise.rb'  # Generated file
+  
+  # Display cop names in offense messages for easier fixing
+  DisplayCopNames: true
+  
+  # Display style guide links for reference
+  DisplayStyleGuide: true
+  
+  # Enable new cops by default (latest Ruby/Rails features)
+  NewCops: enable
+  
+  # Use caching to improve performance on large codebases
+  UseCache: true
+  CacheRootDirectory: tmp/cache
+
+# === LAYOUT AND FORMATTING ===
+
+Layout/LineLength:
+  Description: 'Limit lines to 120 characters for readability'
+  Max: 120
+  # Allow some flexibility for certain constructs
+  AllowedPatterns:
+    - '\s*#'  # Comments can be longer
+    - '^\s*raise\s'  # Exception messages
+    - '^\s*logger\.'  # Logging statements
+  IgnoreCopDirectives: true
+  Exclude:
+    - 'config/routes.rb'  # Routes can have long path definitions
+
+Layout/MultilineMethodCallIndentation:
+  Description: 'Consistent indentation for method calls'
+  EnforcedStyle: aligned
+
+Layout/FirstHashElementIndentation:
+  Description: 'Consistent hash indentation'
+  EnforcedStyle: consistent
+
+Layout/FirstArrayElementIndentation:
+  Description: 'Consistent array indentation'  
+  EnforcedStyle: consistent
+
+Layout/ArgumentAlignment:
+  Description: 'Align arguments consistently'
+  EnforcedStyle: with_first_argument
+
+Layout/ParameterAlignment:
+  Description: 'Align parameters consistently'
+  EnforcedStyle: with_first_parameter
+
+Layout/EmptyLinesAroundBlockBody:
+  Description: 'No extra empty lines in block bodies'
+  Enabled: true
+
+Layout/EmptyLinesAroundClassBody:
+  Description: 'Single empty line around class bodies'
+  EnforcedStyle: empty_lines
+
+Layout/EmptyLinesAroundModuleBody:
+  Description: 'Single empty line around module bodies'
+  EnforcedStyle: empty_lines
+
+Layout/TrailingEmptyLines:
+  Description: 'Always end files with newline'
+  Enabled: true
+
+Layout/IndentationConsistency:
+  Description: 'Consistent indentation style'
+  EnforcedStyle: normal
+
+Layout/IndentationWidth:
+  Description: 'Use 2 spaces for indentation'
+  Width: 2
+
+# === STYLE ENFORCEMENT ===
+
+Style/FrozenStringLiteralComment:
+  Description: 'Add frozen string literal comment for performance'
+  Enabled: true
+  EnforcedStyle: always
+  # Disable in certain files where it causes issues
+  Exclude:
+    - 'config/**/*.rb'
+    - 'spec/**/*.rb'
+    - 'db/**/*.rb'
+
+Style/Documentation:
+  Description: 'Classes and modules should have documentation'
+  Enabled: true
+  # Allow some flexibility for internal/private classes
+  Exclude:
+    - 'spec/**/*.rb'
+    - 'db/**/*.rb'
+    - 'config/**/*.rb'
+    - 'lib/tasks/**/*.rb'
+    - 'app/concerns/**/*.rb'
+    - 'app/helpers/**/*.rb'
+    - 'lib/utils/**/*.rb'
+
+Style/StringLiterals:
+  Description: 'Use single quotes when possible'
+  EnforcedStyle: single_quotes
+  ConsistentQuotesInMultiline: true
+
+Style/StringLiteralsInInterpolation:
+  Description: 'Use single quotes in string interpolation'
+  EnforcedStyle: single_quotes
+
+Style/TrailingCommaInArrayLiteral:
+  Description: 'Add trailing commas to arrays for cleaner diffs'
+  EnforcedStyleForMultiline: comma
+
+Style/TrailingCommaInHashLiteral:
+  Description: 'Add trailing commas to hashes for cleaner diffs'  
+  EnforcedStyleForMultiline: comma
+
+Style/TrailingCommaInArguments:
+  Description: 'Trailing commas in method arguments'
+  EnforcedStyleForMultiline: no_comma  # More conservative for arguments
+
+Style/HashSyntax:
+  Description: 'Use modern hash syntax'
+  EnforcedStyle: ruby19_no_mixed_keys
+  EnforcedShorthandSyntax: either
+
+Style/Lambda:
+  Description: 'Prefer -> for single-line blocks, lambda for multi-line'
+  EnforcedStyle: line_count_dependent
+
+Style/BlockDelimiters:
+  Description: 'Use {} for single-line blocks, do..end for multi-line'
+  EnforcedStyle: line_count_based
+  # Prefer {} for functional style methods
+  FunctionalMethods:
+    - let
+    - let!
+    - subject
+    - watch
+    - expect
+
+Style/MethodDefParentheses:
+  Description: 'Method definitions with parameters should use parentheses'
+  EnforcedStyle: require_parentheses
+
+Style/EmptyMethod:
+  Description: 'Empty methods should use compact style'
+  EnforcedStyle: compact
+
+Style/ClassAndModuleChildren:
+  Description: 'Prefer nested style for namespace definitions'
+  EnforcedStyle: compact
+  # Allow explicit nesting for complex cases
+  Exclude:
+    - 'app/models/agents/**/*.rb'
+
+Style/NumericLiterals:
+  Description: 'Use underscores in large numbers for readability'
+  MinDigits: 5
+
+Style/RedundantReturn:
+  Description: 'Remove redundant return statements'
+  Enabled: true
+  AllowMultipleReturnValues: true
+
+Style/RedundantSelf:
+  Description: 'Remove redundant self keywords'
+  Enabled: true
+
+Style/GuardClause:
+  Description: 'Use guard clauses to improve readability'
+  Enabled: true
+  MinBodyLength: 2
+  Exclude:
+    - 'app/models/agents/**/*.rb'  # Agent logic can be complex
+
+Style/IfUnlessModifier:
+  Description: 'Use modifier if/unless for single-line conditionals'
+  Enabled: true
+
+Style/WhileUntilModifier:
+  Description: 'Use modifier while/until for single-line loops'
+  Enabled: true
+
+# === METRICS AND COMPLEXITY ===
+
+Metrics/MethodLength:
+  Description: 'Keep methods reasonably short'
+  Max: 15  # Stricter than default for better maintainability
+  CountAsOne: ['array', 'hash', 'heredoc']
+  Exclude:
+    - 'db/migrate/*.rb'
+    - 'spec/**/*.rb'  # Tests can be longer for clarity
+    - 'app/models/agents/**/*.rb'
+
+Metrics/ClassLength:
+  Description: 'Keep classes reasonably short'  
+  Max: 150  # Stricter than default
+  CountAsOne: ['array', 'hash', 'heredoc']
+  Exclude:
+    - 'spec/**/*.rb'
+    - 'app/models/agent.rb'  # Core Agent class is necessarily complex
+    - 'app/models/agents/**/*.rb'  # Agent implementations can be complex
+
+Metrics/ModuleLength:
+  Description: 'Keep modules reasonably short'
+  Max: 150
+  CountAsOne: ['array', 'hash', 'heredoc']
+
+Metrics/BlockLength:
+  Description: 'Keep blocks reasonably short'
+  Max: 25
+  CountAsOne: ['array', 'hash', 'heredoc']
+  # Allow longer blocks in configuration and test files
+  AllowedMethods:
+    - describe
+    - context
+    - it
+    - specify
+    - example
+    - scenario
+    - feature
+    - namespace
+    - task
+    - Grape::API.helpers
+    - configure
+    - draw
+  Exclude:
+    - 'spec/**/*.rb'
+    - 'config/routes.rb'
+    - 'lib/tasks/**/*.rb'
+    - 'config/environments/*.rb'
+
+Metrics/CyclomaticComplexity:
+  Description: 'Keep cyclomatic complexity low'
+  Max: 8  # Enterprise standard
+  Exclude:
+    - 'app/models/agents/**/*.rb'
+
+Metrics/PerceivedComplexity:
+  Description: 'Keep perceived complexity low'  
+  Max: 8  # Enterprise standard
+  Exclude:
+    - 'app/models/agents/**/*.rb'
+
+Metrics/AbcSize:
+  Description: 'Keep ABC size reasonable'
+  Max: 20  # Enterprise standard
+  Exclude:
+    - 'db/migrate/*.rb'
+    - 'app/models/agents/**/*.rb'
+
+Metrics/ParameterLists:
+  Description: 'Avoid long parameter lists'
+  Max: 5
+  CountKeywordArgs: true
+
+# === NAMING CONVENTIONS ===
+
+Naming/FileName:
+  Description: 'Use snake_case for file names'
+  Enabled: true
+  Exclude:
+    - 'Gemfile'
+    - 'Capfile' 
+    - 'Rakefile'
+
+Naming/ClassAndModuleCamelCase:
+  Description: 'Use CamelCase for class and module names'
+  Enabled: true
+
+Naming/ConstantName:
+  Description: 'Use SCREAMING_SNAKE_CASE for constants'
+  Enabled: true
+
+Naming/MethodName:
+  Description: 'Use snake_case for method names'
+  EnforcedStyle: snake_case
+
+Naming/VariableName:
+  Description: 'Use snake_case for variable names'
+  EnforcedStyle: snake_case
+
+Naming/PredicateName:
+  Description: 'Use proper predicate naming'
+  Enabled: true
+  ForbiddenPrefixes:
+    - is_
+
+# === RAILS-SPECIFIC RULES ===
+
+# Enable Rails-specific performance optimizations
+Performance/RedundantStringChars:
+  Description: 'Use more efficient string operations'
+  Enabled: true
+
+Performance/StringInclude:
+  Description: 'Use String#include? instead of regex for simple searches'
+  Enabled: true
+
+Performance/CollectionLiteralInLoop:
+  Description: 'Avoid creating collections in loops'
+  Enabled: true
+
+Performance/TimesMap:
+  Description: 'Use Array.new instead of times.map'
+  Enabled: true
+
+# === RSPEC-SPECIFIC RULES ===
+
+RSpec/ExampleLength:
+  Description: 'Keep RSpec examples reasonably short'
+  Max: 20
+  CountAsOne: ['array', 'hash', 'heredoc']
+
+RSpec/MultipleExpectations:
+  Description: 'Prefer single expectations per example'
+  Max: 3  # Allow some flexibility
+
+RSpec/NestedGroups:
+  Description: 'Limit RSpec nesting depth'
+  Max: 4
+
+RSpec/DescribeClass:
+  Description: 'Use described_class for class references'
+  Enabled: true
+
+RSpec/FilePath:
+  Description: 'Check RSpec file paths match described class'
+  Enabled: true
+  IgnoreMethods: true
+
+# === DISABLED COPS ===
+# These cops are disabled for practical reasons in the Huginn codebase
+
+Style/SingleLineBlockParams:
+  Description: 'Too restrictive for Rails applications'
+  Enabled: false
+
+Style/AsciiComments:
+  Description: 'Allow unicode in comments for international support'
+  Enabled: false
+
+Style/Copyright:
+  Description: 'Not required for this project'
+  Enabled: false
+
+Lint/MissingSuper:
+  Description: 'Not always necessary in Rails applications'
+  Enabled: false
+
+# Disable some overly strict style cops that don't add value
+Style/SymbolArray:
+  Description: 'Allow mixed array styles for readability'
+  Enabled: false
+
+Style/WordArray:
+  Description: 'Allow mixed array styles for readability'
+  Enabled: false
+
+# === SECURITY AND BEST PRACTICES ===
+
+Lint/UselessAssignment:
+  Description: 'Remove unused variable assignments'
+  Enabled: true
+
+Lint/UnreachableCode:
+  Description: 'Remove unreachable code'
+  Enabled: true
+
+Lint/ShadowingOuterLocalVariable:
+  Description: 'Avoid shadowing outer scope variables'
+  Enabled: true
+
+Lint/Debugger:
+  Description: 'Remove debugger statements'  
+  Enabled: true
+
+Security/Open:
+  Description: 'Avoid dangerous use of Kernel#open'
+  Enabled: true
+
+Security/Eval:
+  Description: 'Avoid dangerous use of eval'
+  Enabled: true
+
+Security/MarshalLoad:
+  Description: 'Avoid dangerous use of Marshal.load'
+  Enabled: true
+
+Security/YAMLLoad:
+  Description: 'Use YAML.safe_load instead of YAML.load'
+  Enabled: true
+
+
+# === FINAL NOTES ===
+#
+# This configuration provides:
+# 1. Enterprise-grade code quality standards
+# 2. Reasonable flexibility for Rails application patterns  
+# 3. Performance-focused rules for production code
+# 4. Comprehensive security checks
+# 5. Maintainable complexity limits
+# 6. Consistent formatting and style
+#
+# To run: bundle exec rubocop
+# To auto-fix: bundle exec rubocop --autocorrect
+# To see stats: bundle exec rubocop --format progress

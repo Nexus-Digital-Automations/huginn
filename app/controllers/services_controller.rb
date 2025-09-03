@@ -1,4 +1,7 @@
+# frozen_string_literal: true
+
 class ServicesController < ApplicationController
+
   include SortableTable
 
   before_action :upgrade_warning, only: :index
@@ -33,4 +36,5 @@ class ServicesController < ApplicationController
       format.json { render json: @service }
     end
   end
+
 end

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # This controller is designed to allow your Agents to receive cross-site Webhooks (POSTs), or to output data streams.
 # When a POST or GET is received, your Agent will have #receive_web_request called on itself with the incoming params,
 # method, and requested content-type.
@@ -18,6 +20,7 @@
 #   ["<status>success</status>", 200, 'text/xml', {"Access-Control-Allow-Origin" => "*"}]
 
 class WebRequestsController < ApplicationController
+
   skip_before_action :verify_authenticity_token
   skip_before_action :authenticate_user!
   wrap_parameters false
@@ -56,7 +59,7 @@ class WebRequestsController < ApplicationController
 
   # legacy
   def update_location
-    if user = User.find_by_id(params[:user_id])
+    if (user = User.find_by_id(params[:user_id]))
       secret = params[:secret]
       user.agents.of_type(Agents::UserLocationAgent).each do |agent|
         agent.trigger_web_request(request) if agent.options[:secret] == secret
@@ -66,4 +69,5 @@ class WebRequestsController < ApplicationController
       render plain: 'user not found', status: :not_found
     end
   end
+
 end

@@ -1,5 +1,9 @@
+# frozen_string_literal: true
+
 module Agents
+
   class AttributeDifferenceAgent < Agent
+
     cannot_be_scheduled!
 
     description <<~MD
@@ -39,7 +43,7 @@ module Agents
         'path' => '.data.rate',
         'output' => 'rate_diff',
         'method' => 'integer_difference',
-        'expected_update_period_in_days' => 1
+        'expected_update_period_in_days' => 1,
       }
     end
 
@@ -64,18 +68,19 @@ module Agents
     def handle(opts, event)
       opts['decimal_precision'] ||= 3
       attribute_value = Utils.value_at(event.payload, opts['path'])
-      attribute_value = attribute_value.nil? ? 0 : attribute_value
+      attribute_value = 0 if attribute_value.nil?
       payload = event.payload.deep_dup
 
-      if opts['method'] == 'percentage_change'
+      case opts['method']
+      when 'percentage_change'
         change = calculate_percentage_change(attribute_value, opts['decimal_precision'])
         payload[opts['output']] = change
 
-      elsif opts['method'] == 'decimal_difference'
+      when 'decimal_difference'
         difference = calculate_decimal_difference(attribute_value, opts['decimal_precision'])
         payload[opts['output']] = difference
 
-      elsif opts['method'] == 'integer_difference'
+      when 'integer_difference'
         difference = calculate_integer_difference(attribute_value)
         payload[opts['output']] = difference
       end
@@ -100,7 +105,7 @@ module Agents
     def calculate_percentage_change(new_value, dec_pre)
       return 0.0 if last_value.nil?
 
-      (((new_value.to_f / last_value.to_f) * 100) - 100).round(dec_pre.to_i)
+      (((new_value.to_f / last_value) * 100) - 100).round(dec_pre.to_i)
     end
 
     def last_value
@@ -110,5 +115,7 @@ module Agents
     def update_memory(new_value)
       memory['last_value'] = new_value
     end
+
   end
+
 end

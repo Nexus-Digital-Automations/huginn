@@ -1,7 +1,11 @@
+# frozen_string_literal: true
+
 module InheritanceTracking
+
   extend ActiveSupport::Concern
 
   module ClassMethods
+
     def inherited(subclass)
       @subclasses ||= []
       @subclasses << subclass
@@ -20,5 +24,7 @@ module InheritanceTracking
     ensure
       @subclasses = original_subclasses
     end
+
   end
+
 end

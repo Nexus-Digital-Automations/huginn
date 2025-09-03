@@ -1,7 +1,10 @@
+# frozen_string_literal: true
+
 module Oauthable
+
   extend ActiveSupport::Concern
 
-  included do |base|
+  included do |_base|
     @valid_oauth_providers = :all
     validate :validate_service
   end
@@ -11,9 +14,7 @@ module Oauthable
   end
 
   def validate_service
-    if !service
-      errors.add(:service, :blank)
-    end
+    errors.add(:service, :blank) unless service
   end
 
   def valid_services_for(user)
@@ -29,9 +30,13 @@ module Oauthable
   end
 
   module ClassMethods
+
     def valid_oauth_providers(*providers)
       return @valid_oauth_providers if providers == []
+
       @valid_oauth_providers = providers
     end
+
   end
+
 end

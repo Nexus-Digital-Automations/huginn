@@ -1,4 +1,7 @@
+# frozen_string_literal: true
+
 module ApplicationHelper
+
   def icon_tag(name, options = {})
     dom_class = options[:class]
 
@@ -36,7 +39,7 @@ module ApplicationHelper
   end
 
   def yes_no(bool)
-    content_tag :span, bool ? 'Yes' : 'No', class: "label #{bool ? 'label-info' : 'label-default' }"
+    content_tag :span, bool ? 'Yes' : 'No', class: "label #{bool ? 'label-info' : 'label-default'}"
   end
 
   def working(agent)
@@ -56,7 +59,7 @@ module ApplicationHelper
     when :twitter, :tumblr, :github, :dropbox, :google
       icon_tag("fa-#{provider}", class: 'fa-brands')
     else
-      icon_tag("fa-lock")
+      icon_tag('fa-lock')
     end
   end
 
@@ -67,7 +70,7 @@ module ApplicationHelper
   def omniauth_button(provider)
     link_to [
       omniauth_provider_icon(provider),
-      content_tag(:span, "Authenticate with #{omniauth_provider_name(provider)}")
+      content_tag(:span, "Authenticate with #{omniauth_provider_name(provider)}"),
     ].join.html_safe, user_omniauth_authorize_path(provider), class: "btn btn-default btn-service service-#{provider}"
   end
 
@@ -77,32 +80,31 @@ module ApplicationHelper
 
   def service_label(service)
     return if service.nil?
+
     content_tag :span, [
       omniauth_provider_icon(service.provider),
-      service_label_text(service)
+      service_label_text(service),
     ].join.html_safe, class: "label label-default label-service service-#{service.provider}"
   end
 
   def load_ace_editor!
-    unless content_for?(:ace_editor_script)
-      content_for :ace_editor_script, javascript_include_tag('ace')
-    end
+    content_for :ace_editor_script, javascript_include_tag('ace') unless content_for?(:ace_editor_script)
   end
 
   def highlighted?(id)
     @highlighted_ranges ||=
       case value = params[:hl].presence
       when String
-        value.split(/,/).flat_map { |part|
+        value.split(',').flat_map do |part|
           case part
           when /\A(\d+)\z/
             (part.to_i)..(part.to_i)
           when /\A(\d+)?-(\d+)?\z/
-            ($1 ? $1.to_i : 1)..($2 ? $2.to_i : Float::INFINITY)
+            (::Regexp.last_match(1) ? ::Regexp.last_match(1).to_i : 1)..(::Regexp.last_match(2) ? ::Regexp.last_match(2).to_i : Float::INFINITY)
           else
             []
           end
-        }
+        end
       else
         []
       end
@@ -119,4 +121,5 @@ module ApplicationHelper
   def user_omniauth_authorize_path(provider)
     send "user_#{provider}_omniauth_authorize_path"
   end
+
 end

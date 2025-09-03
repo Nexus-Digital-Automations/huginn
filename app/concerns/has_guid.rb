@@ -1,4 +1,7 @@
+# frozen_string_literal: true
+
 module HasGuid
+
   extend ActiveSupport::Concern
 
   included do
@@ -10,4 +13,5 @@ module HasGuid
   def make_guid
     self.guid = SecureRandom.hex unless guid.present?
   end
+
 end

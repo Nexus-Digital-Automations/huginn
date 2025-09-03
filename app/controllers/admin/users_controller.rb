@@ -1,4 +1,7 @@
+# frozen_string_literal: true
+
 class Admin::UsersController < ApplicationController
+
   before_action :authenticate_admin!, except: [:switch_back]
 
   before_action :find_user, only: [:edit, :destroy, :update, :deactivate, :activate, :switch_to_user]
@@ -24,7 +27,7 @@ class Admin::UsersController < ApplicationController
 
     respond_to do |format|
       if @user.save
-        DefaultScenarioImporter.import(@user)    
+        DefaultScenarioImporter.import(@user)
         format.html { redirect_to admin_users_path, notice: "User '#{@user.username}' was successfully created." }
         format.json { render json: @user, status: :ok, location: admin_users_path(@user) }
       else
@@ -34,8 +37,7 @@ class Admin::UsersController < ApplicationController
     end
   end
 
-  def edit
-  end
+  def edit; end
 
   def update
     params[:user].extract!(:password, :password_confirmation) if params[:user][:password].blank?
@@ -113,4 +115,5 @@ class Admin::UsersController < ApplicationController
   def resource
     @user
   end
+
 end

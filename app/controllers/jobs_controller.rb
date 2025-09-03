@@ -1,4 +1,7 @@
+# frozen_string_literal: true
+
 class JobsController < ApplicationController
+
   before_action :authenticate_admin!
 
   def index
@@ -15,7 +18,7 @@ class JobsController < ApplicationController
 
     respond_to do |format|
       if !running? && @job.destroy
-        format.html { redirect_to jobs_path, notice: "Job deleted." }
+        format.html { redirect_to jobs_path, notice: 'Job deleted.' }
         format.json { head :no_content }
       else
         format.html { redirect_to jobs_path, alert: 'Can not delete a running job.' }
@@ -30,7 +33,7 @@ class JobsController < ApplicationController
 
     respond_to do |format|
       if !running? && @job.update!(run_at: Time.now, failed_at: nil)
-        format.html { redirect_to jobs_path, notice: "Job enqueued." }
+        format.html { redirect_to jobs_path, notice: 'Job enqueued.' }
         format.json { render json: @job, status: :ok }
       else
         format.html { redirect_to jobs_path, alert: 'Can not enqueue a running job.' }
@@ -41,9 +44,9 @@ class JobsController < ApplicationController
 
   def retry_queued
     @jobs = Delayed::Job.awaiting_retry.update_all(run_at: Time.zone.now)
-    
+
     respond_to do |format|
-      format.html { redirect_to jobs_path, notice: "Queued jobs getting retried." }
+      format.html { redirect_to jobs_path, notice: 'Queued jobs getting retried.' }
       format.json { head :no_content }
     end
   end
@@ -52,7 +55,7 @@ class JobsController < ApplicationController
     Delayed::Job.where.not(failed_at: nil).delete_all
 
     respond_to do |format|
-      format.html { redirect_to jobs_path, notice: "Failed jobs removed." }
+      format.html { redirect_to jobs_path, notice: 'Failed jobs removed.' }
       format.json { head :no_content }
     end
   end
@@ -61,7 +64,7 @@ class JobsController < ApplicationController
     Delayed::Job.where(locked_at: nil).delete_all
 
     respond_to do |format|
-      format.html { redirect_to jobs_path, notice: "All jobs removed." }
+      format.html { redirect_to jobs_path, notice: 'All jobs removed.' }
       format.json { head :no_content }
     end
   end
@@ -71,4 +74,5 @@ class JobsController < ApplicationController
   def running?
     (@job.locked_at || @job.locked_by) && @job.failed_at.nil?
   end
+
 end

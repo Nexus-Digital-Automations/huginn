@@ -1,4 +1,7 @@
+# frozen_string_literal: true
+
 module AgentControllerConcern
+
   extend ActiveSupport::Concern
 
   included do
@@ -9,7 +12,7 @@ module AgentControllerConcern
 
   def default_options
     {
-      'action' => 'run'
+      'action' => 'run',
     }
   end
 
@@ -20,11 +23,9 @@ module AgentControllerConcern
   def validate_control_action
     case options['action']
     when 'run'
-      control_targets.each { |target|
-        if target.cannot_be_scheduled?
-          errors.add(:base, "#{target.name} cannot be scheduled")
-        end
-      }
+      control_targets.each do |target|
+        errors.add(:base, "#{target.name} cannot be scheduled") if target.cannot_be_scheduled?
+      end
     when 'configure'
       if !options['configure_options'].is_a?(Hash) || options['configure_options'].empty?
         errors.add(:base,
@@ -32,7 +33,7 @@ module AgentControllerConcern
       end
     when 'enable', 'disable'
     when nil
-      errors.add(:base, "action must be specified")
+      errors.add(:base, 'action must be specified')
     when /\{[%{]/
       # Liquid template
     else
@@ -45,29 +46,24 @@ module AgentControllerConcern
       interpolate_with('target' => target) do
         case action = control_action
         when 'run'
-          case
-          when target.cannot_be_scheduled?
+          if target.cannot_be_scheduled?
             error "'#{target.name}' cannot run without an incoming event"
-          when target.disabled?
+          elsif target.disabled?
             log "Agent run ignored for disabled Agent '#{target.name}'"
           else
             Agent.async_check(target.id)
             log "Agent run queued for '#{target.name}'"
           end
         when 'enable'
-          case
-          when target.disabled?
-            if boolify(interpolated['drop_pending_events'])
-              target.drop_pending_events = true
-            end
+          if target.disabled?
+            target.drop_pending_events = true if boolify(interpolated['drop_pending_events'])
             target.update!(disabled: false)
             log "Agent '#{target.name}' is enabled"
           else
             log "Agent '#{target.name}' is already enabled"
           end
         when 'disable'
-          case
-          when target.disabled?
+          if target.disabled?
             log "Agent '#{target.name}' is alread disabled"
           else
             target.update!(disabled: true)
@@ -86,4 +82,5 @@ module AgentControllerConcern
       end
     end
   end
+
 end

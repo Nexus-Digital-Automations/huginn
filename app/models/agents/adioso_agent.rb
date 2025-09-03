@@ -1,8 +1,12 @@
+# frozen_string_literal: true
+
 module Agents
+
   class AdiosoAgent < Agent
+
     cannot_receive_events!
 
-    default_schedule "every_1d"
+    default_schedule 'every_1d'
 
     description <<~MD
       The Adioso Agent will tell you the minimum airline prices between a pair of cities, and within a certain period of time.
@@ -30,11 +34,11 @@ module Agents
       {
         'start_date' => Date.today.httpdate[0..15],
         'end_date' => Date.today.plus_with_duration(100).httpdate[0..15],
-        'from' => "New York",
-        'to' => "Chicago",
-        'username' => "xx",
-        'password' => "xx",
-        'expected_update_period_in_days' => "1"
+        'from' => 'New York',
+        'to' => 'Chicago',
+        'username' => 'xx',
+        'password' => 'xx',
+        'expected_update_period_in_days' => '1',
       }
     end
 
@@ -46,7 +50,7 @@ module Agents
       unless %w[
         start_date end_date from to username password expected_update_period_in_days
       ].all? { |field| options[field].present? }
-        errors.add(:base, "All fields are required")
+        errors.add(:base, 'All fields are required')
       end
     end
 
@@ -58,27 +62,29 @@ module Agents
       auth_options = {
         basic_auth: {
           username: interpolated[:username],
-          password: interpolated[:password]
-        }
+          password: interpolated[:password],
+        },
       }
       parse_response = HTTParty.get(
         "http://api.adioso.com/v2/search/parse?#{{ q: "#{interpolated[:from]} to #{interpolated[:to]}" }.to_query}",
         auth_options
       )
-      fare_request = parse_response["search_url"].gsub(
+      fare_request = parse_response['search_url'].gsub(
         /(end=)(\d*)([^\d]*)(\d*)/,
         "\\1#{date_to_unix_epoch(interpolated['end_date'])}\\3#{date_to_unix_epoch(interpolated['start_date'])}"
       )
       fare = HTTParty.get fare_request, auth_options
 
-      if fare["warnings"]
-        create_event payload: fare["warnings"]
+      if fare['warnings']
+        create_event payload: fare['warnings']
       else
-        event = fare["results"].min_by { |x| x["cost"] }
-        event["date"]  = Time.at(event["date"]).to_date.httpdate[0..15]
-        event["route"] = "#{interpolated['from']} to #{interpolated['to']}"
+        event = fare['results'].min_by { |x| x['cost'] }
+        event['date']  = Time.at(event['date']).to_date.httpdate[0..15]
+        event['route'] = "#{interpolated['from']} to #{interpolated['to']}"
         create_event payload: event
       end
     end
+
   end
+
 end

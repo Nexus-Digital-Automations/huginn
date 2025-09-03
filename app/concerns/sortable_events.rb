@@ -1,18 +1,22 @@
+# frozen_string_literal: true
+
 module SortableEvents
+
   extend ActiveSupport::Concern
 
   included do
     validate :validate_events_order
   end
 
-  EVENTS_ORDER_KEY = 'events_order'.freeze
-  EVENTS_DESCRIPTION = 'events created in each run'.freeze
+  EVENTS_ORDER_KEY = 'events_order'
+  EVENTS_DESCRIPTION = 'events created in each run'
 
   def description_events_order(*args)
     self.class.description_events_order(*args)
   end
 
   module ClassMethods
+
     def can_order_created_events!
       raise 'Cannot order events for agent that cannot create events' if cannot_create_events?
 
@@ -53,6 +57,7 @@ module SortableEvents
         * `count`: Total number of events sorted
       MD
     end
+
   end
 
   def can_order_created_events?
@@ -77,7 +82,7 @@ module SortableEvents
       events.each.with_index(1) do |event, position|
         event.payload[:sort_info] = {
           position:,
-          count:
+          count:,
         }
         create_event(event)
       end
@@ -89,6 +94,7 @@ module SortableEvents
   end
 
   module AutomaticSorter
+
     def check
       return super unless events_order || include_sort_info?
 
@@ -120,7 +126,7 @@ module SortableEvents
 
     private
 
-    def sorting_events(&block)
+    def sorting_events
       @sortable_events = []
       yield
     ensure
@@ -128,6 +134,7 @@ module SortableEvents
       @sortable_events = nil
       create_events(events)
     end
+
   end
 
   private
@@ -135,8 +142,8 @@ module SortableEvents
   EXPRESSION_PARSER = {
     'string' => ->(string) { string },
     'number' => ->(string) { string.to_f },
-    'time'   => ->(string) { Time.zone.parse(string) },
-  }
+    'time' => ->(string) { Time.zone.parse(string) },
+  }.freeze
   EXPRESSION_TYPES = EXPRESSION_PARSER.keys.freeze
 
   def validate_events_order(events_order_key = EVENTS_ORDER_KEY)
@@ -179,21 +186,23 @@ module SortableEvents
     orders = order_by.map { |_, _, desc = false| boolify(desc) }
 
     Utils.sort_tuples!(
-      events.map.with_index { |event, index|
-        interpolate_with(event) {
-          interpolation_context['_index_'] = index
-          order_by.map { |expression, type, _|
-            string = interpolate_string(expression)
-            begin
-              EXPRESSION_PARSER[type || 'string'.freeze][string]
-            rescue StandardError
-              error "Cannot parse #{string.inspect} as #{type}; treating it as string"
-              string
-            end
-          }
-        } << index << event  # index is to make sorting stable
-      },
+      events.map.with_index do |event, index|
+        # index is to make sorting stable
+        interpolate_with(event) do
+                  interpolation_context['_index_'] = index
+                  order_by.map do |expression, type, _|
+                    string = interpolate_string(expression)
+                    begin
+                      EXPRESSION_PARSER[type || 'string'][string]
+                    rescue StandardError
+                      error "Cannot parse #{string.inspect} as #{type}; treating it as string"
+                      string
+                    end
+                  end
+        end << index << event
+      end,
       orders
     ).collect!(&:last)
   end
+
 end

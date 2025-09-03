@@ -1,25 +1,30 @@
+# frozen_string_literal: true
+
 module EmailConcern
+
   extend ActiveSupport::Concern
 
-  MAIN_KEYS = %w[title message text main value]
+  MAIN_KEYS = %w[title message text main value].freeze
 
   included do
-    self.validate :validate_email_options
+    validate :validate_email_options
   end
 
   def validate_email_options
-    errors.add(
-      :base,
-      "subject and expected_receive_period_in_days are required"
-    ) unless options['subject'].present? && options['expected_receive_period_in_days'].present?
+    unless options['subject'].present? && options['expected_receive_period_in_days'].present?
+      errors.add(
+        :base,
+        'subject and expected_receive_period_in_days are required'
+      )
+    end
 
-    if options['recipients'].present?
+    return unless options['recipients'].present?
+
       emails = options['recipients']
       emails = [emails] if emails.is_a?(String)
       unless emails.all? { |email| Devise.email_regexp === email || /\{/ === email }
         errors.add(:base, "'when provided, 'recipients' should be an email address or an array of email addresses")
       end
-    end
   end
 
   def recipients(payload = {})
@@ -43,16 +48,17 @@ module EmailConcern
     if payload.is_a?(Hash)
       payload = ActiveSupport::HashWithIndifferentAccess.new(payload)
       MAIN_KEYS.each do |key|
-        return { title: payload[key].to_s, entries: present_hash(payload, key) } if payload.has_key?(key)
+        return { title: payload[key].to_s, entries: present_hash(payload, key) } if payload.key?(key)
       end
 
-      { title: "Event", entries: present_hash(payload) }
+      { title: 'Event', entries: present_hash(payload) }
     else
       { title: payload.to_s, entries: [] }
     end
   end
 
   def present_hash(hash, skip_key = nil)
-    hash.to_a.sort_by { |a| a.first.to_s }.map { |k, v| "#{k}: #{v}" unless k.to_s == skip_key.to_s }.compact
+    hash.to_a.sort_by { |a| a.first.to_s }.filter_map { |k, v| "#{k}: #{v}" unless k.to_s == skip_key.to_s }
   end
+
 end

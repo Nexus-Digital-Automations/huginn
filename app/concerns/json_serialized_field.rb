@@ -1,12 +1,16 @@
+# frozen_string_literal: true
+
 require 'json_with_indifferent_access'
 
 module JsonSerializedField
+
   extend ActiveSupport::Concern
 
   module ClassMethods
+
     def json_serialize(*fields)
       fields.each do |field|
-        class_eval <<-CODE
+        class_eval <<-CODE, __FILE__, __LINE__ + 1
           serialize :#{field}, JsonWithIndifferentAccess
 
           validate :#{field}_has_no_errors
@@ -38,5 +42,7 @@ module JsonSerializedField
         CODE
       end
     end
+
   end
+
 end

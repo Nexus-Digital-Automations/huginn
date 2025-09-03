@@ -1,5 +1,9 @@
+# frozen_string_literal: true
+
 module Agents
+
   class DelayAgent < Agent
+
     include FormConfigurable
 
     default_schedule 'every_12h'
@@ -20,7 +24,7 @@ module Agents
 
       # Ordering Events
 
-      #{description_events_order("events in which buffered events are emitted")}
+      #{description_events_order('events in which buffered events are emitted')}
     MD
 
     def default_options
@@ -42,7 +46,7 @@ module Agents
     form_configurable :events_order, type: :json
 
     def validate_options
-      unless options['expected_receive_period_in_days'].present? && options['expected_receive_period_in_days'].to_i > 0
+      unless options['expected_receive_period_in_days'].present? && options['expected_receive_period_in_days'].to_i.positive?
         errors.add(:base,
                    "Please provide 'expected_receive_period_in_days' to indicate how many days can pass before this Agent is considered to be not working")
       end
@@ -51,14 +55,12 @@ module Agents
         errors.add(:base, "The 'keep' option is required and must be set to 'oldest' or 'newest'")
       end
 
-      unless interpolated['max_events'].present? && interpolated['max_events'].to_i > 0
+      unless interpolated['max_events'].present? && interpolated['max_events'].to_i.positive?
         errors.add(:base, "The 'max_events' option is required and must be an integer greater than 0")
       end
 
-      if interpolated['max_emitted_events'].present?
-        unless interpolated['max_emitted_events'].to_i > 0
+      if interpolated['max_emitted_events'].present? && !interpolated['max_emitted_events'].to_i.positive?
           errors.add(:base, "The 'max_emitted_events' option is optional and should be an integer greater than 0")
-        end
       end
 
       unless interpolated['emit_interval'] in nil | 0.. | /\A\d+(?:\.\d+)?\z/
@@ -89,29 +91,6 @@ module Agents
       end
     end
 
-    private def extract_emitted_events!
-      save!
-
-      with_lock do
-        emitted_events = received_events.where(id: memory['event_ids']).reorder(:id).to_a
-
-        if interpolated[SortableEvents::EVENTS_ORDER_KEY].present?
-          emitted_events = sort_events(emitted_events)
-        end
-
-        max_emitted_events = interpolated['max_emitted_events'].presence&.to_i
-
-        if max_emitted_events&.< emitted_events.length
-          emitted_events[max_emitted_events..] = []
-        end
-
-        memory['event_ids'] -= emitted_events.map(&:id)
-        save!
-
-        emitted_events
-      end
-    end
-
     def check
       return if memory['event_ids'].blank?
 
@@ -122,5 +101,30 @@ module Agents
         create_event payload: event.payload
       end
     end
-  end
+
+  private
+
+        def extract_emitted_events!
+              save!
+
+              with_lock do
+                emitted_events = received_events.where(id: memory['event_ids']).reorder(:id).to_a
+
+                emitted_events = sort_events(emitted_events) if interpolated[SortableEvents::EVENTS_ORDER_KEY].present?
+
+                max_emitted_events = interpolated['max_emitted_events'].presence&.to_i
+
+                emitted_events[max_emitted_events..] = [] if max_emitted_events&.< emitted_events.length
+
+                memory['event_ids'] -= emitted_events.map(&:id)
+                save!
+
+                emitted_events
+              end
+        end
+
+
+  
+end
+
 end

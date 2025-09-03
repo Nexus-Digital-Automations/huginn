@@ -1,4 +1,7 @@
+# frozen_string_literal: true
+
 module WorkingHelpers
+
   extend ActiveSupport::Concern
 
   def event_created_within?(days)
@@ -16,4 +19,5 @@ module WorkingHelpers
   def checked_without_error?
     (last_check_at.present? && last_error_log_at.nil?) || (last_check_at.present? && last_error_log_at.present? && last_check_at > last_error_log_at)
   end
+
 end

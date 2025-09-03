@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 source 'https://rubygems.org'
 
 ruby '>=3.2.4'
@@ -16,13 +18,13 @@ GemfileHelper.load_dotenv do |dotenv_dir|
 end
 
 # Introduces a scope for gem loading based on a condition
-def if_true(condition, &block)
+def if_true(condition, &)
   if condition
     yield
   else
     # When not including the gems, we still want our Gemfile.lock
     # to include them, so we scope them to an unsupported platform.
-    platform :ruby_18, &block
+    platform(:ruby_18, &)
   end
 end
 
@@ -157,7 +159,7 @@ group :development do
   gem 'rubocop-performance', require: false
   gem 'rubocop-rspec', require: false
 
-  if_true(ENV['SPRING']) do
+  if_true(ENV.fetch('SPRING', nil)) do
     gem 'spring'
     gem 'spring-commands-rspec'
     gem 'spring-watcher-listen'
@@ -199,7 +201,7 @@ gem 'rb-kqueue', '>= 0.2.8', require: /bsd|dragonfly/i === RbConfig::CONFIG['tar
 on_heroku = ENV['ON_HEROKU'] ||
             ENV['HEROKU_POSTGRESQL_ROSE_URL'] ||
             ENV['HEROKU_POSTGRESQL_GOLD_URL'] ||
-            File.read(File.join(File.dirname(__FILE__), 'Procfile')) =~ /intended for Heroku/
+            File.read(File.join(File.dirname(__FILE__), 'Procfile')).include?('intended for Heroku')
 
 ENV['DATABASE_ADAPTER'] ||=
   if on_heroku
@@ -216,6 +218,6 @@ if_true(ENV['DATABASE_ADAPTER'].strip == 'mysql2') do
   gem 'mysql2', '~> 0.5', '>= 0.5.6'
 end
 
-GemfileHelper.parse_each_agent_gem(ENV['ADDITIONAL_GEMS']) do |args|
+GemfileHelper.parse_each_agent_gem(ENV.fetch('ADDITIONAL_GEMS', nil)) do |args|
   gem(*args)
 end

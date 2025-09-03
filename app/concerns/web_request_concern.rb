@@ -1,19 +1,25 @@
+# frozen_string_literal: true
+
 require 'faraday'
 
 module WebRequestConcern
+
   module DoNotEncoder
+
     def self.encode(params)
       params.map do |key, value|
-        value.nil? ? "#{key}" : "#{key}=#{value}"
+        value.nil? ? key.to_s : "#{key}=#{value}"
       end.join('&')
     end
 
     def self.decode(val)
       [val]
     end
+
   end
 
   class CharacterEncoding < Faraday::Middleware
+
     def initialize(app, options = {})
       super(app)
       @force_encoding   = options[:force_encoding]
@@ -33,20 +39,19 @@ module WebRequestConcern
           end
         end
 
-        case
-        when @force_encoding
+        if @force_encoding
           encoding = @force_encoding
-        when body.encoding == Encoding::ASCII_8BIT
+        elsif body.encoding == Encoding::ASCII_8BIT
           # Not all Faraday adapters support automatic charset
           # detection, so we do that.
           case env[:response_headers][:content_type]
-          when /;\s*charset\s*=\s*([^()<>@,;:\\"\/\[\]?={}\s]+)/i
+          when %r{;\s*charset\s*=\s*([^()<>@,;:\\"/\[\]?={}\s]+)}i
             encoding = begin
-              Encoding.find($1)
+              Encoding.find(::Regexp.last_match(1))
             rescue StandardError
               @default_encoding
             end
-          when /\A\s*(?:text\/[^\s;]+|application\/(?:[^\s;]+\+)?(?:xml|json))\s*(?:;|\z)/i
+          when %r{\A\s*(?:text/[^\s;]+|application/(?:[^\s;]+\+)?(?:xml|json))\s*(?:;|\z)}i
             encoding = @default_encoding
           else
             # Never try to transcode a binary content
@@ -58,6 +63,7 @@ module WebRequestConcern
         body.encode!(Encoding::UTF_8, encoding, invalid: :replace, undef: :replace)
       end
     end
+
   end
 
   Faraday::Response.register_middleware character_encoding: CharacterEncoding
@@ -65,21 +71,17 @@ module WebRequestConcern
   extend ActiveSupport::Concern
 
   def validate_web_request_options!
-    if options['user_agent'].present?
-      errors.add(:base, "user_agent must be a string") unless options['user_agent'].is_a?(String)
+    if options['user_agent'].present? && !options['user_agent'].is_a?(String)
+      errors.add(:base, 'user_agent must be a string')
     end
 
-    if options['proxy'].present?
-      errors.add(:base, "proxy must be a string") unless options['proxy'].is_a?(String)
-    end
+    errors.add(:base, 'proxy must be a string') if options['proxy'].present? && !options['proxy'].is_a?(String)
 
     if options['disable_ssl_verification'].present? && boolify(options['disable_ssl_verification']).nil?
-      errors.add(:base, "if provided, disable_ssl_verification must be true or false")
+      errors.add(:base, 'if provided, disable_ssl_verification must be true or false')
     end
 
-    unless headers(options['headers']).is_a?(Hash)
-      errors.add(:base, "if provided, headers must be a hash")
-    end
+    errors.add(:base, 'if provided, headers must be a hash') unless headers(options['headers']).is_a?(Hash)
 
     begin
       basic_auth_credentials(options['basic_auth'])
@@ -87,7 +89,8 @@ module WebRequestConcern
       errors.add(:base, e.message)
     end
 
-    if (encoding = options['force_encoding']).present?
+    return unless (encoding = options['force_encoding']).present?
+
       case encoding
       when String
         begin
@@ -96,9 +99,8 @@ module WebRequestConcern
           errors.add(:base, "Unknown encoding: #{encoding.inspect}")
         end
       else
-        errors.add(:base, "force_encoding must be a string")
+        errors.add(:base, 'force_encoding must be a string')
       end
-    end
   end
 
   # The default encoding for a text content with no `charset`
@@ -115,21 +117,19 @@ module WebRequestConcern
   def faraday
     faraday_options = {
       ssl: {
-        verify: !boolify(options['disable_ssl_verification'])
-      }
+        verify: !boolify(options['disable_ssl_verification']),
+      },
     }
 
-    @faraday ||= Faraday.new(faraday_options) { |builder|
-      if parse_body?
-        builder.response :json
-      end
+    @faraday ||= Faraday.new(faraday_options) do |builder|
+      builder.response :json if parse_body?
 
       builder.response :character_encoding,
                        force_encoding: interpolated['force_encoding'].presence,
                        default_encoding:,
                        unzip: interpolated['unzip'].presence
 
-      builder.headers = headers if headers.length > 0
+      builder.headers = headers if headers.length.positive?
 
       builder.headers[:user_agent] = user_agent
 
@@ -143,13 +143,11 @@ module WebRequestConcern
       builder.request :multipart
       builder.request :url_encoded
 
-      if boolify(interpolated['disable_url_encoding'])
-        builder.options.params_encoder = DoNotEncoder
-      end
+      builder.options.params_encoder = DoNotEncoder if boolify(interpolated['disable_url_encoding'])
 
       builder.options.timeout = (Delayed::Worker.max_run_time.seconds - 2).to_i
 
-      if userinfo = basic_auth_credentials
+      if (userinfo = basic_auth_credentials)
         builder.request :authorization, :basic, *userinfo
       end
 
@@ -163,7 +161,7 @@ module WebRequestConcern
         require "faraday/#{backend}"
         builder.adapter backend
       end
-    }
+    end
   end
 
   def headers(value = interpolated['headers'])
@@ -179,18 +177,18 @@ module WebRequestConcern
     when /:/
       return value.split(/:/, 2)
     end
-    raise ArgumentError.new("bad value for basic_auth: #{value.inspect}")
+    raise ArgumentError, "bad value for basic_auth: #{value.inspect}"
   end
 
   def faraday_backend
-    ENV.fetch('FARADAY_HTTP_BACKEND') {
+    ENV.fetch('FARADAY_HTTP_BACKEND') do
       case interpolated['backend']
       in 'typhoeus' | 'net_http' | 'httpclient' | 'em_http' => backend
         backend
       else
         'typhoeus'
       end
-    }.to_sym
+    end.to_sym
   end
 
   def user_agent
@@ -198,8 +196,11 @@ module WebRequestConcern
   end
 
   module ClassMethods
+
     def default_user_agent
-      ENV.fetch('DEFAULT_HTTP_USER_AGENT', "Huginn - https://github.com/huginn/huginn")
+      ENV.fetch('DEFAULT_HTTP_USER_AGENT', 'Huginn - https://github.com/huginn/huginn')
     end
+
   end
+
 end

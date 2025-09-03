@@ -1,6 +1,9 @@
+# frozen_string_literal: true
+
 require 'active_support/concern'
 
 module SortableTable
+
   extend ActiveSupport::Concern
 
   included do
@@ -10,19 +13,19 @@ module SortableTable
   protected
 
   def table_sort
-    raise("You must call set_table_sort in any action using table_sort.") unless @table_sort_info.present?
+    raise('You must call set_table_sort in any action using table_sort.') unless @table_sort_info.present?
+
     @table_sort_info[:order]
   end
 
   def set_table_sort(sort_options)
-    valid_sorts = sort_options[:sorts] or raise ArgumentError.new("You must specify :sorts as an array of valid sort attributes.")
+    valid_sorts = sort_options[:sorts] or raise(ArgumentError,
+                                                'You must specify :sorts as an array of valid sort attributes.')
     default = sort_options[:default] || { valid_sorts.first.to_sym => :desc }
 
     if params[:sort].present?
       attribute, direction = params[:sort].downcase.split('.')
-      unless valid_sorts.include?(attribute)
-        attribute, direction = default.to_a.first
-      end
+      attribute, direction = default.to_a.first unless valid_sorts.include?(attribute)
     else
       attribute, direction = default.to_a.first
     end
@@ -32,11 +35,12 @@ module SortableTable
     @table_sort_info = {
       order: { attribute.to_sym => direction.to_sym },
       attribute: attribute,
-      direction: direction
+      direction: direction,
     }
   end
 
   module SortableTableHelper
+
     # :call-seq:
     #   sortable_column(attribute, default_direction = 'desc', name: attribute.humanize)
     def sortable_column(attribute, default_direction = nil, options = nil)
@@ -57,5 +61,7 @@ module SortableTable
       end
       link_to(name, url_for(sort: "#{attribute}.#{new_direction}"), class: classes)
     end
+
   end
+
 end

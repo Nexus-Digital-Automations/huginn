@@ -1,4 +1,7 @@
+# frozen_string_literal: true
+
 module GoogleOauth2Concern
+
   extend ActiveSupport::Concern
 
   included do
@@ -18,15 +21,14 @@ module GoogleOauth2Concern
   end
 
   def google_oauth2_email
-    if service
-      service.options[:email]
-    end
+    service.options[:email] if service
   end
 
   def google_oauth2_access_token
-    if service
+    return unless service
+
       service.prepare_request
       service.token
-    end
   end
+
 end

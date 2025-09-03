@@ -1,6 +1,9 @@
+# frozen_string_literal: true
+
 require 'agents_exporter'
 
 class ScenariosController < ApplicationController
+
   include SortableTable
   skip_before_action :authenticate_user!, only: :export
 
@@ -57,8 +60,8 @@ class ScenariosController < ApplicationController
                                    icon: @scenario.icon,
                                    source_url: @scenario.public? && export_scenario_url(@scenario),
                                    agents: @scenario.agents)
-    response.headers['Content-Disposition'] = 'attachment; filename="' + @exporter.filename + '"'
-    render :json => JSON.pretty_generate(@exporter.as_json)
+    response.headers['Content-Disposition'] = "attachment; filename=\"#{@exporter.filename}\""
+    render json: JSON.pretty_generate(@exporter.as_json)
   end
 
   def edit
@@ -78,7 +81,7 @@ class ScenariosController < ApplicationController
         format.html { redirect_to @scenario, notice: 'This Scenario was successfully created.' }
         format.json { render json: @scenario, status: :created, location: @scenario }
       else
-        format.html { render action: "new" }
+        format.html { render action: 'new' }
         format.json { render json: @scenario.errors, status: :unprocessable_entity }
       end
     end
@@ -92,7 +95,7 @@ class ScenariosController < ApplicationController
         format.html { redirect_to @scenario, notice: 'This Scenario was successfully updated.' }
         format.json { head :no_content }
       else
-        format.html { render action: "edit" }
+        format.html { render action: 'edit' }
         format.json { render json: @scenario.errors, status: :unprocessable_entity }
       end
     end
@@ -124,4 +127,5 @@ class ScenariosController < ApplicationController
     params.require(:scenario).permit(:name, :description, :public, :source_url,
                                      :tag_fg_color, :tag_bg_color, :icon, agent_ids: [])
   end
+
 end

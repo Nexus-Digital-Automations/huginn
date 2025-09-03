@@ -1,4 +1,7 @@
+# frozen_string_literal: true
+
 class DiagramsController < ApplicationController
+
   def show
     if params[:scenario_id].present?
       @scenario = current_user.scenarios.find(params[:scenario_id])
@@ -10,4 +13,5 @@ class DiagramsController < ApplicationController
     agents = agents.active if params[:exclude_disabled].present?
     @agents = agents.includes(:receivers, :control_targets)
   end
+
 end

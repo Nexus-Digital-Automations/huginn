@@ -1,0 +1,707 @@
+openapi: 3.0.3
+info:
+  title: Huginn API
+  description: |
+    Huginn provides APIs for external systems to send data via webhooks and retrieve data via feeds.
+    
+    ## Base URL Pattern
+    All Huginn API endpoints follow this pattern:
+    `https://your-huginn-instance.com/users/{user_id}/web_requests/{agent_id}/{secret}`
+    
+    ## Authentication
+    Authentication uses secret tokens configured in individual agents.
+    
+    ## Rate Limits
+    No built-in rate limits, but implement client-side rate limiting for best performance.
+    
+    For comprehensive integration examples, see the [Integration Guide](./integration-guide.md).
+  version: "1.0.0"
+  contact:
+    name: Huginn Project
+    url: https://github.com/huginn/huginn
+  license:
+    name: MIT License
+    url: https://github.com/huginn/huginn/blob/master/LICENSE
+
+servers:
+  - url: https://your-huginn-instance.com
+    description: Your Huginn instance
+
+paths:
+  /users/{user_id}/web_requests/{agent_id}/{secret}:
+    post:
+      summary: Send data to WebhookAgent
+      description: |
+        Send data to a Huginn WebhookAgent which will create events based on the payload.
+        
+        The agent must be configured to accept POST requests and the secret must match
+        the agent configuration.
+      operationId: sendWebhook
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: ID of the Huginn user who owns the agent
+          schema:
+            type: integer
+            example: 123
+        - name: agent_id
+          in: path
+          required: true
+          description: ID of the WebhookAgent to send data to
+          schema:
+            type: integer
+            example: 456
+        - name: secret
+          in: path
+          required: true
+          description: Secret token configured in the agent for authentication
+          schema:
+            type: string
+            example: "your-secure-secret-token"
+      requestBody:
+        description: Data payload to be processed by the agent
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Any JSON object - structure depends on your use case
+              example:
+                event_type: "sensor_reading"
+                sensor_id: "temp_01"
+                temperature: 23.5
+                humidity: 65.0
+                timestamp: "2024-01-15T10:30:00Z"
+            examples:
+              sensor_data:
+                summary: IoT sensor reading
+                value:
+                  sensor_id: "temp_01" 
+                  temperature: 23.5
+                  humidity: 65.0
+                  battery_level: 87
+                  timestamp: "2024-01-15T10:30:00Z"
+              order_data:
+                summary: E-commerce order
+                value:
+                  order_id: "ORD-001"
+                  customer_id: "CUST-123"
+                  total_amount: 299.99
+                  currency: "USD"
+                  items:
+                    - sku: "PROD-001"
+                      quantity: 2
+                      price: 149.99
+              social_mention:
+                summary: Social media mention
+                value:
+                  platform: "twitter"
+                  mention_id: "tweet-123456"
+                  author: "@customer"
+                  content: "Great product! Highly recommend @YourBrand"
+                  url: "https://twitter.com/customer/status/123456"
+                  engagement:
+                    likes: 15
+                    shares: 3
+                    comments: 2
+      responses:
+        '200':
+          description: Event created successfully (custom response code)
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Event Created"
+        '201':
+          description: Event created successfully (default)
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Event Created"
+        '400':
+          description: Bad request - invalid JSON or payload format
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Bad Request"
+        '401':
+          description: Unauthorized - incorrect secret or HTTP method not allowed
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Not Authorized"
+        '404':
+          description: Not found - invalid user_id or agent_id
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "agent not found"
+        '500':
+          description: Internal server error
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Internal Server Error"
+      tags:
+        - Webhook Integration
+    
+    get:
+      summary: Send data via GET request (if enabled)
+      description: |
+        Send data to WebhookAgent via GET request with query parameters.
+        Only works if the agent is configured to accept GET requests.
+      operationId: sendWebhookGet
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: ID of the Huginn user who owns the agent
+          schema:
+            type: integer
+            example: 123
+        - name: agent_id
+          in: path
+          required: true
+          description: ID of the WebhookAgent to send data to
+          schema:
+            type: integer
+            example: 456
+        - name: secret
+          in: path
+          required: true
+          description: Secret token configured in the agent for authentication
+          schema:
+            type: string
+            example: "your-secure-secret-token"
+        - name: status
+          in: query
+          description: Example query parameter
+          schema:
+            type: string
+            example: "check"
+        - name: source
+          in: query
+          description: Example query parameter
+          schema:
+            type: string
+            example: "external"
+      responses:
+        '200':
+          description: Event created successfully
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Event Created"
+        '401':
+          description: Unauthorized or GET not allowed
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Please use POST requests only"
+      tags:
+        - Webhook Integration
+
+  /users/{user_id}/web_requests/{agent_id}/{secret}.json:
+    get:
+      summary: Get data feed as JSON
+      description: |
+        Retrieve events from a DataOutputAgent as JSON feed.
+        Returns structured data with feed metadata and items array.
+      operationId: getDataFeedJson
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: ID of the Huginn user who owns the agent
+          schema:
+            type: integer
+            example: 123
+        - name: agent_id
+          in: path
+          required: true
+          description: ID of the DataOutputAgent to retrieve data from
+          schema:
+            type: integer
+            example: 789
+        - name: secret
+          in: path
+          required: true
+          description: Secret token configured in the agent for authentication
+          schema:
+            type: string
+            example: "feed-secret-token"
+      responses:
+        '200':
+          description: JSON data feed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  title:
+                    type: string
+                    description: Feed title from agent template
+                    example: "IoT Sensor Data Feed"
+                  description:
+                    type: string
+                    description: Feed description from agent template
+                    example: "Real-time sensor readings from connected devices"
+                  pubDate:
+                    type: string
+                    format: date-time
+                    description: Feed generation timestamp
+                    example: "2024-01-15T10:30:00Z"
+                  items:
+                    type: array
+                    description: Array of feed items (events)
+                    items:
+                      type: object
+                      properties:
+                        title:
+                          type: string
+                          example: "Temperature Alert - Sensor 01"
+                        description:
+                          type: string
+                          example: "Temperature reading of 28.5°C exceeds threshold"
+                        link:
+                          type: string
+                          format: uri
+                          example: "https://dashboard.example.com/sensors/temp_01"
+                        guid:
+                          type: string
+                          description: Unique identifier for this item
+                          example: "12345"
+                        pubDate:
+                          type: string
+                          format: date-time
+                          example: "2024-01-15T10:25:00Z"
+                      additionalProperties: true
+              examples:
+                sensor_feed:
+                  summary: IoT sensor data feed
+                  value:
+                    title: "IoT Sensor Data Feed"
+                    description: "Real-time sensor readings"
+                    pubDate: "2024-01-15T10:30:00Z"
+                    items:
+                      - title: "Temperature Normal - Sensor 01"
+                        description: "Temperature: 23.5°C, Humidity: 65%"
+                        link: "https://dashboard.example.com/sensors/temp_01"
+                        guid: "12345"
+                        pubDate: "2024-01-15T10:25:00Z"
+                        sensor_id: "temp_01"
+                        temperature: 23.5
+                        humidity: 65.0
+                      - title: "Battery Low - Sensor 02" 
+                        description: "Battery level at 15%, replacement needed"
+                        link: "https://dashboard.example.com/sensors/temp_02"
+                        guid: "12346"
+                        pubDate: "2024-01-15T10:20:00Z"
+                        sensor_id: "temp_02"
+                        battery_level: 15
+        '401':
+          description: Unauthorized - incorrect secret
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Not Authorized"
+        '404':
+          description: Not found - invalid user_id or agent_id
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "agent not found"
+      tags:
+        - Data Feeds
+
+  /users/{user_id}/web_requests/{agent_id}/{secret}.xml:
+    get:
+      summary: Get data feed as RSS/XML
+      description: |
+        Retrieve events from a DataOutputAgent as RSS/XML feed.
+        Returns standard RSS 2.0 format with optional namespaces.
+      operationId: getDataFeedXml
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: ID of the Huginn user who owns the agent
+          schema:
+            type: integer
+            example: 123
+        - name: agent_id
+          in: path
+          required: true
+          description: ID of the DataOutputAgent to retrieve data from
+          schema:
+            type: integer
+            example: 789
+        - name: secret
+          in: path
+          required: true
+          description: Secret token configured in the agent for authentication
+          schema:
+            type: string
+            example: "feed-secret-token"
+      responses:
+        '200':
+          description: RSS/XML data feed
+          content:
+            application/rss+xml:
+              schema:
+                type: string
+                format: xml
+                description: RSS 2.0 XML document
+              examples:
+                rss_feed:
+                  summary: RSS feed example
+                  value: |
+                    <?xml version="1.0" encoding="UTF-8"?>
+                    <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+                      <channel>
+                        <atom:link href="https://huginn.example.com/users/123/web_requests/789/secret.xml" rel="self" type="application/rss+xml"/>
+                        <title>IoT Sensor Data Feed</title>
+                        <description>Real-time sensor readings</description>
+                        <link>https://dashboard.example.com</link>
+                        <lastBuildDate>Mon, 15 Jan 2024 10:30:00 GMT</lastBuildDate>
+                        <ttl>60</ttl>
+                        <item>
+                          <title>Temperature Normal - Sensor 01</title>
+                          <description>Temperature: 23.5°C, Humidity: 65%</description>
+                          <link>https://dashboard.example.com/sensors/temp_01</link>
+                          <guid isPermaLink="false">12345</guid>
+                          <pubDate>Mon, 15 Jan 2024 10:25:00 GMT</pubDate>
+                        </item>
+                      </channel>
+                    </rss>
+        '401':
+          description: Unauthorized - incorrect secret
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Not Authorized"
+        '404':
+          description: Not found - invalid user_id or agent_id
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "agent not found"
+      tags:
+        - Data Feeds
+
+  /worker_status:
+    get:
+      summary: Get Huginn worker status
+      description: |
+        Get current status of Huginn background job workers and recent events.
+        Requires session-based authentication (logged in user).
+      operationId: getWorkerStatus
+      parameters:
+        - name: since_id
+          in: query
+          required: false
+          description: Only count events with ID greater than this value
+          schema:
+            type: integer
+            example: 1000
+      responses:
+        '200':
+          description: Worker status information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pending:
+                    type: integer
+                    description: Number of pending background jobs
+                    example: 5
+                  awaiting_retry:
+                    type: integer
+                    description: Number of jobs awaiting retry after failure
+                    example: 2
+                  recent_failures:
+                    type: integer
+                    description: Number of jobs that failed in the last 5 days
+                    example: 1
+                  event_count:
+                    type: integer
+                    description: Number of events (filtered by since_id if provided)
+                    example: 150
+                  max_id:
+                    type: integer
+                    description: Highest event ID
+                    example: 2847
+                  events_url:
+                    type: string
+                    description: URL to view the counted events
+                    example: "/events?hl=2840-2847"
+                  compute_time:
+                    type: number
+                    format: float
+                    description: Time taken to compute this response (seconds)
+                    example: 0.045
+        '401':
+          description: Unauthorized - requires user session
+        '403':
+          description: Forbidden - insufficient permissions
+      tags:
+        - Monitoring
+
+  /agents.json:
+    get:
+      summary: List user agents
+      description: |
+        Get list of agents for the current user.
+        Requires session-based authentication.
+      operationId: listAgents
+      responses:
+        '200':
+          description: Array of agent objects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Agent'
+        '401':
+          description: Unauthorized - requires user session
+      tags:
+        - Agent Management
+
+  /agents/{agent_id}.json:
+    get:
+      summary: Get agent details
+      description: |
+        Get detailed information about a specific agent.
+        Requires session-based authentication.
+      operationId: getAgent
+      parameters:
+        - name: agent_id
+          in: path
+          required: true
+          description: ID of the agent
+          schema:
+            type: integer
+            example: 456
+      responses:
+        '200':
+          description: Agent details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Agent'
+        '401':
+          description: Unauthorized - requires user session
+        '404':
+          description: Agent not found
+      tags:
+        - Agent Management
+
+  /agents/{agent_id}/run:
+    post:
+      summary: Run agent manually
+      description: |
+        Trigger manual execution of an agent.
+        Requires session-based authentication.
+      operationId: runAgent
+      parameters:
+        - name: agent_id
+          in: path
+          required: true
+          description: ID of the agent to run
+          schema:
+            type: integer
+            example: 456
+      responses:
+        '200':
+          description: Agent run queued successfully
+        '401':
+          description: Unauthorized - requires user session
+        '404':
+          description: Agent not found
+      tags:
+        - Agent Management
+
+  /scenarios/{scenario_id}/export:
+    get:
+      summary: Export scenario configuration
+      description: |
+        Export complete scenario configuration as JSON.
+        No authentication required for public scenarios.
+      operationId: exportScenario
+      parameters:
+        - name: scenario_id
+          in: path
+          required: true
+          description: ID of the scenario to export
+          schema:
+            type: integer
+            example: 10
+      responses:
+        '200':
+          description: Scenario configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScenarioExport'
+        '404':
+          description: Scenario not found or not public
+      tags:
+        - Scenario Management
+
+components:
+  schemas:
+    Agent:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 456
+        name:
+          type: string
+          example: "Temperature Sensor Webhook"
+        type:
+          type: string
+          example: "Agents::WebhookAgent"
+        description:
+          type: string
+          example: "Receives temperature sensor data via webhook"
+        disabled:
+          type: boolean
+          example: false
+        keep_events_for:
+          type: integer
+          description: Event retention period in seconds
+          example: 604800
+        last_check_at:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:25:00Z"
+        last_event_at:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:25:00Z"
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:00:00Z"
+        options:
+          type: object
+          description: Agent-specific configuration options
+          example:
+            secret: "your-secret-token"
+            expected_receive_period_in_days: 1
+            payload_path: "."
+
+    ScenarioExport:
+      type: object
+      properties:
+        schema_version:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "IoT Monitoring Scenario"
+        description:
+          type: string
+          example: "Complete IoT sensor monitoring and alerting workflow"
+        guid:
+          type: string
+          example: "iot-monitoring-v1"
+        tag_fg_color:
+          type: string
+          example: "#ffffff"
+        tag_bg_color:
+          type: string
+          example: "#5cb85c"
+        icon:
+          type: string
+          example: "thermometer"
+        source_url:
+          type: string
+          format: uri
+          example: "https://huginn.example.com/scenarios/10/export"
+        agents:
+          type: array
+          description: Array of agent configurations
+          items:
+            type: object
+            properties:
+              guid:
+                type: string
+                example: "webhook-sensor-data"
+              name:
+                type: string
+                example: "Sensor Data Webhook"
+              type:
+                type: string
+                example: "Agents::WebhookAgent"
+              options:
+                type: object
+                example:
+                  secret: "sensor-webhook-secret"
+                  payload_path: "."
+              schedule:
+                type: string
+                example: "never"
+        links:
+          type: array
+          description: Connections between agents
+          items:
+            type: object
+            properties:
+              source:
+                type: string
+                description: GUID of source agent
+                example: "webhook-sensor-data"
+              receiver:
+                type: string
+                description: GUID of receiver agent
+                example: "temperature-alert-detector"
+
+  securitySchemes:
+    SessionAuth:
+      type: apiKey
+      in: cookie
+      name: _huginn_session
+      description: |
+        Session-based authentication using cookies. 
+        Login through the web interface to establish a session.
+
+security: []
+
+tags:
+  - name: Webhook Integration
+    description: Send data TO Huginn via WebhookAgent
+  - name: Data Feeds
+    description: Get data FROM Huginn via DataOutputAgent
+  - name: Monitoring
+    description: Monitor Huginn system health and performance
+  - name: Agent Management
+    description: Manage agents programmatically (requires authentication)
+  - name: Scenario Management
+    description: Export and import scenario configurations
+
+externalDocs:
+  description: Comprehensive Integration Guide
+  url: ./integration-guide.md

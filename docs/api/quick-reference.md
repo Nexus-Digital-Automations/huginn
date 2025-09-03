@@ -175,4 +175,4 @@ curl http://localhost:3000/users/1/web_requests/2/feed-secret.xml
 - Check URL paths
 - Ensure resources exist
 
-For complete details, see the [Full API Reference](reference.md).
+For complete details, see the [Full API Reference](reference.md) and [Data Schemas](schemas.md).

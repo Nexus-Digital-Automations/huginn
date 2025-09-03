@@ -33,23 +33,6 @@
       "prompt": "Read and analyze all files in the development/ directory. Based on the content of these files, create a comprehensive set of tasks that will implement the guidelines, setup requirements, and development workflow described in the documentation. Focus on:\n\n1. Development guidelines from general.md\n2. Mode-specific requirements from modes/ directory\n3. Project setup tasks based on README.md\n4. Dependency and configuration tasks from package.json\n5. Production-ready requirements from CLAUDE.md\n6. Any other requirements found in development documentation\n\nIMPORTANT: ALL CODE AND FEATURES MUST BE PRODUCTION-READY - NO SIMPLIFIED OR MOCK IMPLEMENTATIONS.\n\nCreate specific, actionable tasks with clear success criteria, appropriate categories (use TaskManager categories: linter-error, build-error, missing-feature, bug, enhancement, etc.), and proper dependencies. Ensure the task list provides complete coverage for setting up and developing the project according to the documented standards with enterprise-grade quality."
     },
     {
-      "id": "task_1756875782827_x8p1fokle",
-      "title": "Create comprehensive webhook usage examples and patterns documentation",
-      "mode": "DEVELOPMENT",
-      "category": "documentation",
-      "priority": "high",
-      "status": "pending",
-      "dependencies": [],
-      "important_files": [],
-      "success_criteria": [],
-      "estimate": "",
-      "requires_research": false,
-      "subtasks": [],
-      "created_at": "2025-09-03T05:03:02.827Z",
-      "auto_research_created": false,
-      "description": "No description provided"
-    },
-    {
       "id": "task_1756875710629_mlj8mdn56",
       "title": "Create comprehensive API documentation for Huginn",
       "description": "Based on the API research completed, create comprehensive API documentation including OpenAPI/Swagger specifications, integration guides, and usage examples for the Huginn platform API endpoints and webhook system. This addresses the current lack of formal API documentation in the codebase.",

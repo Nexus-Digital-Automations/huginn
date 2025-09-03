@@ -1,130 +1,75 @@
 # Huginn API Documentation
 
-This directory contains comprehensive API documentation for the Huginn automation platform.
+This directory contains comprehensive API documentation for integrating external systems with Huginn.
 
-## Contents
+## 📚 Documentation Files
 
-- **`openapi.yaml`** - Complete OpenAPI 3.0 specification for all Huginn API endpoints
-- **`integration-guide.md`** - Detailed integration guide with examples and best practices
+### [Integration Guide](./integration-guide.md)
+**The complete reference for Huginn API integration**
+- Getting started with authentication and configuration
+- Webhook integration patterns (sending data TO Huginn)  
+- Data retrieval patterns (getting data FROM Huginn)
+- Agent management and monitoring APIs
+- Real-world integration examples in multiple languages
+- Error handling, rate limiting, and performance optimization
+- Troubleshooting and debugging tools
 
-## Quick Start
+### [OpenAPI Specification](./openapi-spec.yaml)
+**Machine-readable API specification**
+- Complete API endpoint definitions
+- Request/response schemas and examples
+- Authentication requirements
+- Compatible with OpenAPI 3.0 tools and generators
 
-### 1. Authentication
+## 🚀 Quick Start
 
-Most API endpoints require session-based authentication through Devise. Login through the web interface first to establish a session, then use the session cookie in your API requests.
+1. **Read the [Integration Guide](./integration-guide.md)** for comprehensive examples and best practices
+2. **Use the [OpenAPI Spec](./openapi-spec.yaml)** to generate client libraries or documentation
+3. **Start with WebhookAgent** to send data TO Huginn
+4. **Use DataOutputAgent** to get data FROM Huginn
 
-```bash
-# Login first through web interface, then use the session cookie
-curl -H "Cookie: _huginn_session=your-session-cookie" \
-     https://your-huginn.com/agents
+## 🔗 Key API Patterns
+
+### Webhook Endpoints (Incoming Data)
+```
+POST https://huginn.example.com/users/{user_id}/web_requests/{agent_id}/{secret}
 ```
 
-### 2. Webhooks (No Authentication Required)
-
-Webhook endpoints use secret-based authentication and don't require sessions:
-
-```bash
-# Send webhook data to an agent
-curl -X POST https://your-huginn.com/users/1/web_requests/123/your-secret \
-     -H "Content-Type: application/json" \
-     -d '{"event": "user_signup", "email": "user@example.com"}'
+### Data Feed Endpoints (Outgoing Data)  
+```
+GET https://huginn.example.com/users/{user_id}/web_requests/{agent_id}/{secret}.json
+GET https://huginn.example.com/users/{user_id}/web_requests/{agent_id}/{secret}.xml
 ```
 
-### 3. Common Operations
+### Required Information
+- **Domain**: Your Huginn instance URL
+- **User ID**: Found in agent URLs or account settings
+- **Agent ID**: Unique identifier for each agent  
+- **Secret**: Authentication token configured in the agent
 
-#### List Your Agents
-```bash
-GET /agents
-```
+## 🛠️ Integration Examples
 
-#### Create a WebhookAgent
-```bash
-POST /agents
-Content-Type: application/json
+The integration guide includes complete, production-ready examples for:
 
-{
-  "name": "My Webhook Agent",
-  "type": "Agents::WebhookAgent",
-  "options": {
-    "secret": "my-secret-token",
-    "expected_receive_period_in_days": 1,
-    "payload_path": "."
-  }
-}
-```
+- **IoT Data Pipelines** - Sensor data collection and alerting
+- **E-commerce Integration** - Order processing and inventory management
+- **Social Media Monitoring** - Brand mention tracking and analysis
+- **Health Monitoring** - System status and performance tracking
 
-#### Get RSS Feed from DataOutputAgent
-```bash
-GET /users/1/web_requests/456/feed-secret?format=xml
-```
+## 📖 Additional Resources
 
-## API Specification
+- [Huginn Wiki](https://github.com/huginn/huginn/wiki) - Official project documentation
+- [Agent Documentation](https://github.com/huginn/huginn/tree/master/app/models/agents) - Individual agent references
+- [Huginn GitHub](https://github.com/huginn/huginn) - Source code and issues
 
-The complete API specification is available in OpenAPI 3.0 format at `openapi.yaml`. You can:
+## 🤝 Contributing
 
-1. **View in Swagger UI**: Import the YAML file into [Swagger Editor](https://editor.swagger.io/)
-2. **Generate Client Libraries**: Use [OpenAPI Generator](https://openapi-generator.tech/) to create client libraries in your preferred language
-3. **Import into Postman**: Import the OpenAPI spec directly into Postman for testing
+Found an issue or have a suggestion for the API documentation? Please:
 
-## Key Features
+1. Check existing issues in the [Huginn repository](https://github.com/huginn/huginn/issues)
+2. Submit documentation feedback or improvements
+3. Share your integration patterns and examples
 
-### Webhook System
-- **Multiple HTTP Verbs**: Support for GET, POST, PUT, DELETE
-- **Secret Authentication**: Each agent uses a configurable secret token
-- **Flexible Payloads**: JSON, form data, and multipart support
-- **Custom Responses**: Agents can return custom content and HTTP status codes
+---
 
-### Agent Management
-- **Full CRUD Operations**: Create, read, update, delete agents
-- **Runtime Control**: Manually run agents, clear memory, re-emit events
-- **Type Discovery**: Get agent type details and validation
-- **Scenario Organization**: Group agents into scenarios
-
-### Event Handling
-- **Event Streams**: Monitor events across all agents
-- **Re-emission**: Re-trigger events for downstream processing
-- **Filtering**: Filter events by agent or time period
-
-### Background Jobs
-- **Job Monitoring**: View delayed job queue (admin only)
-- **Job Control**: Retry, delete, or manually run jobs
-- **System Status**: Monitor worker health and performance
-
-## Security Considerations
-
-1. **Secret Tokens**: Use strong, unique secrets for webhook agents
-2. **HTTPS**: Always use HTTPS in production
-3. **Rate Limiting**: Implement client-side rate limiting for API calls
-4. **Validation**: Validate all webhook payloads in your agents
-5. **Secrets Management**: Store API secrets securely, not in code
-
-## Error Handling
-
-The API uses standard HTTP status codes:
-
-- **200/201**: Success
-- **401**: Unauthorized (invalid session or secret)
-- **403**: Forbidden (insufficient permissions)
-- **404**: Not Found
-- **422**: Validation Error
-- **500**: Server Error
-
-Error responses include descriptive messages in the response body.
-
-## Examples
-
-See `integration-guide.md` for detailed examples and integration patterns for common use cases including:
-
-- Setting up webhook endpoints
-- Creating data processing pipelines  
-- Building RSS/JSON feeds
-- Integrating with external services
-- Monitoring and alerting
-
-## Support
-
-For questions and support:
-
-- **Documentation**: [Huginn Wiki](https://github.com/huginn/huginn/wiki)
-- **Issues**: [GitHub Issues](https://github.com/huginn/huginn/issues)
-- **Community**: [Huginn Discussions](https://github.com/huginn/huginn/discussions)
+**Need help?** Start with the [Integration Guide](./integration-guide.md) for step-by-step examples and troubleshooting.

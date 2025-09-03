@@ -33,53 +33,20 @@
       "prompt": "Read and analyze all files in the development/ directory. Based on the content of these files, create a comprehensive set of tasks that will implement the guidelines, setup requirements, and development workflow described in the documentation. Focus on:\n\n1. Development guidelines from general.md\n2. Mode-specific requirements from modes/ directory\n3. Project setup tasks based on README.md\n4. Dependency and configuration tasks from package.json\n5. Production-ready requirements from CLAUDE.md\n6. Any other requirements found in development documentation\n\nIMPORTANT: ALL CODE AND FEATURES MUST BE PRODUCTION-READY - NO SIMPLIFIED OR MOCK IMPLEMENTATIONS.\n\nCreate specific, actionable tasks with clear success criteria, appropriate categories (use TaskManager categories: linter-error, build-error, missing-feature, bug, enhancement, etc.), and proper dependencies. Ensure the task list provides complete coverage for setting up and developing the project according to the documented standards with enterprise-grade quality."
     },
     {
-      "id": "task_1756875782827_x8p1fokle",
-      "title": "Create comprehensive webhook usage examples and patterns documentation",
+      "id": "task_1756874454344_9edq6zlub",
+      "title": "Continue development and improvements",
+      "description": "Continue with the current development tasks, fix any issues, and improve the codebase quality.\n\nIMPORTANT: ALL CODE AND FEATURES MUST BE PRODUCTION-READY - NO SIMPLIFIED OR MOCK IMPLEMENTATIONS.",
       "mode": "DEVELOPMENT",
-      "category": "documentation",
-      "priority": "high",
+      "category": "missing-feature",
+      "priority": "medium",
       "status": "pending",
-      "dependencies": [],
+      "dependencies": [
+        "task_1756874454344_init"
+      ],
       "important_files": [],
-      "success_criteria": [],
-      "estimate": "",
       "requires_research": false,
-      "subtasks": [],
-      "created_at": "2025-09-03T05:03:02.827Z",
-      "auto_research_created": false,
-      "description": "No description provided"
-    },
-    {
-      "id": "task_1756875710629_mlj8mdn56",
-      "title": "Create comprehensive API documentation for Huginn",
-      "description": "Based on the API research completed, create comprehensive API documentation including OpenAPI/Swagger specifications, integration guides, and usage examples for the Huginn platform API endpoints and webhook system. This addresses the current lack of formal API documentation in the codebase.",
-      "mode": "DEVELOPMENT",
-      "category": "documentation",
-      "priority": "high",
-      "status": "pending",
-      "dependencies": [],
-      "important_files": [
-        "app/controllers/web_requests_controller.rb",
-        "app/controllers/agents_controller.rb",
-        "app/controllers/events_controller.rb",
-        "app/controllers/scenarios_controller.rb",
-        "app/models/agents/webhook_agent.rb",
-        "app/models/agents/data_output_agent.rb",
-        "config/routes.rb"
-      ],
-      "success_criteria": [
-        "OpenAPI/Swagger specification created",
-        "Comprehensive API documentation written",
-        "Integration examples provided",
-        "Authentication documentation included",
-        "Webhook usage patterns documented",
-        "All API endpoints documented with examples"
-      ],
-      "estimate": "",
-      "requires_research": false,
-      "subtasks": [],
-      "created_at": "2025-09-03T05:01:50.629Z",
-      "auto_research_created": false
+      "created_at": "2025-09-03T04:40:54.345Z",
+      "subtasks": []
     },
     {
       "id": "task_1756874454345_review1",
@@ -128,22 +95,6 @@
       "subtasks": [],
       "is_review_task": true,
       "strike_number": 3
-    },
-    {
-      "id": "task_1756874454344_9edq6zlub",
-      "title": "Continue development and improvements",
-      "description": "Continue with the current development tasks, fix any issues, and improve the codebase quality.\n\nIMPORTANT: ALL CODE AND FEATURES MUST BE PRODUCTION-READY - NO SIMPLIFIED OR MOCK IMPLEMENTATIONS.",
-      "mode": "DEVELOPMENT",
-      "category": "missing-feature",
-      "priority": "medium",
-      "status": "pending",
-      "dependencies": [
-        "task_1756874454344_init"
-      ],
-      "important_files": [],
-      "requires_research": false,
-      "created_at": "2025-09-03T04:40:54.345Z",
-      "subtasks": []
     }
   ],
   "current_mode": "DEVELOPMENT",
@@ -153,13 +104,13 @@
   "strikes_completed_last_run": false,
   "last_hook_activation": 1756874454344,
   "agents": {
-    "development_session_1756875690264_1_general_56ed695f": {
+    "development_session_1756874756085_1_general_3b977993": {
       "name": "development Agent",
       "role": "development",
       "specialization": [],
       "status": "active",
       "assignedTasks": [],
-      "lastHeartbeat": "2025-09-03T05:01:30.265Z",
+      "lastHeartbeat": "2025-09-03T04:45:56.086Z",
       "parentAgentId": null,
       "capabilities": [
         "file-operations",
@@ -170,61 +121,10 @@
       ],
       "workload": 0,
       "maxConcurrentTasks": 5,
-      "createdAt": "2025-09-03T05:01:30.265Z",
-      "sessionId": "session_1756875690264",
-      "metadata": {}
-    },
-    "development_session_1756875772988_1_general_8df53727": {
-      "name": "development Agent",
-      "role": "development",
-      "specialization": [],
-      "status": "active",
-      "assignedTasks": [],
-      "lastHeartbeat": "2025-09-03T05:02:52.989Z",
-      "parentAgentId": null,
-      "capabilities": [
-        "file-operations",
-        "linting",
-        "testing",
-        "build-fixes",
-        "refactoring"
-      ],
-      "workload": 0,
-      "maxConcurrentTasks": 5,
-      "createdAt": "2025-09-03T05:02:52.989Z",
-      "sessionId": "session_1756875772988",
+      "createdAt": "2025-09-03T04:45:56.086Z",
+      "sessionId": "session_1756874756085",
       "metadata": {}
     }
   },
-  "current_task_index": 0,
-  "settings": {
-    "auto_sort_enabled": true,
-    "sort_criteria": {
-      "primary": "category",
-      "secondary": "created_at"
-    },
-    "priority_values": {
-      "critical": 4,
-      "high": 3,
-      "medium": 2,
-      "low": 1
-    },
-    "category_enabled": true,
-    "category_ranks": {
-      "linter-error": 1,
-      "build-error": 2,
-      "start-error": 3,
-      "error": 4,
-      "missing-feature": 5,
-      "missing-test": 6,
-      "test-linter-error": 7,
-      "test-error": 8,
-      "bug": 9,
-      "enhancement": 10,
-      "refactor": 11,
-      "documentation": 12,
-      "chore": 13,
-      "research": 14
-    }
-  }
+  "current_task_index": 0
 }

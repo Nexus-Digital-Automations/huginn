@@ -325,6 +325,11 @@ timeout 10s node -e 'const TaskManager = require("/Users/jeremyparker/Desktop/Cl
 - **BATCH PROCESSING** - Submit all prompts in one batch, never individually
 - **NO SEPARATE CALLS** - Individual Task calls create sequential timing
 
+**COMMON DEPLOYMENT ERROR - AVOID:**
+- **❌ SINGLE AGENT FALLBACK** - Often defaults to deploying only 1 subagent when task supports multiple
+- **❌ SEQUENTIAL DEPLOYMENT** - Individual Task calls instead of batch deployment
+- **✅ FORCE MULTIPLE AGENTS** - Always assess if task can be parallelized with 2-10 agents
+
 **PATTERN:** Assess → Deploy All Agents Simultaneously → Monitor → Synchronize Completion
 
 

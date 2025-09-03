@@ -1,0 +1,1443 @@
+openapi: 3.0.0
+info:
+  title: Huginn API
+  description: |
+    Huginn is a system for building agents that perform automated tasks for you online. 
+    This API allows you to interact with Huginn agents, events, scenarios, and webhooks programmatically.
+    
+    ## Authentication
+    
+    Most API endpoints require authentication through Devise sessions or API tokens.
+    Web request endpoints use secret-based authentication for webhook security.
+    
+    ## Agent Types
+    
+    Huginn supports many agent types including:
+    - **WebhookAgent**: Receives webhook data and creates events
+    - **DataOutputAgent**: Outputs events as RSS/JSON feeds
+    - **UserLocationAgent**: Handles location updates
+    
+    ## Event Flow
+    
+    Agents can receive events from other agents, process data, and emit new events,
+    creating powerful automation workflows.
+    
+  version: '1.0.0'
+  contact:
+    name: Huginn Community
+    url: https://github.com/huginn/huginn
+  license:
+    name: MIT
+    url: https://github.com/huginn/huginn/blob/master/LICENSE
+
+servers:
+  - url: 'https://{domain}'
+    description: Your Huginn instance
+    variables:
+      domain:
+        default: 'your-huginn-domain.com'
+        description: Your Huginn domain
+
+paths:
+  # Web Requests (Webhooks)
+  /users/{user_id}/web_requests/{agent_id}/{secret}:
+    get:
+      summary: Send GET request to agent webhook
+      description: |
+        Send a GET request to an agent's webhook endpoint. Used primarily with DataOutputAgent
+        to retrieve RSS/JSON feeds or other data outputs.
+      tags: [Webhooks]
+      security: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: The user ID that owns the agent
+          schema:
+            type: integer
+        - name: agent_id
+          in: path
+          required: true
+          description: The agent ID to send the request to
+          schema:
+            type: integer
+        - name: secret
+          in: path
+          required: true
+          description: Secret token for authentication (configured in agent options)
+          schema:
+            type: string
+        - name: format
+          in: query
+          description: Response format for DataOutputAgent (xml or json)
+          schema:
+            type: string
+            enum: [xml, json]
+            default: xml
+      responses:
+        '200':
+          description: Success response from agent
+          content:
+            application/rss+xml:
+              schema:
+                type: string
+                description: RSS XML feed (DataOutputAgent)
+            application/json:
+              schema:
+                type: object
+                description: JSON response from agent
+        '401':
+          description: Not authorized (invalid secret or user/agent not found)
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: 'Not Authorized'
+        '404':
+          description: User or agent not found
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: 'agent not found'
+
+    post:
+      summary: Send POST webhook to agent
+      description: |
+        Send a POST webhook request to an agent. This is the primary method for triggering
+        WebhookAgent and other agents that accept incoming data.
+      tags: [Webhooks]
+      security: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: The user ID that owns the agent
+          schema:
+            type: integer
+        - name: agent_id
+          in: path
+          required: true
+          description: The agent ID to send the webhook to
+          schema:
+            type: integer
+        - name: secret
+          in: path
+          required: true
+          description: Secret token for authentication (must match agent's secret option)
+          schema:
+            type: string
+      requestBody:
+        description: Webhook payload data
+        content:
+          application/json:
+            schema:
+              type: object
+              description: JSON payload that will be processed by the agent
+            example:
+              event_type: "user_signup"
+              user_email: "user@example.com"
+              timestamp: "2023-01-01T12:00:00Z"
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              additionalProperties: true
+          multipart/form-data:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '201':
+          description: Event created successfully
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: 'Event Created'
+            application/json:
+              schema:
+                type: object
+                description: Custom response from agent
+        '401':
+          description: Not authorized
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: 'Not Authorized'
+        '404':
+          description: User or agent not found
+
+    put:
+      summary: Send PUT request to agent webhook
+      description: Send a PUT request to an agent's webhook endpoint
+      tags: [Webhooks]
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+        - $ref: '#/components/parameters/AgentIdPath'
+        - $ref: '#/components/parameters/SecretPath'
+      requestBody:
+        $ref: '#/components/requestBodies/WebhookPayload'
+      responses:
+        '200':
+          $ref: '#/components/responses/WebhookSuccess'
+        '401':
+          $ref: '#/components/responses/NotAuthorized'
+
+    delete:
+      summary: Send DELETE request to agent webhook
+      description: Send a DELETE request to an agent's webhook endpoint
+      tags: [Webhooks]
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+        - $ref: '#/components/parameters/AgentIdPath'
+        - $ref: '#/components/parameters/SecretPath'
+      responses:
+        '200':
+          $ref: '#/components/responses/WebhookSuccess'
+        '401':
+          $ref: '#/components/responses/NotAuthorized'
+
+  # Legacy webhook endpoints
+  /users/{user_id}/webhooks/{agent_id}/{secret}:
+    post:
+      summary: Legacy webhook endpoint
+      description: Legacy webhook endpoint, use /web_requests instead
+      tags: [Webhooks]
+      deprecated: true
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+        - $ref: '#/components/parameters/AgentIdPath'
+        - $ref: '#/components/parameters/SecretPath'
+      requestBody:
+        $ref: '#/components/requestBodies/WebhookPayload'
+      responses:
+        '201':
+          $ref: '#/components/responses/WebhookSuccess'
+
+  /users/{user_id}/update_location/{secret}:
+    post:
+      summary: Update user location (legacy)
+      description: |
+        Legacy endpoint for updating user location. Triggers all UserLocationAgent
+        instances for the user with matching secret.
+      tags: [Webhooks]
+      deprecated: true
+      security: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: The user ID
+          schema:
+            type: integer
+        - name: secret
+          in: path
+          required: true
+          description: Secret token that matches UserLocationAgent secret option
+          schema:
+            type: string
+      requestBody:
+        description: Location data
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                latitude:
+                  type: number
+                  format: float
+                longitude:
+                  type: number
+                  format: float
+                accuracy:
+                  type: number
+                  format: float
+                timestamp:
+                  type: string
+                  format: date-time
+      responses:
+        '200':
+          description: Location updated
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: 'ok'
+        '404':
+          description: User not found
+
+  # Agents API
+  /agents:
+    get:
+      summary: List all agents
+      description: |
+        Get a list of all agents for the current user. Supports pagination and filtering.
+      tags: [Agents]
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: sort
+          in: query
+          description: Sort field
+          schema:
+            type: string
+            enum: [name, created_at, last_check_at, last_event_at, last_receive_at]
+            default: created_at
+        - name: direction
+          in: query
+          description: Sort direction
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+      responses:
+        '200':
+          description: List of agents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Agent'
+            text/html:
+              description: HTML page with agents list
+
+    post:
+      summary: Create a new agent
+      description: Create a new agent with the specified configuration
+      tags: [Agents]
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentCreate'
+      responses:
+        '200':
+          description: Agent created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Agent'
+        '422':
+          description: Validation errors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrors'
+
+  /agents/{id}:
+    get:
+      summary: Get agent details
+      description: Get detailed information about a specific agent
+      tags: [Agents]
+      security:
+        - sessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AgentId'
+      responses:
+        '200':
+          description: Agent details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Agent'
+        '404':
+          description: Agent not found
+
+    put:
+      summary: Update agent
+      description: Update an existing agent's configuration
+      tags: [Agents]
+      security:
+        - sessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AgentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentUpdate'
+      responses:
+        '200':
+          description: Agent updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Agent'
+        '422':
+          description: Validation errors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrors'
+
+    delete:
+      summary: Delete agent
+      description: Delete an agent permanently
+      tags: [Agents]
+      security:
+        - sessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AgentId'
+      responses:
+        '204':
+          description: Agent deleted successfully
+        '404':
+          description: Agent not found
+
+  /agents/{id}/run:
+    post:
+      summary: Run agent manually
+      description: Trigger a manual run of an agent (queues the agent for execution)
+      tags: [Agents]
+      security:
+        - sessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AgentId'
+      responses:
+        '200':
+          description: Agent run queued successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Agent run queued"
+
+  /agents/{id}/reemit_events:
+    post:
+      summary: Re-emit all agent events
+      description: |
+        Re-emit all events from this agent. Optionally delete old events.
+      tags: [Agents]
+      security:
+        - sessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AgentId'
+        - name: delete_old_events
+          in: query
+          description: Whether to delete old events after re-emitting
+          schema:
+            type: string
+            enum: ['0', '1']
+            default: '0'
+      responses:
+        '200':
+          description: Re-emit job queued successfully
+
+  /agents/{id}/remove_events:
+    delete:
+      summary: Remove all agent events
+      description: Delete all events created by this agent
+      tags: [Agents]
+      security:
+        - sessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AgentId'
+      responses:
+        '200':
+          description: All events removed successfully
+
+  /agents/{id}/memory:
+    delete:
+      summary: Clear agent memory
+      description: Erase all memory stored by this agent
+      tags: [Agents]
+      security:
+        - sessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AgentId'
+      responses:
+        '200':
+          description: Memory erased successfully
+
+  /agents/type_details:
+    get:
+      summary: Get agent type details
+      description: |
+        Get detailed information about a specific agent type including default options,
+        capabilities, and form configuration.
+      tags: [Agents]
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: type
+          in: query
+          required: true
+          description: The agent type class name
+          schema:
+            type: string
+            example: 'Agents::WebhookAgent'
+      responses:
+        '200':
+          description: Agent type details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  can_be_scheduled:
+                    type: boolean
+                  default_schedule:
+                    type: string
+                  can_receive_events:
+                    type: boolean
+                  can_create_events:
+                    type: boolean
+                  can_control_other_agents:
+                    type: boolean
+                  can_dry_run:
+                    type: boolean
+                  options:
+                    type: object
+                    description: Default options for this agent type
+                  description_html:
+                    type: string
+                    description: HTML description of the agent
+                  oauthable:
+                    type: string
+                    description: OAuth configuration HTML
+                  form_options:
+                    type: string
+                    description: Form options HTML
+
+  /agents/validate:
+    post:
+      summary: Validate agent option
+      description: Validate a specific agent option value
+      tags: [Agents]
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: attribute
+          in: query
+          required: true
+          description: The option attribute to validate
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentValidate'
+      responses:
+        '200':
+          description: Validation successful
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: 'ok'
+        '403':
+          description: Validation failed
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: 'error'
+
+  /agents/complete:
+    post:
+      summary: Get option completions
+      description: Get auto-completion suggestions for agent options
+      tags: [Agents]
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: attribute
+          in: query
+          required: true
+          description: The option attribute to get completions for
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentValidate'
+      responses:
+        '200':
+          description: Completion suggestions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+
+  # Events API
+  /events:
+    get:
+      summary: List events
+      description: |
+        Get a paginated list of events. Can be filtered by agent_id.
+      tags: [Events]
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: agent_id
+          in: query
+          description: Filter events by specific agent
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Event'
+
+  /events/{id}:
+    get:
+      summary: Get event details
+      description: Get detailed information about a specific event
+      tags: [Events]
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Event ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Event details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '404':
+          description: Event not found
+
+    delete:
+      summary: Delete event
+      description: Delete a specific event
+      tags: [Events]
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Event ID
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Event deleted successfully
+        '404':
+          description: Event not found
+
+  /events/{id}/reemit:
+    post:
+      summary: Re-emit event
+      description: Re-emit a specific event to trigger downstream agents
+      tags: [Events]
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Event ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Event re-emitted successfully
+
+  # Scenarios API
+  /scenarios:
+    get:
+      summary: List scenarios
+      description: Get a list of all scenarios for the current user
+      tags: [Scenarios]
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+      responses:
+        '200':
+          description: List of scenarios
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Scenario'
+
+    post:
+      summary: Create scenario
+      description: Create a new scenario
+      tags: [Scenarios]
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScenarioCreate'
+      responses:
+        '201':
+          description: Scenario created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Scenario'
+        '422':
+          description: Validation errors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrors'
+
+  /scenarios/{id}:
+    get:
+      summary: Get scenario details
+      description: Get detailed information about a specific scenario including its agents
+      tags: [Scenarios]
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Scenario ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Scenario details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Scenario'
+
+    put:
+      summary: Update scenario
+      description: Update an existing scenario
+      tags: [Scenarios]
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Scenario ID
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScenarioUpdate'
+      responses:
+        '204':
+          description: Scenario updated successfully
+        '422':
+          description: Validation errors
+
+    delete:
+      summary: Delete scenario
+      description: Delete a scenario and optionally its agents
+      tags: [Scenarios]
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Scenario ID
+          schema:
+            type: integer
+        - name: mode
+          in: query
+          description: Deletion mode
+          schema:
+            type: string
+            enum: [scenario_only, agents_and_scenario]
+            default: scenario_only
+      responses:
+        '204':
+          description: Scenario deleted successfully
+
+  /scenarios/{id}/export:
+    get:
+      summary: Export scenario
+      description: |
+        Export scenario as JSON file. Public scenarios can be exported without authentication.
+      tags: [Scenarios]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Scenario ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Scenario export data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScenarioExport'
+          headers:
+            Content-Disposition:
+              description: Attachment filename
+              schema:
+                type: string
+                example: 'attachment; filename="scenario_name.json"'
+
+  /scenarios/{id}/enable_or_disable_all_agents:
+    put:
+      summary: Enable or disable all scenario agents
+      description: Enable or disable all agents in a scenario
+      tags: [Scenarios]
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Scenario ID
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                scenario:
+                  type: object
+                  properties:
+                    disabled:
+                      type: string
+                      enum: ['true', 'false']
+              required: [scenario]
+      responses:
+        '204':
+          description: Agents updated successfully
+
+  # Jobs API (Admin only)
+  /jobs:
+    get:
+      summary: List jobs
+      description: Get a list of delayed jobs (admin only)
+      tags: [Jobs]
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+      responses:
+        '200':
+          description: List of jobs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Job'
+        '403':
+          description: Admin access required
+
+    delete:
+      summary: Destroy all non-running jobs
+      description: Delete all jobs that are not currently running (admin only)
+      tags: [Jobs]
+      security:
+        - sessionAuth: []
+      responses:
+        '204':
+          description: All jobs removed
+        '403':
+          description: Admin access required
+
+  /jobs/{id}:
+    delete:
+      summary: Delete job
+      description: Delete a specific job if it's not running (admin only)
+      tags: [Jobs]
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Job ID
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Job deleted successfully
+        '422':
+          description: Cannot delete running job
+        '403':
+          description: Admin access required
+
+  /jobs/{id}/run:
+    put:
+      summary: Enqueue job for execution
+      description: Queue a job for immediate execution (admin only)
+      tags: [Jobs]
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Job ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Job enqueued successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        '422':
+          description: Cannot enqueue running job
+        '403':
+          description: Admin access required
+
+  /jobs/destroy_failed:
+    delete:
+      summary: Remove all failed jobs
+      description: Delete all jobs that have failed (admin only)
+      tags: [Jobs]
+      security:
+        - sessionAuth: []
+      responses:
+        '204':
+          description: Failed jobs removed
+        '403':
+          description: Admin access required
+
+  /jobs/retry_queued:
+    post:
+      summary: Retry queued jobs
+      description: Retry all jobs that are awaiting retry (admin only)
+      tags: [Jobs]
+      security:
+        - sessionAuth: []
+      responses:
+        '204':
+          description: Queued jobs getting retried
+        '403':
+          description: Admin access required
+
+  # Worker Status
+  /worker_status:
+    get:
+      summary: Get worker status
+      description: |
+        Get current worker and system status including job counts and recent events
+      tags: [System]
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: since_id
+          in: query
+          description: Only count events with ID greater than this value
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Worker status information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pending:
+                    type: integer
+                    description: Number of pending jobs
+                  awaiting_retry:
+                    type: integer
+                    description: Number of jobs awaiting retry
+                  recent_failures:
+                    type: integer
+                    description: Number of recent job failures (last 5 days)
+                  event_count:
+                    type: integer
+                    description: Number of events matching criteria
+                  max_id:
+                    type: integer
+                    description: Highest event ID found
+                  events_url:
+                    type: string
+                    nullable: true
+                    description: URL to view events
+                  compute_time:
+                    type: number
+                    format: float
+                    description: Time taken to compute this response (in seconds)
+
+components:
+  securitySchemes:
+    sessionAuth:
+      type: apiKey
+      in: cookie
+      name: _huginn_session
+      description: |
+        Session-based authentication using Rails/Devise cookies.
+        Login through the web interface to establish a session.
+
+  parameters:
+    UserIdPath:
+      name: user_id
+      in: path
+      required: true
+      description: User ID
+      schema:
+        type: integer
+    
+    AgentIdPath:
+      name: agent_id
+      in: path
+      required: true
+      description: Agent ID
+      schema:
+        type: integer
+    
+    SecretPath:
+      name: secret
+      in: path
+      required: true
+      description: Secret token for authentication
+      schema:
+        type: string
+    
+    AgentId:
+      name: id
+      in: path
+      required: true
+      description: Agent ID
+      schema:
+        type: integer
+
+  requestBodies:
+    WebhookPayload:
+      description: Webhook payload data
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: true
+            description: Arbitrary JSON payload
+        application/x-www-form-urlencoded:
+          schema:
+            type: object
+            additionalProperties: true
+        multipart/form-data:
+          schema:
+            type: object
+            additionalProperties: true
+
+  responses:
+    WebhookSuccess:
+      description: Webhook processed successfully
+      content:
+        text/plain:
+          schema:
+            type: string
+            example: 'Event Created'
+        application/json:
+          schema:
+            type: object
+            description: Custom response from agent
+    
+    NotAuthorized:
+      description: Not authorized
+      content:
+        text/plain:
+          schema:
+            type: string
+            example: 'Not Authorized'
+
+  schemas:
+    Agent:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Unique agent identifier
+        name:
+          type: string
+          description: Agent name
+        type:
+          type: string
+          description: Agent class name (e.g., "Agents::WebhookAgent")
+        schedule:
+          type: string
+          nullable: true
+          description: Cron schedule for agent execution
+        disabled:
+          type: boolean
+          description: Whether the agent is disabled
+        keep_events_for:
+          type: integer
+          description: Days to keep events for this agent
+        last_check_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last time the agent was checked/executed
+        last_event_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last time the agent created an event
+        last_receive_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last time the agent received an event
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        options:
+          type: object
+          description: Agent-specific configuration options
+        memory:
+          type: object
+          description: Agent's persistent memory storage
+        source_ids:
+          type: array
+          items:
+            type: integer
+          description: IDs of agents this agent receives events from
+        receiver_ids:
+          type: array
+          items:
+            type: integer
+          description: IDs of agents that receive events from this agent
+
+    AgentCreate:
+      type: object
+      required: [name, type]
+      properties:
+        name:
+          type: string
+          description: Agent name
+        type:
+          type: string
+          description: Agent class name
+        schedule:
+          type: string
+          nullable: true
+          description: Cron schedule
+        disabled:
+          type: boolean
+          default: false
+        options:
+          type: object
+          description: Agent-specific options
+        source_ids:
+          type: array
+          items:
+            type: integer
+        receiver_ids:
+          type: array
+          items:
+            type: integer
+        scenario_ids:
+          type: array
+          items:
+            type: integer
+
+    AgentUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        schedule:
+          type: string
+          nullable: true
+        disabled:
+          type: boolean
+        options:
+          type: object
+        source_ids:
+          type: array
+          items:
+            type: integer
+        receiver_ids:
+          type: array
+          items:
+            type: integer
+
+    AgentValidate:
+      type: object
+      required: [type]
+      properties:
+        type:
+          type: string
+          description: Agent class name
+        options:
+          type: object
+          description: Options to validate
+
+    Event:
+      type: object
+      properties:
+        id:
+          type: integer
+        agent_id:
+          type: integer
+          description: ID of the agent that created this event
+        created_at:
+          type: string
+          format: date-time
+        payload:
+          type: object
+          description: Event data payload
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    Scenario:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        public:
+          type: boolean
+          description: Whether the scenario is publicly visible
+        guid:
+          type: string
+          description: Unique identifier for the scenario
+        tag_fg_color:
+          type: string
+          nullable: true
+          description: Foreground color for scenario tags
+        tag_bg_color:
+          type: string
+          nullable: true
+          description: Background color for scenario tags
+        icon:
+          type: string
+          nullable: true
+          description: Icon identifier for the scenario
+        source_url:
+          type: string
+          nullable: true
+          description: URL where scenario was imported from
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        user_id:
+          type: integer
+        agents:
+          type: array
+          items:
+            $ref: '#/components/schemas/Agent'
+          description: Agents belonging to this scenario
+
+    ScenarioCreate:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        public:
+          type: boolean
+          default: false
+        tag_fg_color:
+          type: string
+        tag_bg_color:
+          type: string
+        icon:
+          type: string
+        agent_ids:
+          type: array
+          items:
+            type: integer
+
+    ScenarioUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        public:
+          type: boolean
+        tag_fg_color:
+          type: string
+        tag_bg_color:
+          type: string
+        icon:
+          type: string
+        agent_ids:
+          type: array
+          items:
+            type: integer
+
+    ScenarioExport:
+      type: object
+      properties:
+        schema_version:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        guid:
+          type: string
+        tag_fg_color:
+          type: string
+        tag_bg_color:
+          type: string
+        icon:
+          type: string
+        source_url:
+          type: string
+        agents:
+          type: array
+          items:
+            type: object
+            description: Exported agent data
+        links:
+          type: array
+          items:
+            type: object
+            description: Agent connection information
+
+    Job:
+      type: object
+      properties:
+        id:
+          type: integer
+        handler:
+          type: string
+          description: Serialized job handler
+        queue:
+          type: string
+          nullable: true
+        attempts:
+          type: integer
+        run_at:
+          type: string
+          format: date-time
+        locked_at:
+          type: string
+          format: date-time
+          nullable: true
+        locked_by:
+          type: string
+          nullable: true
+        failed_at:
+          type: string
+          format: date-time
+          nullable: true
+        last_error:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ValidationErrors:
+      type: object
+      properties:
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+
+tags:
+  - name: Webhooks
+    description: |
+      Webhook endpoints for receiving external data and triggering agents.
+      These endpoints don't require session authentication but use secret-based auth.
+  
+  - name: Agents
+    description: |
+      Agent management operations - create, read, update, delete agents and manage their lifecycle.
+  
+  - name: Events
+    description: |
+      Event management - view, delete, and re-emit events created by agents.
+  
+  - name: Scenarios
+    description: |
+      Scenario management - group agents into scenarios for organization and sharing.
+  
+  - name: Jobs
+    description: |
+      Background job management (admin only) - monitor and control delayed job execution.
+  
+  - name: System
+    description: |
+      System status and monitoring endpoints.
+
+externalDocs:
+  description: Huginn Documentation
+  url: https://github.com/huginn/huginn/wiki

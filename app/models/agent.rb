@@ -153,9 +153,9 @@ class Agent < ActiveRecord::Base
     end
   end
 
-  def reload(...)
+  def reload(*args)
     @credential_cache = {}
-    super
+    super(*args)
   end
 
   def new_event_expiration_date
@@ -171,26 +171,47 @@ class Agent < ActiveRecord::Base
   end
 
   def trigger_web_request(request)
-    params = request.params.except(:action, :controller, :agent_id, :user_id, :format)
-    if respond_to?(:receive_webhook)
-      Rails.logger.warn 'DEPRECATED: The .receive_webhook method is deprecated, please switch your Agent to use .receive_web_request.'
-      receive_webhook(params).tap do
-        self.last_web_request_at = Time.now
-        save!
-      end
+    params = extract_web_request_params(request)
+    
+    handled_request = if respond_to?(:receive_webhook)
+                        handle_deprecated_webhook(params)
+                      else
+                        handle_web_request(request, params)
+                      end
+
+    update_web_request_timestamp
+    handled_request
+  end
+
+  private
+
+  # Extract relevant parameters from web request, filtering out Rails internals
+  def extract_web_request_params(request)
+    request.params.except(:action, :controller, :agent_id, :user_id, :format)
+  end
+
+  # Handle deprecated receive_webhook method with warning
+  def handle_deprecated_webhook(params)
+    Rails.logger.warn 'DEPRECATED: The .receive_webhook method is deprecated, please switch your Agent to use .receive_web_request.'
+    receive_webhook(params)
+  end
+
+  # Handle modern receive_web_request method with proper arity detection
+  def handle_web_request(request, params)
+    if method(:receive_web_request).arity == 1
+      receive_web_request(request)
     else
-      handled_request =
-        if method(:receive_web_request).arity == 1
-          receive_web_request(request)
-        else
-          receive_web_request(params, request.method_symbol.to_s, request.format.to_s)
-        end
-      handled_request.tap do
-        self.last_web_request_at = Time.now
-        save!
-      end
+      receive_web_request(params, request.method_symbol.to_s, request.format.to_s)
     end
   end
+
+  # Update timestamp for last web request reception
+  def update_web_request_timestamp
+    self.last_web_request_at = Time.now
+    save!
+  end
+
+  public
 
   def unavailable?
     disabled? || dependencies_missing?
@@ -324,7 +345,7 @@ class Agent < ActiveRecord::Base
         # Give it a unique name
         2.step do |i|
           name = format('%s (%d)', original.name, i)
-          unless exists?(name:)
+          unless exists?(name: name)
             clone.name = name
             break
           end
@@ -399,46 +420,78 @@ class Agent < ActiveRecord::Base
     # This is called by bin/schedule.rb periodically.
     def receive!(options = {})
       Agent.transaction do
-        scope = Agent
-                .select('agents.id AS receiver_agent_id, sources.type AS source_agent_type, agents.type AS receiver_agent_type, events.id AS event_id')
-                .joins('JOIN links ON (links.receiver_id = agents.id)')
-                .joins('JOIN agents AS sources ON (links.source_id = sources.id)')
-                .joins('JOIN events ON (events.agent_id = sources.id AND events.id > links.event_id_at_creation)')
-                .where('NOT agents.disabled AND NOT agents.deactivated AND (agents.last_checked_event_id IS NULL OR events.id > agents.last_checked_event_id)')
-        scope = scope.where('agents.id in (?)', options[:only_receivers]) if options[:only_receivers].present?
-
-        sql = scope.to_sql
-
-        agents_to_events = {}
-        Agent.connection.select_rows(sql).each do |receiver_agent_id, source_agent_type, receiver_agent_type, event_id|
-          begin
-            Object.const_get(source_agent_type)
-            Object.const_get(receiver_agent_type)
-          rescue NameError
-            next
-          end
-
-          agents_to_events[receiver_agent_id.to_i] ||= []
-          agents_to_events[receiver_agent_id.to_i] << event_id
-        end
-
-        Agent.where(id: agents_to_events.keys).each do |agent|
-          event_ids = agents_to_events[agent.id].uniq
-          agent.update_attribute :last_checked_event_id, event_ids.max
-
-          if agent.no_bulk_receive?
-            event_ids.each { |event_id| Agent.async_receive(agent.id, [event_id]) }
-          else
-            Agent.async_receive(agent.id, event_ids)
-          end
-        end
-
-        {
-          agent_count: agents_to_events.keys.length,
-          event_count: agents_to_events.values.flatten.uniq.compact.length,
-        }
+        agents_to_events = build_agents_to_events_mapping(options)
+        process_agents_for_event_reception(agents_to_events)
+        build_reception_summary(agents_to_events)
       end
     end
+
+    private
+
+    # Build mapping of agent IDs to their pending event IDs for reception
+    def build_agents_to_events_mapping(options)
+      scope = build_pending_events_scope(options)
+      agents_to_events = {}
+
+      Agent.connection.select_rows(scope.to_sql).each do |receiver_agent_id, source_agent_type, receiver_agent_type, event_id|
+        next unless validate_agent_types(source_agent_type, receiver_agent_type)
+
+        agents_to_events[receiver_agent_id.to_i] ||= []
+        agents_to_events[receiver_agent_id.to_i] << event_id
+      end
+
+      agents_to_events
+    end
+
+    # Build database scope for finding agents with pending events
+    def build_pending_events_scope(options)
+      scope = Agent
+              .select('agents.id AS receiver_agent_id, sources.type AS source_agent_type, agents.type AS receiver_agent_type, events.id AS event_id')
+              .joins('JOIN links ON (links.receiver_id = agents.id)')
+              .joins('JOIN agents AS sources ON (links.source_id = sources.id)')
+              .joins('JOIN events ON (events.agent_id = sources.id AND events.id > links.event_id_at_creation)')
+              .where('NOT agents.disabled AND NOT agents.deactivated AND (agents.last_checked_event_id IS NULL OR events.id > agents.last_checked_event_id)')
+      
+      scope = scope.where('agents.id in (?)', options[:only_receivers]) if options[:only_receivers].present?
+      scope
+    end
+
+    # Validate that agent types exist to avoid NameError
+    def validate_agent_types(source_agent_type, receiver_agent_type)
+      Object.const_get(source_agent_type)
+      Object.const_get(receiver_agent_type)
+      true
+    rescue NameError
+      false
+    end
+
+    # Process agents for event reception and update their last checked event ID
+    def process_agents_for_event_reception(agents_to_events)
+      Agent.where(id: agents_to_events.keys).each do |agent|
+        event_ids = agents_to_events[agent.id].uniq
+        agent.update_attribute :last_checked_event_id, event_ids.max
+        enqueue_agent_reception(agent, event_ids)
+      end
+    end
+
+    # Enqueue agent for event reception based on bulk receive capability
+    def enqueue_agent_reception(agent, event_ids)
+      if agent.no_bulk_receive?
+        event_ids.each { |event_id| Agent.async_receive(agent.id, [event_id]) }
+      else
+        Agent.async_receive(agent.id, event_ids)
+      end
+    end
+
+    # Build summary of reception process results
+    def build_reception_summary(agents_to_events)
+      {
+        agent_count: agents_to_events.keys.length,
+        event_count: agents_to_events.values.flatten.uniq.compact.length,
+      }
+    end
+
+    public
 
     # This method will enqueue an AgentReceiveJob job. It accepts Agent and Event ids instead of a literal ActiveRecord
     # models because it is preferable to serialize jobs with ids.
@@ -451,7 +504,7 @@ class Agent < ActiveRecord::Base
     def run_schedule(schedule)
       return if schedule == 'never'
 
-      types = where(schedule:).group(:type).pluck(:type)
+      types = where(schedule: schedule).group(:type).pluck(:type)
       types.each do |type|
         next unless valid_type?(type)
 

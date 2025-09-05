@@ -377,7 +377,7 @@ namespace :error_monitoring do
           generated_at: Time.current,
           time_range_hours: hours,
           format: format,
-          huginn_version: Rails.application.class.module_parent.const_get('VERSION') rescue 'unknown',
+          huginn_version: (Rails.application.class.module_parent.const_get('VERSION') rescue 'unknown'),
           rails_version: Rails::VERSION::STRING,
           environment: Rails.env
         },

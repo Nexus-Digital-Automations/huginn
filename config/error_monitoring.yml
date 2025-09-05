@@ -1,0 +1,366 @@
+# Error Monitoring Configuration for Huginn
+# Defines settings for error rate monitoring, alerting, and recovery systems
+
+development: &development
+  # Error rate monitoring settings
+  error_rate_monitoring:
+    # Production error rate threshold (0.1%)
+    threshold: 0.001
+    # Time windows for error rate calculation (in seconds)
+    time_windows:
+      immediate: 300      # 5 minutes
+      short_term: 1800    # 30 minutes
+      medium_term: 3600   # 1 hour
+      long_term: 86400    # 24 hours
+    # Calculation intervals
+    calculation_interval: 60  # seconds
+    # Batch size for error processing
+    batch_size: 100
+    # Enable/disable monitoring
+    enabled: true
+
+  # Circuit breaker settings
+  circuit_breaker:
+    # Default settings for all services
+    defaults:
+      failure_threshold: 5
+      success_threshold: 3
+      timeout: 60           # seconds
+      recovery_probe_interval: 30  # seconds
+    # Service-specific overrides
+    services:
+      external_api:
+        failure_threshold: 3
+        timeout: 30
+      database:
+        failure_threshold: 2
+        timeout: 120
+      authentication:
+        failure_threshold: 10
+        timeout: 300
+    # Enable/disable circuit breaker
+    enabled: true
+
+  # Error categorization settings
+  error_categorization:
+    # Confidence threshold for automatic categorization
+    confidence_threshold: 0.7
+    # Maximum similar errors to track
+    max_similar_errors: 10
+    # Pattern analysis settings
+    pattern_analysis:
+      min_occurrences: 3
+      time_range: 86400   # 24 hours in seconds
+      max_patterns: 50
+    # Enable/disable categorization
+    enabled: true
+
+  # Recovery manager settings
+  recovery_manager:
+    # Maximum recovery attempts per error
+    max_recovery_attempts: 3
+    # Recovery attempt timeout
+    recovery_timeout: 300   # seconds
+    # Strategy selection algorithm
+    strategy_selection: :success_rate_weighted
+    # Graceful degradation settings
+    degradation:
+      # Auto-enable degradation on repeated failures
+      auto_enable: true
+      # Default degradation level
+      default_level: :moderate
+      # Maximum degradation duration
+      max_duration: 3600    # 1 hour
+    # Enable/disable recovery manager
+    enabled: true
+
+  # Alerting configuration
+  alerting:
+    # Error rate threshold breach alerts
+    error_rate_alerts:
+      # Alert severity levels
+      severities:
+        minor:
+          threshold_multiplier: 1.5   # 1.5x threshold
+          notification_channels: ['log']
+        moderate:
+          threshold_multiplier: 2.0   # 2x threshold
+          notification_channels: ['log', 'email']
+        severe:
+          threshold_multiplier: 5.0   # 5x threshold
+          notification_channels: ['log', 'email', 'slack']
+        critical:
+          threshold_multiplier: 10.0  # 10x threshold
+          notification_channels: ['log', 'email', 'slack', 'pagerduty']
+      # Alert cooldown period
+      cooldown_period: 300    # 5 minutes
+    
+    # Circuit breaker alerts
+    circuit_breaker_alerts:
+      # Alert when circuit opens
+      on_circuit_open: true
+      # Alert when circuit recovers
+      on_circuit_close: true
+      # Notification channels
+      channels: ['log', 'email']
+    
+    # Recovery failure alerts
+    recovery_alerts:
+      # Alert on recovery failure
+      on_recovery_failure: true
+      # Alert on degradation activation
+      on_degradation_start: true
+      # Notification channels
+      channels: ['log', 'email']
+    
+    # Notification channel configurations
+    channels:
+      email:
+        enabled: true
+        recipients: ['admin@huginn.local']
+        smtp_settings:
+          from: 'huginn-monitoring@huginn.local'
+      slack:
+        enabled: false
+        webhook_url: ''
+        channel: '#alerts'
+      pagerduty:
+        enabled: false
+        service_key: ''
+
+  # Dashboard and reporting settings
+  dashboard:
+    # Refresh interval for real-time data
+    refresh_interval: 30    # seconds
+    # Data retention period
+    data_retention: 2592000 # 30 days in seconds
+    # Chart time ranges
+    time_ranges:
+      - 1h
+      - 6h
+      - 24h
+      - 7d
+      - 30d
+    # Export formats
+    export_formats: ['json', 'csv', 'pdf']
+    # Enable/disable dashboard
+    enabled: true
+
+  # Performance and resource settings
+  performance:
+    # Background job queue for error processing
+    job_queue: :error_monitoring
+    # Job priority (lower number = higher priority)
+    job_priority: 0
+    # Maximum concurrent error processing jobs
+    max_concurrent_jobs: 5
+    # Database query timeout
+    query_timeout: 30       # seconds
+    # Memory limit for error analysis
+    memory_limit: 512       # MB
+    # Cache settings
+    cache:
+      enabled: true
+      ttl: 300              # 5 minutes
+      max_size: 1000        # entries
+
+  # Integration settings
+  integrations:
+    # AgentLog integration
+    agent_log:
+      enabled: true
+      # Minimum log level to monitor (0=debug, 1=info, 2=warn, 3=error, 4=fatal)
+      min_level: 3
+      # Auto-create error monitoring entries
+      auto_create_entries: true
+    
+    # External monitoring systems
+    external:
+      # StatsD metrics
+      statsd:
+        enabled: false
+        host: 'localhost'
+        port: 8125
+        prefix: 'huginn.error_monitoring'
+      
+      # DataDog integration
+      datadog:
+        enabled: false
+        api_key: ''
+        app_key: ''
+        tags: ['environment:development']
+      
+      # New Relic integration
+      newrelic:
+        enabled: false
+        api_key: ''
+
+  # Security settings
+  security:
+    # Encrypt sensitive error data
+    encrypt_sensitive_data: true
+    # Mask sensitive information in logs
+    mask_sensitive_info: true
+    # Sensitive field patterns (regex)
+    sensitive_patterns:
+      - 'password'
+      - 'token'
+      - 'secret'
+      - 'key'
+      - 'credential'
+    # Rate limiting for error monitoring API
+    rate_limiting:
+      enabled: true
+      max_requests: 1000
+      time_window: 3600     # 1 hour
+
+  # Logging configuration
+  logging:
+    # Log level for error monitoring system
+    level: :info
+    # Log format
+    format: :json
+    # Log file rotation
+    rotation:
+      enabled: true
+      max_size: 100         # MB
+      max_files: 10
+    # Separate error monitoring log file
+    separate_log_file: true
+    log_file: 'log/error_monitoring.log'
+
+test:
+  <<: *development
+  # Test-specific overrides
+  error_rate_monitoring:
+    threshold: 0.01         # Higher threshold for tests (1%)
+    calculation_interval: 1  # Faster calculation for tests
+    enabled: false          # Disable monitoring in tests
+  
+  circuit_breaker:
+    defaults:
+      timeout: 1            # Shorter timeout for tests
+    enabled: false          # Disable circuit breaker in tests
+  
+  recovery_manager:
+    recovery_timeout: 5     # Shorter timeout for tests
+    enabled: false          # Disable recovery in tests
+  
+  alerting:
+    error_rate_alerts:
+      cooldown_period: 1    # Shorter cooldown for tests
+    channels:
+      email:
+        enabled: false      # Disable email alerts in tests
+  
+  logging:
+    level: :warn            # Reduce log noise in tests
+    separate_log_file: false
+
+production:
+  <<: *development
+  # Production-specific settings
+  error_rate_monitoring:
+    # Strict production threshold (0.1%)
+    threshold: 0.001
+    # More frequent calculations
+    calculation_interval: 30
+    # Larger batch sizes for performance
+    batch_size: 500
+    enabled: true
+
+  circuit_breaker:
+    defaults:
+      # More conservative settings for production
+      failure_threshold: 3
+      timeout: 300          # 5 minutes
+    enabled: true
+
+  error_categorization:
+    # Higher confidence required in production
+    confidence_threshold: 0.8
+    enabled: true
+
+  recovery_manager:
+    # More aggressive recovery in production
+    max_recovery_attempts: 5
+    recovery_timeout: 600   # 10 minutes
+    degradation:
+      # Longer degradation periods acceptable in production
+      max_duration: 7200    # 2 hours
+    enabled: true
+
+  alerting:
+    error_rate_alerts:
+      severities:
+        minor:
+          threshold_multiplier: 1.2   # More sensitive in production
+          notification_channels: ['log', 'email']
+        moderate:
+          threshold_multiplier: 1.5
+          notification_channels: ['log', 'email', 'slack']
+        severe:
+          threshold_multiplier: 2.0
+          notification_channels: ['log', 'email', 'slack', 'pagerduty']
+        critical:
+          threshold_multiplier: 3.0
+          notification_channels: ['log', 'email', 'slack', 'pagerduty', 'sms']
+      cooldown_period: 600  # 10 minutes
+    
+    channels:
+      email:
+        enabled: true
+        recipients: 
+          - 'ops@company.com'
+          - 'dev-team@company.com'
+      slack:
+        enabled: true
+        webhook_url: ENV['SLACK_WEBHOOK_URL']
+        channel: '#production-alerts'
+      pagerduty:
+        enabled: true
+        service_key: ENV['PAGERDUTY_SERVICE_KEY']
+
+  dashboard:
+    # Longer data retention for production analysis
+    data_retention: 7776000 # 90 days
+    enabled: true
+
+  performance:
+    # Higher resource limits for production
+    max_concurrent_jobs: 10
+    query_timeout: 60
+    memory_limit: 1024      # 1GB
+    cache:
+      ttl: 600              # 10 minutes
+      max_size: 5000
+
+  integrations:
+    external:
+      statsd:
+        enabled: true
+        host: ENV['STATSD_HOST'] || 'localhost'
+        port: ENV['STATSD_PORT'] || 8125
+      
+      datadog:
+        enabled: ENV['DATADOG_ENABLED'] == 'true'
+        api_key: ENV['DATADOG_API_KEY']
+        app_key: ENV['DATADOG_APP_KEY']
+        tags: ['environment:production', 'service:huginn']
+
+  security:
+    # Enhanced security for production
+    encrypt_sensitive_data: true
+    mask_sensitive_info: true
+    rate_limiting:
+      enabled: true
+      max_requests: 500     # More restrictive in production
+      time_window: 3600
+
+  logging:
+    level: :warn            # Reduce log noise in production
+    rotation:
+      enabled: true
+      max_size: 1000        # 1GB
+      max_files: 30
+    separate_log_file: true

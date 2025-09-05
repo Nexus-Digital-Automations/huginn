@@ -1,0 +1,729 @@
+name: 'Performance Validation & Monitoring'
+
+on:
+  push:
+    branches: ['master', 'main', 'develop']
+  pull_request:
+    branches: ['master', 'main', 'develop']
+  schedule:
+    # Run performance tests daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      performance_profile:
+        description: 'Performance testing profile'
+        required: true
+        default: 'standard'
+        type: choice
+        options:
+        - 'light'
+        - 'standard'  
+        - 'intensive'
+        - 'stress'
+
+env:
+  RAILS_ENV: test
+  PERFORMANCE_TARGET_RESPONSE_TIME: 200  # milliseconds
+  PERFORMANCE_TARGET_THROUGHPUT: 100     # requests per second
+  PERFORMANCE_TARGET_ERROR_RATE: 0.1     # percentage
+  PERFORMANCE_MEMORY_LIMIT: 512          # MB
+
+jobs:
+  performance-baseline:
+    name: 'Performance Baseline Tests'
+    runs-on: ubuntu-latest
+    outputs:
+      baseline_response_time: ${{ steps.baseline.outputs.response_time }}
+      baseline_throughput: ${{ steps.baseline.outputs.throughput }}
+      baseline_memory_usage: ${{ steps.baseline.outputs.memory_usage }}
+      performance_score: ${{ steps.score.outputs.performance_score }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2.4'
+          bundler-cache: true
+
+      - name: Setup Database
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql postgresql-contrib
+          sudo systemctl start postgresql
+          sudo -u postgres createuser -s runner
+          sudo -u postgres createdb huginn_test
+          bundle exec rake db:create db:schema:load RAILS_ENV=test
+
+      - name: Install Performance Testing Tools
+        run: |
+          # Install Apache Bench for load testing
+          sudo apt-get install -y apache2-utils
+          
+          # Install curl for individual request testing
+          sudo apt-get install -y curl jq bc
+          
+          # Install memory profiling tools
+          sudo apt-get install -y valgrind
+          
+          echo "Performance testing tools installed"
+
+      - name: Baseline Performance Testing
+        id: baseline
+        run: |
+          echo "=== Baseline Performance Testing ==="
+          
+          # Start Rails server with performance monitoring
+          bundle exec rails server -e test -p 3001 &
+          SERVER_PID=$!
+          echo "Started Rails server (PID: $SERVER_PID)"
+          
+          # Wait for server to fully start
+          echo "Waiting for server to start..."
+          sleep 15
+          
+          # Verify server is running
+          if ! curl -s http://localhost:3001/ > /dev/null; then
+            echo "::error::Server failed to start"
+            exit 1
+          fi
+          echo "Server started successfully"
+          
+          # Memory usage baseline
+          echo "Measuring baseline memory usage..."
+          MEMORY_USAGE=$(ps -o pid,vsz,rss,comm -p $SERVER_PID | tail -n 1 | awk '{print $3}')
+          MEMORY_MB=$(( MEMORY_USAGE / 1024 ))
+          echo "Baseline memory usage: ${MEMORY_MB} MB"
+          echo "memory_usage=$MEMORY_MB" >> $GITHUB_OUTPUT
+          
+          # Single request response time test
+          echo "Testing single request response time..."
+          RESPONSE_TIME=$(curl -w "%{time_total}" -s -o /dev/null http://localhost:3001/)
+          RESPONSE_TIME_MS=$(echo "$RESPONSE_TIME * 1000" | bc -l | cut -d. -f1)
+          echo "Single request response time: ${RESPONSE_TIME_MS}ms"
+          echo "response_time=$RESPONSE_TIME_MS" >> $GITHUB_OUTPUT
+          
+          # Load testing with Apache Bench
+          echo "Running load test..."
+          ab -n 100 -c 10 http://localhost:3001/ > load_test.txt 2>&1
+          
+          # Parse throughput from ab results
+          if grep -q "Requests per second" load_test.txt; then
+            THROUGHPUT=$(grep "Requests per second" load_test.txt | awk '{print $4}' | cut -d. -f1)
+            echo "Throughput: ${THROUGHPUT} req/sec"
+            echo "throughput=$THROUGHPUT" >> $GITHUB_OUTPUT
+          else
+            echo "::warning::Could not measure throughput"
+            echo "throughput=0" >> $GITHUB_OUTPUT
+          fi
+          
+          # Parse error rate
+          FAILED_REQUESTS=$(grep "Failed requests" load_test.txt | awk '{print $3}' || echo "0")
+          ERROR_RATE=$(echo "scale=2; $FAILED_REQUESTS / 100 * 100" | bc -l || echo "0")
+          echo "Error rate: ${ERROR_RATE}%"
+          echo "error_rate=$ERROR_RATE" >> $GITHUB_OUTPUT
+          
+          # Clean up
+          kill $SERVER_PID 2>/dev/null || true
+          
+          echo "Baseline performance testing completed"
+
+      - name: Performance Score Calculation
+        id: score
+        run: |
+          echo "=== Performance Score Calculation ==="
+          
+          RESPONSE_TIME=${{ steps.baseline.outputs.response_time }}
+          THROUGHPUT=${{ steps.baseline.outputs.throughput }}
+          MEMORY_USAGE=${{ steps.baseline.outputs.memory_usage }}
+          ERROR_RATE=${{ steps.baseline.outputs.error_rate }}
+          
+          echo "Response Time: ${RESPONSE_TIME}ms (target: ≤${PERFORMANCE_TARGET_RESPONSE_TIME}ms)"
+          echo "Throughput: ${THROUGHPUT} req/sec (target: ≥${PERFORMANCE_TARGET_THROUGHPUT} req/sec)"
+          echo "Memory Usage: ${MEMORY_USAGE}MB (limit: ≤${PERFORMANCE_MEMORY_LIMIT}MB)"
+          echo "Error Rate: ${ERROR_RATE}% (target: ≤${PERFORMANCE_TARGET_ERROR_RATE}%)"
+          
+          # Calculate individual scores (0-100)
+          
+          # Response time score (inverse relationship)
+          if [ "$RESPONSE_TIME" -le "$PERFORMANCE_TARGET_RESPONSE_TIME" ]; then
+            RESPONSE_SCORE=100
+          else
+            RESPONSE_SCORE=$(( 100 - ((RESPONSE_TIME - PERFORMANCE_TARGET_RESPONSE_TIME) * 100 / PERFORMANCE_TARGET_RESPONSE_TIME) ))
+            if [ "$RESPONSE_SCORE" -lt "0" ]; then
+              RESPONSE_SCORE=0
+            fi
+          fi
+          
+          # Throughput score
+          if [ "$THROUGHPUT" -ge "$PERFORMANCE_TARGET_THROUGHPUT" ]; then
+            THROUGHPUT_SCORE=100
+          else
+            THROUGHPUT_SCORE=$(( THROUGHPUT * 100 / PERFORMANCE_TARGET_THROUGHPUT ))
+          fi
+          
+          # Memory score (inverse relationship)
+          if [ "$MEMORY_USAGE" -le "$PERFORMANCE_MEMORY_LIMIT" ]; then
+            MEMORY_SCORE=100
+          else
+            MEMORY_SCORE=$(( 100 - ((MEMORY_USAGE - PERFORMANCE_MEMORY_LIMIT) * 100 / PERFORMANCE_MEMORY_LIMIT) ))
+            if [ "$MEMORY_SCORE" -lt "0" ]; then
+              MEMORY_SCORE=0
+            fi
+          fi
+          
+          # Error rate score (inverse relationship)
+          ERROR_RATE_NUMERIC=$(echo "$ERROR_RATE" | bc -l)
+          if (( $(echo "$ERROR_RATE_NUMERIC <= $PERFORMANCE_TARGET_ERROR_RATE" | bc -l) )); then
+            ERROR_SCORE=100
+          else
+            ERROR_SCORE=$(echo "100 - (($ERROR_RATE_NUMERIC - $PERFORMANCE_TARGET_ERROR_RATE) * 100 / $PERFORMANCE_TARGET_ERROR_RATE)" | bc -l | cut -d. -f1)
+            if [ "$ERROR_SCORE" -lt "0" ]; then
+              ERROR_SCORE=0
+            fi
+          fi
+          
+          # Overall performance score (weighted average)
+          PERFORMANCE_SCORE=$(( (RESPONSE_SCORE * 30 + THROUGHPUT_SCORE * 25 + MEMORY_SCORE * 25 + ERROR_SCORE * 20) / 100 ))
+          
+          echo "=== Performance Scores ==="
+          echo "Response Time Score: $RESPONSE_SCORE/100"
+          echo "Throughput Score: $THROUGHPUT_SCORE/100"
+          echo "Memory Score: $MEMORY_SCORE/100"
+          echo "Error Rate Score: $ERROR_SCORE/100"
+          echo "Overall Performance Score: $PERFORMANCE_SCORE/100"
+          
+          echo "performance_score=$PERFORMANCE_SCORE" >> $GITHUB_OUTPUT
+
+      - name: Upload Performance Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-baseline-results
+          path: |
+            load_test.txt
+          retention-days: 7
+
+  performance-profiling:
+    name: 'Performance Profiling'
+    runs-on: ubuntu-latest
+    needs: performance-baseline
+    if: github.event_name != 'schedule'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2.4'
+          bundler-cache: true
+
+      - name: Setup Database
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql postgresql-contrib
+          sudo systemctl start postgresql
+          sudo -u postgres createuser -s runner
+          sudo -u postgres createdb huginn_test
+          bundle exec rake db:create db:schema:load RAILS_ENV=test
+
+      - name: Install Profiling Gems
+        run: |
+          # Add profiling gems to Gemfile temporarily
+          cat >> Gemfile << 'EOF'
+          
+          # Performance profiling gems (temporary)
+          gem 'rack-mini-profiler'
+          gem 'memory_profiler'
+          gem 'ruby-prof'
+          gem 'stackprof'
+          EOF
+          
+          bundle install
+
+      - name: Memory Profiling
+        run: |
+          echo "=== Memory Profiling ==="
+          
+          # Create memory profiling script
+          cat > memory_profile.rb << 'EOF'
+          require 'memory_profiler'
+          require './config/environment'
+          
+          # Memory profiling for key operations
+          report = MemoryProfiler.report do
+            # Simulate typical application usage
+            User.first rescue nil
+            Agent.limit(10).to_a rescue []
+            Event.limit(10).to_a rescue []
+          end
+          
+          puts "=== Memory Profiling Results ==="
+          puts "Total allocated memory: #{report.total_allocated_memsize} bytes"
+          puts "Total retained memory: #{report.total_retained_memsize} bytes"
+          puts "Allocated objects: #{report.total_allocated}"
+          puts "Retained objects: #{report.total_retained}"
+          
+          # Save detailed report
+          File.open('memory_profile.txt', 'w') do |f|
+            report.pretty_print(f)
+          end
+          EOF
+          
+          bundle exec ruby memory_profile.rb
+
+      - name: CPU Profiling
+        run: |
+          echo "=== CPU Profiling ==="
+          
+          # Create CPU profiling script
+          cat > cpu_profile.rb << 'EOF'
+          require 'stackprof'
+          require './config/environment'
+          
+          # CPU profiling for key operations  
+          profile = StackProf.run(mode: :cpu, out: 'cpu_profile.dump') do
+            1000.times do
+              # Simulate typical application operations
+              User.first rescue nil
+              Agent.limit(5).to_a rescue []
+            end
+          end
+          
+          puts "=== CPU Profiling Results ==="
+          puts "Samples collected: #{profile[:samples]}"
+          puts "Sample rate: #{profile[:sample_rate]} Hz"
+          puts "Total time: #{profile[:samples].to_f / profile[:sample_rate]} seconds"
+          EOF
+          
+          bundle exec ruby cpu_profile.rb
+          
+          # Generate human-readable CPU profile report
+          bundle exec stackprof cpu_profile.dump --text > cpu_profile.txt
+
+      - name: Database Query Analysis
+        run: |
+          echo "=== Database Query Analysis ==="
+          
+          # Start Rails console to analyze queries
+          cat > query_analysis.rb << 'EOF'
+          require './config/environment'
+          
+          # Enable query logging
+          ActiveRecord::Base.logger = Logger.new(STDOUT)
+          ActiveRecord::Base.logger.level = Logger::DEBUG
+          
+          # Analyze common queries
+          puts "=== Query Analysis ==="
+          
+          # Time common operations
+          start_time = Time.now
+          User.limit(10).to_a rescue []
+          user_query_time = Time.now - start_time
+          puts "User query time: #{(user_query_time * 1000).round(2)}ms"
+          
+          start_time = Time.now  
+          Agent.includes(:user).limit(10).to_a rescue []
+          agent_query_time = Time.now - start_time
+          puts "Agent query time: #{(agent_query_time * 1000).round(2)}ms"
+          
+          start_time = Time.now
+          Event.includes(:agent).limit(10).to_a rescue []
+          event_query_time = Time.now - start_time
+          puts "Event query time: #{(event_query_time * 1000).round(2)}ms"
+          EOF
+          
+          bundle exec rails runner query_analysis.rb 2>&1 | tee query_analysis.txt
+
+      - name: Upload Profiling Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-profiling-results
+          path: |
+            memory_profile.txt
+            cpu_profile.txt
+            cpu_profile.dump
+            query_analysis.txt
+          retention-days: 30
+
+  stress-testing:
+    name: 'Stress Testing'
+    runs-on: ubuntu-latest
+    needs: performance-baseline
+    if: inputs.performance_profile == 'stress' || inputs.performance_profile == 'intensive'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2.4'
+          bundler-cache: true
+
+      - name: Setup Database
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql postgresql-contrib
+          sudo systemctl start postgresql
+          sudo -u postgres createuser -s runner
+          sudo -u postgres createdb huginn_test
+          bundle exec rake db:create db:schema:load RAILS_ENV=test
+
+      - name: Install Stress Testing Tools
+        run: |
+          sudo apt-get install -y apache2-utils wrk
+
+      - name: Stress Test Execution
+        run: |
+          echo "=== Stress Testing ==="
+          
+          # Start Rails server
+          bundle exec rails server -e test -p 3001 &
+          SERVER_PID=$!
+          
+          # Wait for server to start
+          sleep 15
+          
+          # Stress test parameters based on profile
+          case "${{ inputs.performance_profile }}" in
+            "stress")
+              CONNECTIONS=50
+              REQUESTS=5000
+              DURATION=30
+              ;;
+            "intensive") 
+              CONNECTIONS=25
+              REQUESTS=2500
+              DURATION=20
+              ;;
+            *)
+              CONNECTIONS=10
+              REQUESTS=1000  
+              DURATION=10
+              ;;
+          esac
+          
+          echo "Running stress test: $CONNECTIONS connections, $REQUESTS requests over ${DURATION}s"
+          
+          # Apache Bench stress test
+          ab -n $REQUESTS -c $CONNECTIONS -t $DURATION http://localhost:3001/ > stress_test_ab.txt 2>&1
+          
+          # Parse stress test results
+          if grep -q "Requests per second" stress_test_ab.txt; then
+            STRESS_THROUGHPUT=$(grep "Requests per second" stress_test_ab.txt | awk '{print $4}' | cut -d. -f1)
+            STRESS_FAILED=$(grep "Failed requests" stress_test_ab.txt | awk '{print $3}' || echo "0")
+            STRESS_TIME_PER_REQ=$(grep "Time per request" stress_test_ab.txt | head -1 | awk '{print $4}' | cut -d. -f1)
+            
+            echo "Stress Test Results:"
+            echo "- Throughput: ${STRESS_THROUGHPUT} req/sec"
+            echo "- Failed requests: ${STRESS_FAILED}"
+            echo "- Time per request: ${STRESS_TIME_PER_REQ}ms"
+            
+            # Check if system degraded significantly under stress
+            BASELINE_THROUGHPUT=${{ needs.performance-baseline.outputs.baseline_throughput }}
+            if [ "$BASELINE_THROUGHPUT" -gt "0" ]; then
+              THROUGHPUT_RATIO=$(( STRESS_THROUGHPUT * 100 / BASELINE_THROUGHPUT ))
+              echo "Throughput ratio under stress: ${THROUGHPUT_RATIO}%"
+              
+              if [ "$THROUGHPUT_RATIO" -lt "70" ]; then
+                echo "::warning::Significant performance degradation under stress (${THROUGHPUT_RATIO}% of baseline)"
+              fi
+            fi
+          fi
+          
+          # Memory usage under stress
+          STRESS_MEMORY=$(ps -o pid,vsz,rss,comm -p $SERVER_PID | tail -n 1 | awk '{print $3}')
+          STRESS_MEMORY_MB=$(( STRESS_MEMORY / 1024 ))
+          echo "Memory usage under stress: ${STRESS_MEMORY_MB}MB"
+          
+          # Clean up
+          kill $SERVER_PID 2>/dev/null || true
+
+      - name: Upload Stress Test Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: stress-test-results
+          path: |
+            stress_test_ab.txt
+          retention-days: 7
+
+  performance-monitoring:
+    name: 'Performance Monitoring Setup'
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Performance Monitoring Config  
+        run: |
+          echo "=== Performance Monitoring Configuration ==="
+          
+          # Create performance monitoring configuration
+          mkdir -p config/monitoring
+          
+          cat > config/monitoring/performance_config.yml << 'EOF'
+          # Performance monitoring configuration for Huginn
+          
+          monitoring:
+            enabled: true
+            collection_interval: 60 # seconds
+            
+          thresholds:
+            response_time_warning: 200    # milliseconds
+            response_time_critical: 500   # milliseconds  
+            memory_usage_warning: 400     # MB
+            memory_usage_critical: 600    # MB
+            cpu_usage_warning: 70         # percentage
+            cpu_usage_critical: 90        # percentage
+            error_rate_warning: 0.1       # percentage
+            error_rate_critical: 1.0      # percentage
+            
+          alerts:
+            slack_webhook: "${SLACK_WEBHOOK_URL}"
+            email_notifications: true
+            dashboard_url: "${MONITORING_DASHBOARD_URL}"
+            
+          retention:
+            metrics_days: 30
+            detailed_logs_days: 7
+            alerts_days: 90
+          EOF
+          
+          echo "Performance monitoring configuration created"
+          
+          # Create performance metrics collection script
+          cat > config/monitoring/collect_metrics.rb << 'EOF'
+          #!/usr/bin/env ruby
+          
+          require 'json'
+          require 'net/http'
+          require 'uri'
+          
+          class PerformanceCollector
+            def initialize
+              @config = YAML.load_file('config/monitoring/performance_config.yml')
+            end
+            
+            def collect_metrics
+              metrics = {
+                timestamp: Time.now.utc.iso8601,
+                response_times: measure_response_times,
+                memory_usage: measure_memory_usage,
+                database_performance: measure_database_performance,
+                error_rates: measure_error_rates
+              }
+              
+              send_to_monitoring_system(metrics)
+              check_thresholds(metrics)
+              
+              metrics
+            end
+            
+            private
+            
+            def measure_response_times
+              # Implementation for response time measurement
+              {}
+            end
+            
+            def measure_memory_usage
+              # Implementation for memory usage measurement
+              {}
+            end
+            
+            def measure_database_performance
+              # Implementation for database performance measurement  
+              {}
+            end
+            
+            def measure_error_rates
+              # Implementation for error rate measurement
+              {}
+            end
+            
+            def send_to_monitoring_system(metrics)
+              # Send metrics to monitoring dashboard
+              puts "Metrics collected: #{metrics.to_json}"
+            end
+            
+            def check_thresholds(metrics)
+              # Check against defined thresholds and trigger alerts
+            end
+          end
+          
+          if __FILE__ == $0
+            collector = PerformanceCollector.new
+            collector.collect_metrics
+          end
+          EOF
+          
+          chmod +x config/monitoring/collect_metrics.rb
+          
+          echo "Performance metrics collection script created"
+
+      - name: Create Performance Dashboard
+        run: |
+          echo "=== Performance Dashboard Setup ==="
+          
+          # Create simple performance dashboard HTML
+          mkdir -p public/monitoring
+          
+          cat > public/monitoring/performance_dashboard.html << 'EOF'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Huginn Performance Dashboard</title>
+            <style>
+              body { font-family: Arial, sans-serif; margin: 20px; }
+              .metric-card { border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin: 10px 0; }
+              .metric-value { font-size: 24px; font-weight: bold; color: #2196F3; }
+              .metric-label { color: #666; margin-bottom: 5px; }
+              .status-good { color: #4CAF50; }
+              .status-warning { color: #FF9800; }
+              .status-critical { color: #F44336; }
+              .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+            </style>
+          </head>
+          <body>
+            <h1>Huginn Performance Dashboard</h1>
+            
+            <div class="dashboard-grid">
+              <div class="metric-card">
+                <div class="metric-label">Average Response Time</div>
+                <div class="metric-value" id="response-time">-- ms</div>
+              </div>
+              
+              <div class="metric-card">
+                <div class="metric-label">Memory Usage</div>
+                <div class="metric-value" id="memory-usage">-- MB</div>
+              </div>
+              
+              <div class="metric-card">
+                <div class="metric-label">Throughput</div>
+                <div class="metric-value" id="throughput">-- req/sec</div>
+              </div>
+              
+              <div class="metric-card">
+                <div class="metric-label">Error Rate</div>
+                <div class="metric-value" id="error-rate">-- %</div>
+              </div>
+              
+              <div class="metric-card">
+                <div class="metric-label">System Status</div>
+                <div class="metric-value status-good" id="system-status">Healthy</div>
+              </div>
+            </div>
+            
+            <script>
+              // Auto-refresh dashboard every 60 seconds
+              setInterval(function() {
+                // In a real implementation, this would fetch actual metrics
+                // from an API endpoint
+                updateDashboard();
+              }, 60000);
+              
+              function updateDashboard() {
+                // Mock implementation - replace with actual API calls
+                document.getElementById('response-time').textContent = '150 ms';
+                document.getElementById('memory-usage').textContent = '256 MB';
+                document.getElementById('throughput').textContent = '45 req/sec';
+                document.getElementById('error-rate').textContent = '0.05 %';
+              }
+              
+              // Initial load
+              updateDashboard();
+            </script>
+          </body>
+          </html>
+          EOF
+          
+          echo "Performance dashboard created at public/monitoring/performance_dashboard.html"
+
+      - name: Upload Monitoring Configuration
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-monitoring-config
+          path: |
+            config/monitoring/
+            public/monitoring/
+          retention-days: 30
+
+  performance-report:
+    name: 'Performance Report'
+    runs-on: ubuntu-latest
+    needs: [performance-baseline, performance-profiling]
+    if: always()
+    
+    steps:
+      - name: Download Performance Results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: performance-*
+          merge-multiple: true
+
+      - name: Generate Performance Report
+        run: |
+          echo "=== Performance Analysis Report ===" > performance_report.md
+          echo "" >> performance_report.md
+          echo "**Build:** ${{ github.run_number }}" >> performance_report.md
+          echo "**Commit:** ${{ github.sha }}" >> performance_report.md
+          echo "**Branch:** ${{ github.ref_name }}" >> performance_report.md
+          echo "**Date:** $(date -u)" >> performance_report.md
+          echo "" >> performance_report.md
+          
+          if [ "${{ needs.performance-baseline.result }}" = "success" ]; then
+            echo "## Performance Metrics" >> performance_report.md
+            echo "" >> performance_report.md
+            echo "| Metric | Value | Target | Status |" >> performance_report.md
+            echo "|--------|-------|--------|--------|" >> performance_report.md
+            echo "| Response Time | ${{ needs.performance-baseline.outputs.baseline_response_time }}ms | ≤${PERFORMANCE_TARGET_RESPONSE_TIME}ms | $( [ "${{ needs.performance-baseline.outputs.baseline_response_time }}" -le "$PERFORMANCE_TARGET_RESPONSE_TIME" ] && echo "✅ PASS" || echo "❌ FAIL" ) |" >> performance_report.md
+            echo "| Throughput | ${{ needs.performance-baseline.outputs.baseline_throughput }} req/sec | ≥${PERFORMANCE_TARGET_THROUGHPUT} req/sec | $( [ "${{ needs.performance-baseline.outputs.baseline_throughput }}" -ge "$PERFORMANCE_TARGET_THROUGHPUT" ] && echo "✅ PASS" || echo "❌ FAIL" ) |" >> performance_report.md
+            echo "| Memory Usage | ${{ needs.performance-baseline.outputs.baseline_memory_usage }}MB | ≤${PERFORMANCE_MEMORY_LIMIT}MB | $( [ "${{ needs.performance-baseline.outputs.baseline_memory_usage }}" -le "$PERFORMANCE_MEMORY_LIMIT" ] && echo "✅ PASS" || echo "❌ FAIL" ) |" >> performance_report.md
+            echo "| Overall Score | ${{ needs.performance-baseline.outputs.performance_score }}/100 | ≥75 | $( [ "${{ needs.performance-baseline.outputs.performance_score }}" -ge "75" ] && echo "✅ PASS" || echo "❌ FAIL" ) |" >> performance_report.md
+            echo "" >> performance_report.md
+          fi
+          
+          echo "## Analysis Files" >> performance_report.md
+          echo "" >> performance_report.md
+          echo "The following analysis files are available in the workflow artifacts:" >> performance_report.md
+          echo "" >> performance_report.md
+          echo "- **Load Test Results:** \`load_test.txt\`" >> performance_report.md
+          echo "- **Memory Profile:** \`memory_profile.txt\`" >> performance_report.md  
+          echo "- **CPU Profile:** \`cpu_profile.txt\`" >> performance_report.md
+          echo "- **Database Analysis:** \`query_analysis.txt\`" >> performance_report.md
+          echo "" >> performance_report.md
+          
+          echo "## Recommendations" >> performance_report.md
+          echo "" >> performance_report.md
+          
+          if [ "${{ needs.performance-baseline.outputs.baseline_response_time }}" -gt "$PERFORMANCE_TARGET_RESPONSE_TIME" ]; then
+            echo "- 🔴 **Response Time Optimization Required:** Current response time exceeds target" >> performance_report.md
+          fi
+          
+          if [ "${{ needs.performance-baseline.outputs.baseline_memory_usage }}" -gt "$PERFORMANCE_MEMORY_LIMIT" ]; then
+            echo "- 🔴 **Memory Optimization Required:** Memory usage exceeds limits" >> performance_report.md
+          fi
+          
+          if [ "${{ needs.performance-baseline.outputs.performance_score }}" -lt "75" ]; then
+            echo "- 🔴 **Overall Performance Improvement Needed:** Performance score below acceptable threshold" >> performance_report.md
+          fi
+          
+          echo "" >> performance_report.md
+          echo "---" >> performance_report.md
+          echo "*Report generated automatically by Performance Validation workflow*" >> performance_report.md
+
+      - name: Upload Performance Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-report
+          path: performance_report.md
+          retention-days: 30

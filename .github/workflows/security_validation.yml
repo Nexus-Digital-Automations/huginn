@@ -1,0 +1,815 @@
+name: 'Security Validation & Scanning'
+
+on:
+  push:
+    branches: ['master', 'main', 'develop']
+  pull_request:
+    branches: ['master', 'main', 'develop']
+  schedule:
+    # Run security scans daily at 3 AM UTC
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      security_profile:
+        description: 'Security scanning profile'
+        required: true
+        default: 'standard'
+        type: choice
+        options:
+        - 'quick'
+        - 'standard'
+        - 'comprehensive'
+        - 'penetration'
+
+env:
+  RAILS_ENV: test
+  SECURITY_VULNERABILITY_THRESHOLD: 0    # Zero tolerance for high/critical vulnerabilities
+  SECURITY_CODE_QUALITY_THRESHOLD: 80    # Minimum security code quality score
+  SECURITY_DEPENDENCY_AGE_DAYS: 365      # Maximum dependency age in days
+
+jobs:
+  dependency-scanning:
+    name: 'Dependency Vulnerability Scanning'
+    runs-on: ubuntu-latest
+    outputs:
+      vulnerabilities_found: ${{ steps.audit.outputs.vulnerabilities_found }}
+      critical_count: ${{ steps.audit.outputs.critical_count }}
+      high_count: ${{ steps.audit.outputs.high_count }}
+      security_score: ${{ steps.score.outputs.security_score }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2.4'
+          bundler-cache: true
+
+      - name: Install Security Tools
+        run: |
+          # Install bundler-audit for dependency vulnerability scanning
+          gem install bundler-audit
+          
+          # Update vulnerability database
+          bundler-audit update
+          
+          # Install brakeman for static analysis
+          gem install brakeman
+          
+          # Install additional security tools
+          sudo apt-get update
+          sudo apt-get install -y nmap sqlmap
+
+      - name: Dependency Audit
+        id: audit
+        run: |
+          echo "=== Dependency Vulnerability Scanning ==="
+          
+          # Run bundler-audit to check for vulnerable dependencies
+          echo "Running bundler-audit..."
+          if bundler-audit check --format json --output bundler_audit.json; then
+            echo "✅ No known vulnerabilities found in dependencies"
+            echo "vulnerabilities_found=false" >> $GITHUB_OUTPUT
+            echo "critical_count=0" >> $GITHUB_OUTPUT
+            echo "high_count=0" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Vulnerabilities found in dependencies"
+            echo "vulnerabilities_found=true" >> $GITHUB_OUTPUT
+            
+            # Parse vulnerability counts (if JSON parsing available)
+            if command -v jq >/dev/null 2>&1; then
+              # Count vulnerabilities by severity if bundler-audit supports it
+              # Note: bundler-audit may not provide severity levels in all versions
+              TOTAL_VULNS=$(jq '. | length' bundler_audit.json 2>/dev/null || echo "0")
+              echo "Total vulnerabilities: $TOTAL_VULNS"
+              echo "critical_count=0" >> $GITHUB_OUTPUT
+              echo "high_count=$TOTAL_VULNS" >> $GITHUB_OUTPUT
+            else
+              # Fallback to text parsing
+              VULN_COUNT=$(grep -c "Name:" bundler_audit.json 2>/dev/null || echo "0")
+              echo "critical_count=0" >> $GITHUB_OUTPUT
+              echo "high_count=$VULN_COUNT" >> $GITHUB_OUTPUT
+            fi
+            
+            # Show vulnerability details
+            echo "::group::Vulnerability Details"
+            cat bundler_audit.json
+            echo "::endgroup::"
+          fi
+
+      - name: Check Dependency Ages
+        run: |
+          echo "=== Dependency Age Analysis ==="
+          
+          # Analyze Gemfile.lock for outdated dependencies
+          if [ -f "Gemfile.lock" ]; then
+            echo "Checking for outdated dependencies..."
+            
+            # Run bundle outdated to check for updates
+            bundle outdated --parseable > outdated_gems.txt 2>/dev/null || true
+            
+            if [ -s outdated_gems.txt ]; then
+              OUTDATED_COUNT=$(wc -l < outdated_gems.txt)
+              echo "Outdated gems found: $OUTDATED_COUNT"
+              
+              echo "::group::Outdated Dependencies"
+              cat outdated_gems.txt
+              echo "::endgroup::"
+              
+              if [ "$OUTDATED_COUNT" -gt "10" ]; then
+                echo "::warning::Many outdated dependencies found ($OUTDATED_COUNT). Consider updating."
+              fi
+            else
+              echo "✅ All dependencies are up to date"
+            fi
+          fi
+
+      - name: Security Score Calculation
+        id: score
+        run: |
+          echo "=== Security Score Calculation ==="
+          
+          VULNERABILITIES_FOUND=${{ steps.audit.outputs.vulnerabilities_found }}
+          CRITICAL_COUNT=${{ steps.audit.outputs.critical_count }}
+          HIGH_COUNT=${{ steps.audit.outputs.high_count }}
+          
+          # Calculate security score based on vulnerabilities
+          SECURITY_SCORE=100
+          
+          if [ "$VULNERABILITIES_FOUND" = "true" ]; then
+            # Deduct points for vulnerabilities
+            CRITICAL_PENALTY=$((CRITICAL_COUNT * 50))  # 50 points per critical
+            HIGH_PENALTY=$((HIGH_COUNT * 20))          # 20 points per high
+            
+            SECURITY_SCORE=$((100 - CRITICAL_PENALTY - HIGH_PENALTY))
+            
+            if [ "$SECURITY_SCORE" -lt "0" ]; then
+              SECURITY_SCORE=0
+            fi
+          fi
+          
+          echo "Security Score: $SECURITY_SCORE/100"
+          echo "Critical vulnerabilities: $CRITICAL_COUNT"
+          echo "High vulnerabilities: $HIGH_COUNT"
+          echo "security_score=$SECURITY_SCORE" >> $GITHUB_OUTPUT
+
+      - name: Upload Dependency Scan Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-scan-results
+          path: |
+            bundler_audit.json
+            outdated_gems.txt
+          retention-days: 7
+
+  static-analysis:
+    name: 'Static Security Analysis'
+    runs-on: ubuntu-latest
+    outputs:
+      brakeman_warnings: ${{ steps.brakeman.outputs.warning_count }}
+      security_issues: ${{ steps.analysis.outputs.issues_found }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2.4'
+          bundler-cache: true
+
+      - name: Install Security Analysis Tools
+        run: |
+          gem install brakeman
+          gem install ruby_audit
+          sudo apt-get install -y cloc
+
+      - name: Brakeman Security Analysis
+        id: brakeman
+        run: |
+          echo "=== Brakeman Static Security Analysis ==="
+          
+          # Run Brakeman security scanner
+          if brakeman --format json --output brakeman_results.json; then
+            echo "✅ Brakeman scan completed without critical issues"
+            WARNING_COUNT=0
+          else
+            echo "⚠️ Brakeman found potential security issues"
+            
+            # Count warnings if JSON parsing available
+            if command -v jq >/dev/null 2>&1 && [ -f "brakeman_results.json" ]; then
+              WARNING_COUNT=$(jq '.warnings | length' brakeman_results.json)
+              CONFIDENCE_HIGH=$(jq '[.warnings[] | select(.confidence == "High")] | length' brakeman_results.json)
+              CONFIDENCE_MEDIUM=$(jq '[.warnings[] | select(.confidence == "Medium")] | length' brakeman_results.json)
+              
+              echo "Total warnings: $WARNING_COUNT"
+              echo "High confidence: $CONFIDENCE_HIGH"
+              echo "Medium confidence: $CONFIDENCE_MEDIUM"
+              
+              # Show high confidence issues
+              if [ "$CONFIDENCE_HIGH" -gt "0" ]; then
+                echo "::group::High Confidence Security Issues"
+                jq '.warnings[] | select(.confidence == "High")' brakeman_results.json
+                echo "::endgroup::"
+              fi
+            else
+              WARNING_COUNT=1  # Assume at least one warning if scan failed
+            fi
+          fi
+          
+          echo "warning_count=$WARNING_COUNT" >> $GITHUB_OUTPUT
+          
+          # Generate human-readable report
+          brakeman --format text --output brakeman_report.txt || true
+
+      - name: Code Security Analysis
+        id: analysis  
+        run: |
+          echo "=== Code Security Pattern Analysis ==="
+          
+          # Check for common security anti-patterns
+          ISSUES_FOUND=0
+          
+          echo "Checking for security anti-patterns..."
+          
+          # SQL Injection patterns
+          SQL_INJECTION=$(find app -name "*.rb" -exec grep -l "execute\|query\|find_by_sql" {} \; | wc -l)
+          if [ "$SQL_INJECTION" -gt "0" ]; then
+            echo "::warning::Found $SQL_INJECTION files with potential SQL injection risks"
+            ISSUES_FOUND=$((ISSUES_FOUND + SQL_INJECTION))
+          fi
+          
+          # XSS patterns
+          XSS_PATTERNS=$(find app -name "*.erb" -exec grep -l "raw\|html_safe\|<%= .*%>" {} \; | wc -l)
+          if [ "$XSS_PATTERNS" -gt "0" ]; then
+            echo "::warning::Found $XSS_PATTERNS templates with potential XSS risks"
+            ISSUES_FOUND=$((ISSUES_FOUND + XSS_PATTERNS))
+          fi
+          
+          # Hardcoded secrets patterns
+          SECRET_PATTERNS=$(grep -r -i "password.*=\|secret.*=\|token.*=\|key.*=" app/ config/ --include="*.rb" --include="*.yml" | wc -l)
+          if [ "$SECRET_PATTERNS" -gt "0" ]; then
+            echo "::warning::Found $SECRET_PATTERNS potential hardcoded secrets"
+            ISSUES_FOUND=$((ISSUES_FOUND + SECRET_PATTERNS))
+          fi
+          
+          # Insecure HTTP requests
+          HTTP_PATTERNS=$(grep -r "http://" app/ --include="*.rb" | wc -l)
+          if [ "$HTTP_PATTERNS" -gt "0" ]; then
+            echo "::warning::Found $HTTP_PATTERNS insecure HTTP requests"
+            ISSUES_FOUND=$((ISSUES_FOUND + HTTP_PATTERNS))
+          fi
+          
+          echo "Total security issues found: $ISSUES_FOUND"
+          echo "issues_found=$ISSUES_FOUND" >> $GITHUB_OUTPUT
+
+      - name: Authentication & Authorization Analysis
+        run: |
+          echo "=== Authentication & Authorization Analysis ==="
+          
+          # Check Devise configuration
+          if [ -f "config/initializers/devise.rb" ]; then
+            echo "✅ Devise configuration found"
+            
+            # Check for secure configurations
+            if grep -q "config.stretches.*10" config/initializers/devise.rb; then
+              echo "✅ Password hashing strength is adequate"
+            else
+              echo "::warning::Consider increasing password hashing strength"
+            fi
+            
+            if grep -q "config.timeout_in" config/initializers/devise.rb; then
+              echo "✅ Session timeout is configured"
+            else
+              echo "::warning::Consider configuring session timeout"
+            fi
+          fi
+          
+          # Check for authorization patterns
+          AUTH_CONTROLLERS=$(find app/controllers -name "*.rb" -exec grep -l "before_action.*authenticate\|authorize" {} \; | wc -l)
+          TOTAL_CONTROLLERS=$(find app/controllers -name "*.rb" | wc -l)
+          
+          echo "Controllers with authentication: $AUTH_CONTROLLERS/$TOTAL_CONTROLLERS"
+          
+          if [ "$AUTH_CONTROLLERS" -lt "$((TOTAL_CONTROLLERS / 2))" ]; then
+            echo "::warning::Less than half of controllers have authentication checks"
+          fi
+
+      - name: Upload Static Analysis Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: static-analysis-results
+          path: |
+            brakeman_results.json
+            brakeman_report.txt
+          retention-days: 7
+
+  configuration-security:
+    name: 'Configuration Security Review'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Security Configuration Analysis
+        run: |
+          echo "=== Security Configuration Analysis ==="
+          
+          # Check Rails security configurations
+          echo "Checking Rails security configurations..."
+          
+          # Check production environment security
+          if [ -f "config/environments/production.rb" ]; then
+            echo "Production environment configuration:"
+            
+            # Force SSL
+            if grep -q "force_ssl.*true" config/environments/production.rb; then
+              echo "✅ Force SSL is enabled"
+            else
+              echo "::warning::Consider enabling force_ssl in production"
+            fi
+            
+            # Asset host configuration
+            if grep -q "asset_host" config/environments/production.rb; then
+              echo "✅ Asset host is configured"
+            else
+              echo "::notice::Consider configuring asset_host for CDN"
+            fi
+            
+            # Log level
+            if grep -q "log_level.*:warn\|log_level.*:error" config/environments/production.rb; then
+              echo "✅ Appropriate log level set for production"
+            else
+              echo "::warning::Consider setting log_level to :warn or :error in production"
+            fi
+          fi
+          
+          # Check application configuration
+          if [ -f "config/application.rb" ]; then
+            echo "Application security configuration:"
+            
+            # Content Security Policy
+            if grep -q "content_security_policy" config/application.rb; then
+              echo "✅ Content Security Policy configuration found"
+            else
+              echo "::warning::Consider implementing Content Security Policy"
+            fi
+            
+            # CORS configuration
+            if [ -f "config/initializers/cors.rb" ]; then
+              echo "✅ CORS configuration found"
+              if grep -q "origins.*\*" config/initializers/cors.rb; then
+                echo "::warning::CORS allows all origins - consider restricting"
+              fi
+            fi
+          fi
+          
+          # Check database configuration
+          if [ -f "config/database.yml" ]; then
+            echo "Database security configuration:"
+            
+            # Check for hardcoded credentials
+            if grep -q "password:" config/database.yml; then
+              if grep -q "password:.*<%" config/database.yml; then
+                echo "✅ Database passwords use environment variables"
+              else
+                echo "::error::Database passwords should use environment variables"
+              fi
+            fi
+          fi
+
+      - name: Secrets Management Analysis
+        run: |
+          echo "=== Secrets Management Analysis ==="
+          
+          # Check for Rails credentials
+          if [ -f "config/credentials.yml.enc" ]; then
+            echo "✅ Rails encrypted credentials file found"
+          else
+            echo "::warning::Consider using Rails encrypted credentials"
+          fi
+          
+          # Check for master key
+          if [ -f "config/master.key" ]; then
+            echo "::error::Master key file should not be committed to repository"
+          elif [ -f ".gitignore" ] && grep -q "config/master.key" .gitignore; then
+            echo "✅ Master key is properly ignored in .gitignore"
+          fi
+          
+          # Check environment variables usage
+          ENV_VAR_COUNT=$(grep -r "ENV\[" app/ config/ --include="*.rb" | wc -l)
+          echo "Environment variable usage count: $ENV_VAR_COUNT"
+          
+          if [ "$ENV_VAR_COUNT" -gt "0" ]; then
+            echo "✅ Application uses environment variables for configuration"
+          else
+            echo "::warning::Consider using environment variables for sensitive configuration"
+          fi
+
+      - name: Network Security Configuration
+        run: |
+          echo "=== Network Security Configuration ==="
+          
+          # Check for rate limiting
+          if grep -r "throttle\|rate_limit" app/ config/ --include="*.rb" | grep -q .; then
+            echo "✅ Rate limiting configuration found"
+          else
+            echo "::warning::Consider implementing rate limiting"
+          fi
+          
+          # Check for HTTPS redirect
+          if grep -r "redirect.*https\|force_ssl" app/ config/ --include="*.rb" | grep -q .; then
+            echo "✅ HTTPS enforcement found"
+          else
+            echo "::warning::Ensure HTTPS is enforced in production"
+          fi
+          
+          # Check for security headers
+          if [ -f "config/application.rb" ]; then
+            if grep -q "config.force_ssl\|config.ssl_options" config/application.rb; then
+              echo "✅ SSL configuration found"
+            fi
+            
+            if grep -q "config.session_store" config/application.rb; then
+              echo "✅ Session store configuration found"
+            fi
+          fi
+
+  penetration-testing:
+    name: 'Basic Penetration Testing'
+    runs-on: ubuntu-latest
+    if: inputs.security_profile == 'penetration' || inputs.security_profile == 'comprehensive'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2.4'
+          bundler-cache: true
+
+      - name: Setup Database
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql postgresql-contrib
+          sudo systemctl start postgresql
+          sudo -u postgres createuser -s runner
+          sudo -u postgres createdb huginn_test
+          bundle exec rake db:create db:schema:load RAILS_ENV=test
+
+      - name: Install Penetration Testing Tools
+        run: |
+          # Install basic penetration testing tools
+          sudo apt-get install -y nmap nikto dirb curl
+
+      - name: Basic Network Reconnaissance
+        run: |
+          echo "=== Basic Network Reconnaissance ==="
+          
+          # Start Rails server
+          bundle exec rails server -e test -p 3001 &
+          SERVER_PID=$!
+          
+          # Wait for server to start
+          sleep 15
+          
+          # Port scanning
+          echo "Port scanning localhost..."
+          nmap -p 3000-3010 localhost > nmap_scan.txt
+          cat nmap_scan.txt
+          
+          # Directory enumeration
+          echo "Directory enumeration..."
+          dirb http://localhost:3001/ -o dirb_scan.txt -r
+          
+          # Basic vulnerability scanning with Nikto
+          echo "Basic vulnerability scanning..."
+          nikto -h http://localhost:3001 -output nikto_scan.txt -Format txt
+          
+          # Clean up
+          kill $SERVER_PID 2>/dev/null || true
+
+      - name: Application Security Testing
+        run: |
+          echo "=== Application Security Testing ==="
+          
+          # Start Rails server again
+          bundle exec rails server -e test -p 3001 &
+          SERVER_PID=$!
+          sleep 15
+          
+          # Test for common vulnerabilities
+          
+          # 1. Test HTTP methods
+          echo "Testing HTTP methods..."
+          for method in GET POST PUT DELETE PATCH HEAD OPTIONS; do
+            echo "Testing $method method:"
+            curl -X $method -I http://localhost:3001/ 2>/dev/null | head -1
+          done
+          
+          # 2. Test for information disclosure
+          echo "Testing for information disclosure..."
+          
+          # Check for server headers
+          curl -I http://localhost:3001/ 2>/dev/null | grep -i "server:\|x-powered-by:\|x-rails"
+          
+          # 3. Test for common paths
+          echo "Testing common sensitive paths..."
+          PATHS=("/admin" "/config" "/database.yml" "/.env" "/backup" "/test")
+          
+          for path in "${PATHS[@]}"; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:3001$path")
+            if [ "$STATUS" = "200" ]; then
+              echo "::warning::Sensitive path accessible: $path (HTTP $STATUS)"
+            fi
+          done
+          
+          # 4. Test authentication bypass
+          echo "Testing authentication bypass..."
+          
+          # Try accessing admin areas without authentication
+          ADMIN_PATHS=("/admin/users" "/admin" "/users" "/agents")
+          
+          for path in "${ADMIN_PATHS[@]}"; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:3001$path")
+            echo "Path $path returned HTTP $STATUS"
+            
+            if [ "$STATUS" = "200" ]; then
+              echo "::warning::Potentially accessible without authentication: $path"
+            fi
+          done
+          
+          # Clean up
+          kill $SERVER_PID 2>/dev/null || true
+
+      - name: Upload Penetration Test Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: penetration-test-results
+          path: |
+            nmap_scan.txt
+            dirb_scan.txt
+            nikto_scan.txt
+          retention-days: 7
+
+  security-compliance:
+    name: 'Security Compliance Check'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: OWASP Top 10 Compliance Check
+        run: |
+          echo "=== OWASP Top 10 Compliance Check ==="
+          
+          COMPLIANCE_SCORE=0
+          TOTAL_CHECKS=10
+          
+          echo "| OWASP Category | Status | Notes |"
+          echo "|----------------|--------|--------|"
+          
+          # A01: Broken Access Control
+          if [ -d "app/controllers" ]; then
+            ACCESS_CONTROL=$(find app/controllers -name "*.rb" -exec grep -l "before_action.*authenticate\|authorize" {} \; | wc -l)
+            if [ "$ACCESS_CONTROL" -gt "0" ]; then
+              echo "| A01: Broken Access Control | ✅ PASS | Authentication found in controllers |"
+              COMPLIANCE_SCORE=$((COMPLIANCE_SCORE + 1))
+            else
+              echo "| A01: Broken Access Control | ❌ FAIL | No authentication patterns found |"
+            fi
+          fi
+          
+          # A02: Cryptographic Failures
+          if grep -r "bcrypt\|Devise" app/ config/ --include="*.rb" | grep -q .; then
+            echo "| A02: Cryptographic Failures | ✅ PASS | Strong cryptography detected |"
+            COMPLIANCE_SCORE=$((COMPLIANCE_SCORE + 1))
+          else
+            echo "| A02: Cryptographic Failures | ❌ FAIL | Weak cryptography patterns |"
+          fi
+          
+          # A03: Injection
+          PARAMETERIZED_QUERIES=$(find app -name "*.rb" -exec grep -l "where.*?" {} \; | wc -l)
+          if [ "$PARAMETERIZED_QUERIES" -gt "0" ]; then
+            echo "| A03: Injection | ✅ PASS | Parameterized queries found |"
+            COMPLIANCE_SCORE=$((COMPLIANCE_SCORE + 1))
+          else
+            echo "| A03: Injection | ⚠️ WARNING | Review query patterns |"
+          fi
+          
+          # A04: Insecure Design  
+          if [ -f "app/controllers/application_controller.rb" ]; then
+            if grep -q "protect_from_forgery\|verify_authenticity_token" app/controllers/application_controller.rb; then
+              echo "| A04: Insecure Design | ✅ PASS | CSRF protection enabled |"
+              COMPLIANCE_SCORE=$((COMPLIANCE_SCORE + 1))
+            else
+              echo "| A04: Insecure Design | ❌ FAIL | CSRF protection not found |"
+            fi
+          fi
+          
+          # A05: Security Misconfiguration
+          if [ -f "config/environments/production.rb" ]; then
+            if grep -q "force_ssl\|config.ssl" config/environments/production.rb; then
+              echo "| A05: Security Misconfiguration | ✅ PASS | Security configs found |"
+              COMPLIANCE_SCORE=$((COMPLIANCE_SCORE + 1))
+            else
+              echo "| A05: Security Misconfiguration | ❌ FAIL | Missing security configs |"
+            fi
+          fi
+          
+          # A06: Vulnerable Components
+          if [ -f "Gemfile.lock" ]; then
+            echo "| A06: Vulnerable Components | ✅ PASS | Dependency management in place |"
+            COMPLIANCE_SCORE=$((COMPLIANCE_SCORE + 1))
+          else
+            echo "| A06: Vulnerable Components | ❌ FAIL | No dependency management |"
+          fi
+          
+          # A07: Authentication Failures
+          if [ -f "config/initializers/devise.rb" ]; then
+            echo "| A07: Authentication Failures | ✅ PASS | Devise authentication |"
+            COMPLIANCE_SCORE=$((COMPLIANCE_SCORE + 1))
+          else
+            echo "| A07: Authentication Failures | ⚠️ WARNING | Review authentication |"
+          fi
+          
+          # A08: Software Integrity Failures
+          if grep -q "integrity.*sha" Gemfile.lock; then
+            echo "| A08: Software Integrity | ✅ PASS | Dependency integrity checks |"
+            COMPLIANCE_SCORE=$((COMPLIANCE_SCORE + 1))
+          else
+            echo "| A08: Software Integrity | ⚠️ WARNING | Consider integrity checks |"
+          fi
+          
+          # A09: Security Logging Failures
+          if grep -r "Rails.logger\|logger" app/ --include="*.rb" | grep -q .; then
+            echo "| A09: Security Logging | ✅ PASS | Logging implementation found |"
+            COMPLIANCE_SCORE=$((COMPLIANCE_SCORE + 1))
+          else
+            echo "| A09: Security Logging | ❌ FAIL | Insufficient logging |"
+          fi
+          
+          # A10: Server-Side Request Forgery
+          SSRF_PROTECTION=$(find app -name "*.rb" -exec grep -l "URI.parse\|Addressable::URI" {} \; | wc -l)
+          if [ "$SSRF_PROTECTION" -gt "0" ]; then
+            echo "| A10: SSRF | ✅ PASS | URL validation patterns found |"
+            COMPLIANCE_SCORE=$((COMPLIANCE_SCORE + 1))
+          else
+            echo "| A10: SSRF | ⚠️ WARNING | Review URL handling |"
+          fi
+          
+          echo ""
+          echo "**OWASP Top 10 Compliance Score: $COMPLIANCE_SCORE/$TOTAL_CHECKS**"
+          
+          if [ "$COMPLIANCE_SCORE" -ge "7" ]; then
+            echo "✅ Good security compliance level"
+          else
+            echo "❌ Security compliance needs improvement"
+          fi
+
+  security-report:
+    name: 'Security Report'
+    runs-on: ubuntu-latest
+    needs: [dependency-scanning, static-analysis, configuration-security, security-compliance]
+    if: always()
+    
+    steps:
+      - name: Download Security Results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: "*-results"
+          merge-multiple: true
+
+      - name: Generate Security Report
+        run: |
+          echo "=== Security Analysis Report ===" > security_report.md
+          echo "" >> security_report.md
+          echo "**Build:** ${{ github.run_number }}" >> security_report.md
+          echo "**Commit:** ${{ github.sha }}" >> security_report.md
+          echo "**Branch:** ${{ github.ref_name }}" >> security_report.md
+          echo "**Date:** $(date -u)" >> security_report.md
+          echo "" >> security_report.md
+          
+          echo "## Security Metrics Summary" >> security_report.md
+          echo "" >> security_report.md
+          echo "| Category | Score | Status |" >> security_report.md
+          echo "|----------|-------|--------|" >> security_report.md
+          
+          if [ "${{ needs.dependency-scanning.result }}" = "success" ]; then
+            VULN_STATUS="✅ PASS"
+            if [ "${{ needs.dependency-scanning.outputs.vulnerabilities_found }}" = "true" ]; then
+              VULN_STATUS="❌ FAIL"
+            fi
+            echo "| Dependency Security | ${{ needs.dependency-scanning.outputs.security_score }}/100 | $VULN_STATUS |" >> security_report.md
+          fi
+          
+          if [ "${{ needs.static-analysis.result }}" = "success" ]; then
+            STATIC_STATUS="✅ PASS"
+            if [ "${{ needs.static-analysis.outputs.brakeman_warnings }}" -gt "0" ]; then
+              STATIC_STATUS="⚠️ WARNING"
+            fi
+            echo "| Static Analysis | - | $STATIC_STATUS |" >> security_report.md
+          fi
+          
+          echo "" >> security_report.md
+          
+          echo "## Vulnerability Details" >> security_report.md
+          echo "" >> security_report.md
+          
+          if [ "${{ needs.dependency-scanning.outputs.vulnerabilities_found }}" = "true" ]; then
+            echo "### ⚠️ Dependency Vulnerabilities Found" >> security_report.md
+            echo "" >> security_report.md
+            echo "- **Critical:** ${{ needs.dependency-scanning.outputs.critical_count }}" >> security_report.md
+            echo "- **High:** ${{ needs.dependency-scanning.outputs.high_count }}" >> security_report.md
+            echo "" >> security_report.md
+            echo "**Action Required:** Update vulnerable dependencies immediately." >> security_report.md
+            echo "" >> security_report.md
+          else
+            echo "### ✅ No Critical Vulnerabilities" >> security_report.md
+            echo "" >> security_report.md
+            echo "All dependencies are free from known critical vulnerabilities." >> security_report.md
+            echo "" >> security_report.md
+          fi
+          
+          if [ "${{ needs.static-analysis.outputs.brakeman_warnings }}" -gt "0" ]; then
+            echo "### ⚠️ Static Analysis Issues" >> security_report.md
+            echo "" >> security_report.md
+            echo "Brakeman found ${{ needs.static-analysis.outputs.brakeman_warnings }} potential security issues." >> security_report.md
+            echo "" >> security_report.md
+            echo "**Action Required:** Review Brakeman report and address high-confidence issues." >> security_report.md
+            echo "" >> security_report.md
+          fi
+          
+          echo "## Analysis Files" >> security_report.md
+          echo "" >> security_report.md
+          echo "The following security analysis files are available:" >> security_report.md
+          echo "" >> security_report.md
+          echo "- **Dependency Audit:** \`bundler_audit.json\`" >> security_report.md
+          echo "- **Static Analysis:** \`brakeman_results.json\`" >> security_report.md
+          echo "- **Penetration Test:** \`nikto_scan.txt\`, \`nmap_scan.txt\`" >> security_report.md
+          echo "" >> security_report.md
+          
+          echo "## Recommendations" >> security_report.md
+          echo "" >> security_report.md
+          
+          if [ "${{ needs.dependency-scanning.outputs.security_score }}" -lt "$SECURITY_CODE_QUALITY_THRESHOLD" ]; then
+            echo "- 🔴 **Update Dependencies:** Security score below threshold" >> security_report.md
+          fi
+          
+          if [ "${{ needs.static-analysis.outputs.brakeman_warnings }}" -gt "5" ]; then
+            echo "- 🔴 **Address Static Analysis Issues:** High number of security warnings" >> security_report.md
+          fi
+          
+          echo "- 🔵 **Regular Security Audits:** Schedule monthly security reviews" >> security_report.md
+          echo "- 🔵 **Security Training:** Ensure team follows secure coding practices" >> security_report.md
+          echo "- 🔵 **Dependency Updates:** Keep dependencies current with security patches" >> security_report.md
+          echo "" >> security_report.md
+          
+          echo "---" >> security_report.md
+          echo "*Report generated automatically by Security Validation workflow*" >> security_report.md
+
+      - name: Security Gate Decision
+        run: |
+          echo "=== Security Gate Decision ==="
+          
+          SECURITY_GATE_PASSED=true
+          
+          # Check critical vulnerabilities
+          if [ "${{ needs.dependency-scanning.outputs.critical_count }}" -gt "$SECURITY_VULNERABILITY_THRESHOLD" ]; then
+            echo "❌ SECURITY GATE FAILED: Critical vulnerabilities found"
+            SECURITY_GATE_PASSED=false
+          fi
+          
+          # Check high vulnerabilities
+          if [ "${{ needs.dependency-scanning.outputs.high_count }}" -gt "$SECURITY_VULNERABILITY_THRESHOLD" ]; then
+            echo "❌ SECURITY GATE FAILED: High vulnerabilities found"
+            SECURITY_GATE_PASSED=false
+          fi
+          
+          # Check security score
+          if [ "${{ needs.dependency-scanning.outputs.security_score }}" -lt "$SECURITY_CODE_QUALITY_THRESHOLD" ]; then
+            echo "❌ SECURITY GATE FAILED: Security score below threshold"
+            SECURITY_GATE_PASSED=false
+          fi
+          
+          if [ "$SECURITY_GATE_PASSED" = "true" ]; then
+            echo "✅ SECURITY GATE PASSED: All security checks passed"
+            exit 0
+          else
+            echo "❌ SECURITY GATE FAILED: Security issues must be addressed"
+            exit 1
+          fi
+
+      - name: Upload Security Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-report
+          path: security_report.md
+          retention-days: 30

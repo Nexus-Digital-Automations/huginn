@@ -1,0 +1,275 @@
+# Quality Gates Configuration for Huginn
+# 
+# This configuration file defines the rules, thresholds, and behaviors
+# for the automated pre-implementation checklist system.
+#
+# Configuration sections:
+# - quality_thresholds: Minimum scores required for each assessment phase
+# - assessment_rules: Behavioral rules for the assessment system  
+# - scoring_weights: Relative importance of different assessment components
+# - integration_settings: Configuration for Huginn-specific integrations
+
+# Quality score thresholds (0-100 scale)
+# These define the minimum acceptable scores for each assessment phase
+quality_thresholds:
+  # Context Assessment: Understanding current system architecture
+  context_assessment: 70
+  
+  # Impact Analysis: Identifying downstream effects and dependencies  
+  impact_analysis: 75
+  
+  # Resource Planning: Mapping dependencies, APIs, and data requirements
+  resource_planning: 70
+  
+  # Security Review: Authentication, authorization, and data protection
+  security_review: 85
+  
+  # Performance Baseline: Current metrics capture for comparison
+  performance_baseline: 70
+  
+  # Overall minimum score required to proceed with implementation
+  overall_minimum: 75
+
+# Assessment behavioral rules
+assessment_rules:
+  # Require all assessment phases to complete successfully
+  require_all_phases: true
+  
+  # Automatically fail assessment if critical security issues found
+  fail_on_security_issues: true
+  
+  # Generate detailed reports in development/reports directory
+  generate_reports: true
+  
+  # Fail assessment if database migrations would cause downtime
+  fail_on_destructive_migrations: true
+  
+  # Require explicit approval for external API integrations
+  require_api_approval: false
+  
+  # Maximum acceptable number of new dependencies
+  max_new_dependencies: 5
+
+# Scoring weights for assessment components (must sum to 100 per phase)
+scoring_weights:
+  context_assessment:
+    agent_architecture: 25    # Huginn agent system analysis
+    database_schema: 25       # Database structure and relationships
+    rails_structure: 25       # Rails application organization
+    configuration: 25         # Application and environment configuration
+    
+  impact_analysis:
+    dependency_mapping: 30    # Internal and external dependencies
+    api_impact: 30           # API changes and integrations
+    data_flow: 25            # Data processing and transformation
+    integration_points: 15    # External service touchpoints
+    
+  resource_planning:
+    api_requirements: 25      # API design and documentation needs
+    data_requirements: 25     # Storage and data processing needs
+    service_dependencies: 25  # External service requirements
+    infrastructure_requirements: 25  # Server and scaling needs
+    
+  security_review:
+    authentication: 25        # User authentication mechanisms
+    authorization: 25         # Permission and access control
+    data_protection: 25       # Encryption and data security
+    vulnerability_scan: 25    # Security vulnerability assessment
+    
+  performance_baseline:
+    application_performance: 25  # Response times and throughput
+    database_performance: 25     # Query performance and optimization
+    memory_baseline: 25          # Memory usage patterns
+    system_baseline: 25          # CPU, disk, and network metrics
+
+# Huginn-specific integration settings
+huginn_integration:
+  # Agent analysis configuration
+  agent_analysis:
+    # Minimum number of agent types expected in a healthy system
+    min_agent_types: 10
+    
+    # Required agent concerns for architectural consistency
+    required_concerns:
+      - 'LiquidInterpolatable'
+      - 'WorkingHelpers' 
+      - 'DryRunnable'
+      - 'JsonSerializedField'
+    
+    # Agent patterns to validate
+    validate_patterns:
+      - 'event_emission'
+      - 'event_reception'
+      - 'scheduling'
+      - 'configuration_validation'
+  
+  # Database integration settings
+  database_integration:
+    # Core tables that must exist
+    required_tables:
+      - 'agents'
+      - 'events'
+      - 'users'
+      - 'scenarios'
+      - 'links'
+    
+    # Essential indexes for performance
+    required_indexes:
+      - table: 'events'
+        columns: ['agent_id', 'created_at']
+      - table: 'agents'
+        columns: ['user_id', 'type']
+      - table: 'links'
+        columns: ['source_id', 'receiver_id']
+    
+    # Foreign key constraints validation
+    validate_referential_integrity: true
+  
+  # Security configuration specific to Huginn
+  security_integration:
+    # User authentication requirements
+    authentication:
+      provider: 'devise'
+      require_email_confirmation: false
+      enable_two_factor: false
+      session_timeout: 24  # hours
+    
+    # Agent security settings
+    agent_security:
+      # Restrict dangerous shell commands in ShellCommandAgent
+      restrict_shell_commands: true
+      
+      # Validate webhook endpoints for WebhookAgent
+      validate_webhook_urls: true
+      
+      # Encrypt sensitive agent options (API keys, passwords)
+      encrypt_sensitive_options: true
+    
+    # Data protection settings
+    data_protection:
+      # Encrypt event payloads containing sensitive data
+      encrypt_sensitive_events: false
+      
+      # Log retention policy (days)
+      log_retention_days: 90
+      
+      # Event retention policy (configurable per agent)
+      default_event_retention: 7  # days
+
+# Performance monitoring configuration
+performance_monitoring:
+  # Application performance targets
+  response_time_targets:
+    agent_execution: 5000    # milliseconds
+    web_interface: 1000      # milliseconds
+    api_endpoints: 500       # milliseconds
+    
+  # Database performance targets  
+  database_targets:
+    query_time_p95: 100      # milliseconds
+    connection_pool_usage: 80 # percentage
+    slow_query_threshold: 1000 # milliseconds
+    
+  # System resource targets
+  system_targets:
+    memory_usage_max: 85     # percentage
+    cpu_usage_max: 80        # percentage
+    disk_usage_max: 90       # percentage
+
+# Reporting configuration
+reporting:
+  # Report generation settings
+  generate_html_reports: true
+  generate_json_reports: true
+  generate_pdf_reports: false
+  
+  # Report retention
+  keep_reports_days: 30
+  
+  # Report distribution
+  email_reports: false
+  slack_notifications: false
+  
+  # Report content detail level
+  detail_level: 'comprehensive'  # options: 'summary', 'standard', 'comprehensive'
+
+# External service integration
+external_services:
+  # Code quality tools
+  code_quality:
+    rubocop:
+      enabled: true
+      config_file: '.rubocop.yml'
+      fail_on_warnings: false
+      
+    brakeman:
+      enabled: true
+      fail_on_warnings: true
+      ignore_file: '.brakeman.ignore'
+    
+    bundler_audit:
+      enabled: true
+      update_database: true
+      fail_on_warnings: true
+  
+  # Testing integration
+  testing:
+    rspec:
+      enabled: true
+      coverage_threshold: 80
+      
+    cucumber:
+      enabled: false
+      
+    factory_bot:
+      enabled: true
+
+# Development mode overrides
+development:
+  # Lower thresholds for development environment
+  quality_thresholds:
+    context_assessment: 60
+    impact_analysis: 65
+    resource_planning: 60
+    security_review: 70
+    performance_baseline: 60
+    overall_minimum: 65
+    
+  # More lenient rules for development
+  assessment_rules:
+    fail_on_security_issues: false
+    require_all_phases: false
+    
+# Production mode overrides  
+production:
+  # Stricter thresholds for production
+  quality_thresholds:
+    context_assessment: 85
+    impact_analysis: 90
+    resource_planning: 85
+    security_review: 95
+    performance_baseline: 85
+    overall_minimum: 90
+    
+  # Stricter rules for production
+  assessment_rules:
+    fail_on_security_issues: true
+    require_all_phases: true
+    fail_on_destructive_migrations: true
+    require_api_approval: true
+
+# Test mode overrides
+test:
+  # Fast execution for test environment
+  assessment_rules:
+    generate_reports: false
+    
+  # Disable external service integrations in tests
+  external_services:
+    code_quality:
+      rubocop:
+        enabled: false
+      brakeman:
+        enabled: false
+      bundler_audit:
+        enabled: false

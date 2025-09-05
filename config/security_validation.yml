@@ -1,0 +1,481 @@
+# Security Validation Configuration for Huginn
+# This configuration file defines security validation parameters, thresholds,
+# and monitoring settings for comprehensive security assessment.
+
+# Global Security Settings
+security_validation:
+  # Enable/disable security validation components
+  enabled: true
+  environment: <%= Rails.env %>
+  project_name: "Huginn"
+  
+  # Logging Configuration
+  logging:
+    level: INFO  # DEBUG, INFO, WARN, ERROR
+    structured_output: true
+    security_events_only: false
+    log_to_file: true
+    log_file_path: "log/security_validation.log"
+    max_log_file_size: "100MB"
+    log_retention_days: 30
+
+# Vulnerability Scanner Configuration
+vulnerability_scanning:
+  # Brakeman Static Security Analysis
+  brakeman:
+    enabled: true
+    confidence_level: 2  # 0=high, 1=medium, 2=low confidence
+    format: "json"
+    quiet: true
+    no_progress: true
+    ignore_file_path: ".brakeman.ignore"
+    custom_checks_path: "lib/security_validation/custom_checks"
+    
+  # Bundler-Audit Dependency Vulnerability Scanning
+  bundler_audit:
+    enabled: true
+    update_on_scan: true
+    format: "json"
+    ignore_file_path: ".bundler-audit.ignore"
+    advisory_db_path: "~/.local/share/ruby-advisory-db"
+    
+  # Custom Security Checks
+  custom_checks:
+    enabled: true
+    check_devise_config: true
+    check_database_config: true
+    check_agent_security: true
+    check_credential_exposure: true
+    
+  # Quality Gates and Thresholds
+  quality_gates:
+    fail_on_critical: true
+    fail_on_high: true
+    max_medium_vulnerabilities: 5
+    max_low_vulnerabilities: 10
+    max_info_advisories: 50
+    
+  # Vulnerability Severity Mapping
+  severity_levels:
+    critical:
+      priority: 1
+      max_allowed: 0
+      description: "Critical security vulnerability requiring immediate attention"
+      alert_immediately: true
+    high:
+      priority: 2
+      max_allowed: 0
+      description: "High severity security issue requiring urgent remediation"
+      alert_immediately: true
+    medium:
+      priority: 3
+      max_allowed: 5
+      description: "Medium severity security concern"
+      alert_immediately: false
+    low:
+      priority: 4
+      max_allowed: 10
+      description: "Low severity security advisory"
+      alert_immediately: false
+    info:
+      priority: 5
+      max_allowed: 50
+      description: "Informational security recommendation"
+      alert_immediately: false
+
+# Authentication Security Validation
+authentication:
+  # Devise Configuration Validation
+  devise_validation:
+    enabled: true
+    require_strong_passwords: true
+    min_password_length: 8
+    max_password_length: 128
+    require_account_lockout: true
+    max_failed_attempts: 10
+    require_session_timeout: true
+    max_session_duration: "4.weeks"
+    require_email_confirmation: false  # Set based on REQUIRE_CONFIRMED_EMAIL
+    
+  # Session Security Requirements
+  session_security:
+    enabled: true
+    require_secure_cookies: true
+    require_csrf_protection: true
+    require_session_encryption: true
+    session_timeout_warning: "30.minutes"
+    
+  # OAuth Security Validation
+  oauth_security:
+    enabled: true
+    validate_callback_security: true
+    require_scope_restrictions: true
+    validate_state_parameter: true
+    require_https_callbacks: true
+    
+  # Security Thresholds
+  thresholds:
+    min_password_length: 8
+    max_password_length: 128
+    max_session_duration: "4.weeks"
+    max_remember_duration: "4.weeks"
+    max_failed_attempts: 10
+    min_unlock_time: "1.hour"
+    session_timeout_warning: "30.minutes"
+    
+  # Compliance Standards
+  compliance_standards:
+    require_strong_passwords: true
+    require_account_lockout: true
+    require_session_timeout: true
+    require_csrf_protection: true
+    require_secure_cookies: true
+
+# Data Protection Validation
+data_protection:
+  # Encryption Requirements
+  encryption:
+    enabled: true
+    min_key_length: 256  # bits
+    required_cipher_strength: "AES-256"
+    validate_credential_encryption: true
+    validate_database_encryption: true
+    validate_transmission_encryption: true
+    
+  # SSL/TLS Configuration
+  ssl_tls:
+    enabled: true
+    ssl_min_version: "TLS 1.2"
+    require_https_enforcement: true
+    validate_certificate_security: true
+    require_hsts: true
+    require_secure_headers: true
+    
+  # Database Security
+  database_security:
+    enabled: true
+    require_ssl_connections: true
+    validate_connection_encryption: true
+    check_credential_exposure: true
+    validate_sensitive_column_encryption: true
+    
+  # File System Security
+  file_system_security:
+    enabled: true
+    validate_file_permissions: true
+    check_log_file_security: true
+    validate_temporary_file_handling: true
+    check_version_control_security: true
+    
+  # Security Standards
+  security_standards:
+    min_key_length: 256
+    required_cipher_strength: "AES-256"
+    ssl_min_version: "TLS 1.2"
+    hash_algorithm: "SHA-256"
+    
+  # Sensitive Data Patterns
+  sensitive_data_patterns:
+    - "password"
+    - "secret"
+    - "key"
+    - "token"
+    - "credential"
+    - "api[_-]?key"
+    - "access[_-]?token"
+    - "private[_-]?key"
+    
+  # Compliance Requirements
+  compliance_requirements:
+    require_credential_encryption: true
+    require_database_ssl: true
+    require_https_enforcement: true
+    require_secure_headers: true
+    require_sensitive_data_protection: true
+
+# Security Compliance Validation
+compliance:
+  # OWASP Top 10 (2021) Compliance
+  owasp_top_10:
+    enabled: true
+    version: "2021"
+    validate_all_categories: true
+    require_passing_score: 75
+    
+    # Individual OWASP Categories
+    categories:
+      a01_broken_access_control:
+        enabled: true
+        weight: 1.0
+        require_authorization_checks: true
+        validate_admin_protection: true
+      a02_cryptographic_failures:
+        enabled: true
+        weight: 1.0
+        require_ssl_enforcement: true
+        validate_encryption: true
+      a03_injection:
+        enabled: true
+        weight: 1.0
+        check_sql_injection: true
+        check_command_injection: true
+      a04_insecure_design:
+        enabled: true
+        weight: 0.8
+        validate_secure_patterns: true
+      a05_security_misconfiguration:
+        enabled: true
+        weight: 1.0
+        check_default_credentials: false
+        validate_error_handling: true
+      a06_vulnerable_components:
+        enabled: true
+        weight: 1.0
+        require_dependency_scanning: true
+      a07_identification_failures:
+        enabled: true
+        weight: 1.0
+        validate_authentication: true
+        check_session_management: true
+      a08_software_integrity_failures:
+        enabled: true
+        weight: 0.8
+        validate_ci_cd_security: false
+      a09_logging_failures:
+        enabled: true
+        weight: 0.9
+        require_security_logging: true
+      a10_server_side_request_forgery:
+        enabled: true
+        weight: 0.9
+        validate_url_validation: true
+        
+  # Rails Security Guide Compliance
+  rails_security:
+    enabled: true
+    version: "Rails 7.x"
+    require_passing_score: 80
+    
+    validation_categories:
+      csrf_protection: true
+      sql_injection_protection: true
+      mass_assignment_protection: true
+      session_security: true
+      file_security: true
+      logging_security: true
+      header_security: true
+      validation_security: true
+      
+  # API Security Compliance
+  api_security:
+    enabled: true
+    version: "2023"
+    validate_api_endpoints: true
+    require_authentication: true
+    validate_rate_limiting: false
+    check_data_exposure: true
+    
+  # Production Security Requirements
+  production_security:
+    enabled: true
+    require_ssl_enforcement: true
+    validate_secure_headers: true
+    check_environment_security: true
+    validate_error_handling: true
+    require_monitoring: true
+    
+  # Huginn-Specific Security
+  huginn_security:
+    enabled: true
+    validate_agent_security: true
+    check_credential_management: true
+    validate_service_security: true
+    check_webhook_security: true
+    validate_user_isolation: true
+    check_javascript_security: true
+    
+  # Compliance Scoring
+  scoring:
+    excellent: 95  # 95-100%
+    good: 85       # 85-94%
+    satisfactory: 75  # 75-84%
+    needs_improvement: 60  # 60-74%
+    poor: 0        # 0-59%
+    
+  # Framework Weights (for overall compliance score)
+  framework_weights:
+    owasp_top_10: 0.30
+    rails_security: 0.25
+    api_security: 0.20
+    production_security: 0.15
+    huginn_security: 0.10
+
+# Security Monitoring and Alerting
+monitoring:
+  # Real-time Security Monitoring
+  enabled: true
+  check_interval: "1.hour"
+  background_scanning: true
+  
+  # Alerting Configuration
+  alerting:
+    enabled: true
+    channels:
+      - email
+      - webhook
+      - log_file
+      
+    # Email Alerting
+    email:
+      enabled: true
+      smtp_host: <%= ENV.fetch('SMTP_HOST', 'localhost') %>
+      smtp_port: <%= ENV.fetch('SMTP_PORT', 587) %>
+      smtp_user: <%= ENV.fetch('SMTP_USER', '') %>
+      smtp_password: <%= ENV.fetch('SMTP_PASSWORD', '') %>
+      from_address: <%= ENV.fetch('SECURITY_ALERT_FROM', 'security@huginn.local') %>
+      to_addresses:
+        - <%= ENV.fetch('SECURITY_ALERT_TO', 'admin@huginn.local') %>
+      subject_prefix: "[HUGINN SECURITY ALERT]"
+      
+    # Webhook Alerting
+    webhook:
+      enabled: false
+      url: <%= ENV.fetch('SECURITY_WEBHOOK_URL', '') %>
+      method: "POST"
+      headers:
+        Content-Type: "application/json"
+        Authorization: "Bearer <%= ENV.fetch('SECURITY_WEBHOOK_TOKEN', '') %>"
+      timeout: 30  # seconds
+      retry_attempts: 3
+      
+    # Alert Severity Levels
+    severity_levels:
+      critical:
+        immediate: true
+        channels: ["email", "webhook"]
+        escalation_time: "5.minutes"
+      high:
+        immediate: true
+        channels: ["email"]
+        escalation_time: "30.minutes"
+      medium:
+        immediate: false
+        channels: ["email"]
+        batch_interval: "4.hours"
+      low:
+        immediate: false
+        channels: ["log_file"]
+        batch_interval: "24.hours"
+        
+  # Security Metrics Collection
+  metrics:
+    enabled: true
+    collection_interval: "15.minutes"
+    retention_period: "90.days"
+    
+    # Metrics to Track
+    track_metrics:
+      vulnerability_counts: true
+      compliance_scores: true
+      authentication_events: true
+      failed_login_attempts: true
+      admin_actions: true
+      api_security_events: true
+      
+  # Performance Monitoring
+  performance:
+    enabled: true
+    max_scan_duration: "30.minutes"
+    memory_limit: "1GB"
+    cpu_limit: "80%"
+    
+# Reporting Configuration
+reporting:
+  # Report Generation
+  enabled: true
+  output_directory: "development/reports/security"
+  report_formats:
+    - json
+    - html
+    - pdf
+    
+  # Report Scheduling
+  scheduled_reports:
+    daily_summary:
+      enabled: true
+      time: "06:00"
+      format: "json"
+      recipients:
+        - <%= ENV.fetch('SECURITY_REPORT_EMAIL', 'security@huginn.local') %>
+        
+    weekly_detailed:
+      enabled: true
+      day: "monday"
+      time: "08:00"
+      format: "html"
+      include_trends: true
+      
+    monthly_compliance:
+      enabled: true
+      day_of_month: 1
+      time: "09:00"
+      format: "pdf"
+      include_executive_summary: true
+      
+  # Report Content
+  include_sections:
+    executive_summary: true
+    vulnerability_details: true
+    compliance_status: true
+    remediation_recommendations: true
+    security_metrics: true
+    trend_analysis: true
+    
+  # Report Distribution
+  distribution:
+    email:
+      enabled: true
+      compress_attachments: true
+      max_attachment_size: "10MB"
+    file_system:
+      enabled: true
+      archive_old_reports: true
+      max_reports_to_keep: 50
+
+# Development and Testing
+development:
+  # Development Mode Settings
+  enabled_in_development: true
+  reduced_scanning: true  # Skip intensive scans in development
+  mock_external_services: true
+  
+  # Testing Configuration
+  testing:
+    enabled: true
+    test_data_path: "spec/fixtures/security"
+    mock_vulnerabilities: false
+    skip_network_tests: true
+    
+# Integration Settings
+integrations:
+  # Quality Gates Integration
+  quality_gates:
+    enabled: true
+    block_on_critical: true
+    block_on_high: true
+    integration_points:
+      - during_implementation
+      - pre_commit
+      - ci_cd_pipeline
+      
+  # CI/CD Integration
+  ci_cd:
+    enabled: true
+    export_junit_xml: true
+    export_sarif: true
+    fail_build_on_security_issues: true
+    
+  # External Security Tools
+  external_tools:
+    # Additional tools can be configured here
+    enabled: false

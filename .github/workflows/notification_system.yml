@@ -1,0 +1,547 @@
+name: 'Quality Gates Notification System'
+
+on:
+  workflow_call:
+    inputs:
+      notification_type:
+        description: 'Type of notification to send'
+        required: true
+        type: string  # 'success', 'failure', 'warning', 'deployment'
+      quality_score:
+        description: 'Overall quality score'
+        required: false
+        type: string
+      environment:
+        description: 'Target environment'
+        required: false
+        type: string
+        default: 'development'
+      details:
+        description: 'Additional notification details'
+        required: false
+        type: string
+    secrets:
+      SLACK_WEBHOOK_URL:
+        description: 'Slack webhook URL for notifications'
+        required: false
+      EMAIL_RECIPIENTS:
+        description: 'Comma-separated list of email recipients'
+        required: false
+      DISCORD_WEBHOOK_URL:
+        description: 'Discord webhook URL for notifications'
+        required: false
+
+  workflow_dispatch:
+    inputs:
+      notification_type:
+        description: 'Type of notification to send'
+        required: true
+        type: choice
+        options:
+          - 'success'
+          - 'failure' 
+          - 'warning'
+          - 'deployment'
+          - 'test'
+      quality_score:
+        description: 'Overall quality score (for testing)'
+        required: false
+        type: string
+        default: '85'
+
+jobs:
+  prepare-notifications:
+    name: 'Prepare Notification Content'
+    runs-on: ubuntu-latest
+    outputs:
+      notification_title: ${{ steps.prepare.outputs.title }}
+      notification_message: ${{ steps.prepare.outputs.message }}
+      notification_color: ${{ steps.prepare.outputs.color }}
+      notification_emoji: ${{ steps.prepare.outputs.emoji }}
+      notification_priority: ${{ steps.prepare.outputs.priority }}
+      should_notify: ${{ steps.prepare.outputs.should_notify }}
+    
+    steps:
+      - name: Prepare Notification Content
+        id: prepare
+        run: |
+          echo "=== Preparing Notification Content ==="
+          
+          NOTIFICATION_TYPE="${{ inputs.notification_type }}"
+          QUALITY_SCORE="${{ inputs.quality_score }}"
+          ENVIRONMENT="${{ inputs.environment }}"
+          COMMIT_SHA="${{ github.sha }}"
+          BRANCH_NAME="${{ github.ref_name }}"
+          WORKFLOW_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          
+          echo "Notification type: $NOTIFICATION_TYPE"
+          echo "Quality score: $QUALITY_SCORE"
+          echo "Environment: $ENVIRONMENT"
+          
+          # Determine notification properties based on type
+          case "$NOTIFICATION_TYPE" in
+            "success")
+              TITLE="✅ Quality Gates Passed"
+              COLOR="good"  # Slack green
+              EMOJI="✅"
+              PRIORITY="normal"
+              MESSAGE="All quality gates have passed successfully!"
+              if [ -n "$QUALITY_SCORE" ]; then
+                MESSAGE="$MESSAGE Quality Score: $QUALITY_SCORE/100"
+              fi
+              SHOULD_NOTIFY="true"
+              ;;
+              
+            "failure")
+              TITLE="❌ Quality Gates Failed"
+              COLOR="danger"  # Slack red
+              EMOJI="❌"
+              PRIORITY="high"
+              MESSAGE="One or more quality gates have failed and require attention."
+              if [ -n "$QUALITY_SCORE" ]; then
+                MESSAGE="$MESSAGE Quality Score: $QUALITY_SCORE/100"
+              fi
+              SHOULD_NOTIFY="true"
+              ;;
+              
+            "warning")
+              TITLE="⚠️ Quality Gates Warning"
+              COLOR="warning"  # Slack orange
+              EMOJI="⚠️"
+              PRIORITY="normal"
+              MESSAGE="Quality gates passed but with warnings that should be reviewed."
+              if [ -n "$QUALITY_SCORE" ]; then
+                MESSAGE="$MESSAGE Quality Score: $QUALITY_SCORE/100"
+              fi
+              SHOULD_NOTIFY="true"
+              ;;
+              
+            "deployment")
+              TITLE="🚀 Deployment Notification"
+              COLOR="good"
+              EMOJI="🚀"
+              PRIORITY="high"
+              MESSAGE="Application deployment has been completed."
+              SHOULD_NOTIFY="true"
+              ;;
+              
+            "test")
+              TITLE="🧪 Test Notification"
+              COLOR="#36a64f"
+              EMOJI="🧪"
+              PRIORITY="low"
+              MESSAGE="This is a test notification to verify the notification system."
+              SHOULD_NOTIFY="true"
+              ;;
+              
+            *)
+              TITLE="ℹ️ Quality Gates Update"
+              COLOR="#36a64f"
+              EMOJI="ℹ️"
+              PRIORITY="normal"
+              MESSAGE="Quality gates status update."
+              SHOULD_NOTIFY="true"
+              ;;
+          esac
+          
+          # Enhance message with contextual information
+          FULL_MESSAGE="$MESSAGE
+          
+          **Repository:** ${{ github.repository }}
+          **Branch:** $BRANCH_NAME
+          **Environment:** $ENVIRONMENT
+          **Commit:** \`${COMMIT_SHA:0:8}\`
+          **Workflow:** [View Details]($WORKFLOW_URL)"
+          
+          if [ -n "${{ inputs.details }}" ]; then
+            FULL_MESSAGE="$FULL_MESSAGE
+            
+          **Details:** ${{ inputs.details }}"
+          fi
+          
+          # Output all prepared content
+          echo "title=$TITLE" >> $GITHUB_OUTPUT
+          echo "color=$COLOR" >> $GITHUB_OUTPUT
+          echo "emoji=$EMOJI" >> $GITHUB_OUTPUT
+          echo "priority=$PRIORITY" >> $GITHUB_OUTPUT
+          echo "should_notify=$SHOULD_NOTIFY" >> $GITHUB_OUTPUT
+          
+          # Handle multi-line message properly
+          echo "message<<EOF" >> $GITHUB_OUTPUT
+          echo "$FULL_MESSAGE" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+  slack-notification:
+    name: 'Send Slack Notification'
+    runs-on: ubuntu-latest
+    needs: prepare-notifications
+    if: needs.prepare-notifications.outputs.should_notify == 'true' && secrets.SLACK_WEBHOOK_URL != ''
+    
+    steps:
+      - name: Send Slack Notification
+        run: |
+          echo "=== Sending Slack Notification ==="
+          
+          WEBHOOK_URL="${{ secrets.SLACK_WEBHOOK_URL }}"
+          TITLE="${{ needs.prepare-notifications.outputs.notification_title }}"
+          MESSAGE="${{ needs.prepare-notifications.outputs.notification_message }}"
+          COLOR="${{ needs.prepare-notifications.outputs.notification_color }}"
+          
+          # Create Slack payload with rich formatting
+          SLACK_PAYLOAD=$(cat <<EOF
+          {
+            "attachments": [
+              {
+                "color": "$COLOR",
+                "title": "$TITLE",
+                "text": "$(echo "$MESSAGE" | sed 's/"/\\"/g' | tr '\n' ' ')",
+                "fields": [
+                  {
+                    "title": "Repository",
+                    "value": "${{ github.repository }}",
+                    "short": true
+                  },
+                  {
+                    "title": "Branch",
+                    "value": "${{ github.ref_name }}",
+                    "short": true
+                  },
+                  {
+                    "title": "Environment",
+                    "value": "${{ inputs.environment }}",
+                    "short": true
+                  },
+                  {
+                    "title": "Commit",
+                    "value": "${{ github.sha }}",
+                    "short": true
+                  }
+                ],
+                "actions": [
+                  {
+                    "type": "button",
+                    "text": "View Workflow",
+                    "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                  }
+                ],
+                "footer": "Huginn Quality Gates",
+                "ts": $(date +%s)
+              }
+            ]
+          }
+          EOF
+          )
+          
+          # Send to Slack
+          if curl -X POST -H 'Content-type: application/json' --data "$SLACK_PAYLOAD" "$WEBHOOK_URL"; then
+            echo "✅ Slack notification sent successfully"
+          else
+            echo "❌ Failed to send Slack notification"
+          fi
+
+  discord-notification:
+    name: 'Send Discord Notification'
+    runs-on: ubuntu-latest
+    needs: prepare-notifications
+    if: needs.prepare-notifications.outputs.should_notify == 'true' && secrets.DISCORD_WEBHOOK_URL != ''
+    
+    steps:
+      - name: Send Discord Notification
+        run: |
+          echo "=== Sending Discord Notification ==="
+          
+          WEBHOOK_URL="${{ secrets.DISCORD_WEBHOOK_URL }}"
+          TITLE="${{ needs.prepare-notifications.outputs.notification_title }}"
+          MESSAGE="${{ needs.prepare-notifications.outputs.notification_message }}"
+          EMOJI="${{ needs.prepare-notifications.outputs.notification_emoji }}"
+          COLOR="${{ needs.prepare-notifications.outputs.notification_color }}"
+          
+          # Convert color to decimal for Discord
+          case "$COLOR" in
+            "good"|"#36a64f") DISCORD_COLOR=3581519 ;;  # Green
+            "warning"|"#ff9500") DISCORD_COLOR=16744448 ;; # Orange
+            "danger"|"#d00000") DISCORD_COLOR=13632000 ;;  # Red
+            *) DISCORD_COLOR=3581519 ;;  # Default green
+          esac
+          
+          # Create Discord embed payload
+          DISCORD_PAYLOAD=$(cat <<EOF
+          {
+            "content": "$EMOJI **$TITLE**",
+            "embeds": [
+              {
+                "title": "Quality Gates Report",
+                "description": "$(echo "$MESSAGE" | head -c 2000)",
+                "color": $DISCORD_COLOR,
+                "fields": [
+                  {
+                    "name": "Repository",
+                    "value": "${{ github.repository }}",
+                    "inline": true
+                  },
+                  {
+                    "name": "Branch",
+                    "value": "${{ github.ref_name }}",
+                    "inline": true
+                  },
+                  {
+                    "name": "Environment",
+                    "value": "${{ inputs.environment }}",
+                    "inline": true
+                  }
+                ],
+                "footer": {
+                  "text": "Huginn Quality Gates • $(date -u)"
+                },
+                "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+              }
+            ]
+          }
+          EOF
+          )
+          
+          # Send to Discord
+          if curl -X POST -H 'Content-Type: application/json' --data "$DISCORD_PAYLOAD" "$WEBHOOK_URL"; then
+            echo "✅ Discord notification sent successfully"
+          else
+            echo "❌ Failed to send Discord notification"
+          fi
+
+  email-notification:
+    name: 'Send Email Notification'
+    runs-on: ubuntu-latest
+    needs: prepare-notifications
+    if: needs.prepare-notifications.outputs.should_notify == 'true' && secrets.EMAIL_RECIPIENTS != ''
+    
+    steps:
+      - name: Generate Email Content
+        id: email
+        run: |
+          echo "=== Generating Email Content ==="
+          
+          TITLE="${{ needs.prepare-notifications.outputs.notification_title }}"
+          MESSAGE="${{ needs.prepare-notifications.outputs.notification_message }}"
+          PRIORITY="${{ needs.prepare-notifications.outputs.notification_priority }}"
+          
+          # Generate HTML email content
+          cat > email_content.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <title>Huginn Quality Gates Notification</title>
+            <style>
+              body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+              .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+              .header { background: #f4f4f4; padding: 20px; border-radius: 5px; margin-bottom: 20px; }
+              .content { background: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+              .footer { margin-top: 20px; font-size: 12px; color: #666; }
+              .status-success { color: #28a745; }
+              .status-warning { color: #ffc107; }
+              .status-danger { color: #dc3545; }
+              .button { display: inline-block; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; margin: 10px 0; }
+              .details-table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+              .details-table th, .details-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+              .details-table th { background-color: #f2f2f2; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h1>Huginn Quality Gates</h1>
+                <h2>{{ TITLE }}</h2>
+              </div>
+              
+              <div class="content">
+                <p>{{ MESSAGE }}</p>
+                
+                <table class="details-table">
+                  <tr>
+                    <th>Repository</th>
+                    <td>${{ github.repository }}</td>
+                  </tr>
+                  <tr>
+                    <th>Branch</th>
+                    <td>${{ github.ref_name }}</td>
+                  </tr>
+                  <tr>
+                    <th>Environment</th>
+                    <td>${{ inputs.environment }}</td>
+                  </tr>
+                  <tr>
+                    <th>Commit</th>
+                    <td>${{ github.sha }}</td>
+                  </tr>
+                  <tr>
+                    <th>Workflow Run</th>
+                    <td><a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">View Details</a></td>
+                  </tr>
+                </table>
+                
+                <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" class="button">View Full Report</a>
+              </div>
+              
+              <div class="footer">
+                <p>This is an automated notification from Huginn Quality Gates system.</p>
+                <p>Generated on $(date -u) UTC</p>
+              </div>
+            </div>
+          </body>
+          </html>
+          EOF
+          
+          # Replace placeholders
+          sed -i "s|{{ TITLE }}|$TITLE|g" email_content.html
+          sed -i "s|{{ MESSAGE }}|$(echo "$MESSAGE" | sed 's/\*\*/\<strong\>/g' | sed 's/\*\*/\<\/strong\>/g')|g" email_content.html
+          
+          echo "Email content generated"
+
+      - name: Send Email via GitHub API
+        run: |
+          echo "=== Sending Email Notification ==="
+          
+          # Note: In a real implementation, you would use a proper email service
+          # This is a placeholder showing how email notifications could be structured
+          
+          RECIPIENTS="${{ secrets.EMAIL_RECIPIENTS }}"
+          SUBJECT="${{ needs.prepare-notifications.outputs.notification_title }}"
+          
+          echo "Would send email to: $RECIPIENTS"
+          echo "Subject: $SUBJECT"
+          echo "Content: Generated HTML email"
+          
+          # In a production environment, you would use:
+          # - SendGrid API
+          # - AWS SES
+          # - SMTP service
+          # - GitHub marketplace email actions
+          
+          echo "📧 Email notification prepared (implement with your preferred email service)"
+
+  create-issue-on-failure:
+    name: 'Create GitHub Issue on Failure'
+    runs-on: ubuntu-latest
+    needs: prepare-notifications
+    if: needs.prepare-notifications.outputs.should_notify == 'true' && (inputs.notification_type == 'failure' || inputs.notification_type == 'warning')
+    
+    steps:
+      - name: Create Quality Issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = `${{ needs.prepare-notifications.outputs.notification_emoji }} ${{ needs.prepare-notifications.outputs.notification_title }}`;
+            const body = `
+            # Quality Gates Report
+            
+            ${{ needs.prepare-notifications.outputs.notification_message }}
+            
+            ## Issue Details
+            
+            - **Repository:** ${{ github.repository }}
+            - **Branch:** ${{ github.ref_name }}
+            - **Environment:** ${{ inputs.environment }}
+            - **Commit:** ${{ github.sha }}
+            - **Workflow Run:** [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            - **Quality Score:** ${{ inputs.quality_score }}/100
+            
+            ## Next Steps
+            
+            1. Review the workflow logs for detailed error information
+            2. Address the failing quality gates
+            3. Push fixes and re-run the quality validation
+            4. Close this issue once all quality gates pass
+            
+            ## Quality Standards
+            
+            - **Code Quality:** RuboCop compliance required
+            - **Test Coverage:** Minimum threshold must be met
+            - **Performance:** Response time requirements
+            - **Security:** No critical vulnerabilities allowed
+            
+            ---
+            
+            *This issue was automatically created by the Quality Gates notification system.*
+            `;
+            
+            const labels = ['quality-gates', '${{ inputs.environment }}'];
+            
+            if ('${{ inputs.notification_type }}' === 'failure') {
+              labels.push('bug', 'high-priority');
+            } else if ('${{ inputs.notification_type }}' === 'warning') {
+              labels.push('enhancement', 'medium-priority');
+            }
+            
+            const issue = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: title,
+              body: body,
+              labels: labels
+            });
+            
+            console.log(`Created issue: ${issue.data.html_url}`);
+
+  notification-summary:
+    name: 'Notification Summary'
+    runs-on: ubuntu-latest
+    needs: [prepare-notifications, slack-notification, discord-notification, email-notification, create-issue-on-failure]
+    if: always()
+    
+    steps:
+      - name: Generate Notification Summary
+        run: |
+          echo "=== Notification Summary ==="
+          
+          echo "**Notification Type:** ${{ inputs.notification_type }}"
+          echo "**Should Notify:** ${{ needs.prepare-notifications.outputs.should_notify }}"
+          
+          # Check which notifications were sent
+          NOTIFICATIONS_SENT=()
+          
+          if [ "${{ needs.slack-notification.result }}" = "success" ]; then
+            NOTIFICATIONS_SENT+=("Slack")
+          fi
+          
+          if [ "${{ needs.discord-notification.result }}" = "success" ]; then
+            NOTIFICATIONS_SENT+=("Discord")
+          fi
+          
+          if [ "${{ needs.email-notification.result }}" = "success" ]; then
+            NOTIFICATIONS_SENT+=("Email")
+          fi
+          
+          if [ "${{ needs.create-issue-on-failure.result }}" = "success" ]; then
+            NOTIFICATIONS_SENT+=("GitHub Issue")
+          fi
+          
+          if [ ${#NOTIFICATIONS_SENT[@]} -gt 0 ]; then
+            echo "✅ Notifications sent via: ${NOTIFICATIONS_SENT[*]}"
+          else
+            echo "ℹ️ No notifications were sent (missing webhook URLs or conditions not met)"
+          fi
+          
+          # Save notification log
+          cat > notification_log.txt << EOF
+          Notification Summary - $(date -u)
+          =====================================
+          Type: ${{ inputs.notification_type }}
+          Quality Score: ${{ inputs.quality_score }}
+          Environment: ${{ inputs.environment }}
+          Title: ${{ needs.prepare-notifications.outputs.notification_title }}
+          Priority: ${{ needs.prepare-notifications.outputs.notification_priority }}
+          
+          Channels attempted: Slack, Discord, Email, GitHub Issues
+          Channels successful: ${NOTIFICATIONS_SENT[*]}
+          
+          Repository: ${{ github.repository }}
+          Branch: ${{ github.ref_name }}
+          Commit: ${{ github.sha }}
+          Workflow: ${{ github.run_id }}
+          EOF
+
+      - name: Upload Notification Log
+        uses: actions/upload-artifact@v4
+        with:
+          name: notification-log-${{ github.run_number }}
+          path: notification_log.txt
+          retention-days: 7

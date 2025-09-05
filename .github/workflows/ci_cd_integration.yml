@@ -1,0 +1,433 @@
+name: 'Complete CI/CD Quality Gates Integration'
+
+on:
+  push:
+    branches: ['master', 'main', 'develop']
+  pull_request:
+    branches: ['master', 'main', 'develop']
+  workflow_dispatch:
+    inputs:
+      deployment_target:
+        description: 'Target environment for deployment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+        - 'staging'
+        - 'production'
+      skip_quality_gates:
+        description: 'Skip quality gates (emergency deployments only)'
+        required: false
+        default: false
+        type: boolean
+      run_security_scan:
+        description: 'Run comprehensive security scan'
+        required: false
+        default: true
+        type: boolean
+      run_performance_tests:
+        description: 'Run performance validation'
+        required: false
+        default: true
+        type: boolean
+
+env:
+  RAILS_ENV: test
+  DEPLOYMENT_ENVIRONMENT: ${{ inputs.deployment_target || 'staging' }}
+
+jobs:
+  # Phase 1: Pre-validation and Setup
+  setup-and-validate:
+    name: 'Setup and Pre-validation'
+    runs-on: ubuntu-latest
+    outputs:
+      should_deploy: ${{ steps.decision.outputs.should_deploy }}
+      quality_gate_required: ${{ steps.decision.outputs.quality_gate_required }}
+      deployment_environment: ${{ steps.decision.outputs.deployment_environment }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate Deployment Context
+        id: decision
+        run: |
+          echo "=== Deployment Context Validation ==="
+          
+          BRANCH_NAME="${{ github.ref_name }}"
+          EVENT_NAME="${{ github.event_name }}"
+          SKIP_GATES="${{ inputs.skip_quality_gates }}"
+          TARGET_ENV="${{ inputs.deployment_target || 'staging' }}"
+          
+          echo "Branch: $BRANCH_NAME"
+          echo "Event: $EVENT_NAME"
+          echo "Skip gates: $SKIP_GATES"
+          echo "Target environment: $TARGET_ENV"
+          
+          # Determine if deployment should occur
+          SHOULD_DEPLOY=false
+          QUALITY_GATE_REQUIRED=true
+          
+          case "$EVENT_NAME" in
+            "push")
+              if [ "$BRANCH_NAME" = "master" ] || [ "$BRANCH_NAME" = "main" ]; then
+                SHOULD_DEPLOY=true
+                TARGET_ENV="production"
+              elif [ "$BRANCH_NAME" = "develop" ]; then
+                SHOULD_DEPLOY=true
+                TARGET_ENV="staging"
+              fi
+              ;;
+            "pull_request")
+              SHOULD_DEPLOY=false  # Only validate, don't deploy PRs
+              ;;
+            "workflow_dispatch")
+              SHOULD_DEPLOY=true
+              # Use input target environment
+              ;;
+          esac
+          
+          # Quality gate requirements
+          if [ "$SKIP_GATES" = "true" ]; then
+            echo "⚠️ Quality gates will be bypassed (emergency deployment)"
+            QUALITY_GATE_REQUIRED=false
+          elif [ "$TARGET_ENV" = "production" ]; then
+            echo "🔒 Production deployment - all quality gates required"
+            QUALITY_GATE_REQUIRED=true
+          else
+            echo "🧪 Non-production deployment - quality gates required"
+            QUALITY_GATE_REQUIRED=true
+          fi
+          
+          echo "should_deploy=$SHOULD_DEPLOY" >> $GITHUB_OUTPUT
+          echo "quality_gate_required=$QUALITY_GATE_REQUIRED" >> $GITHUB_OUTPUT
+          echo "deployment_environment=$TARGET_ENV" >> $GITHUB_OUTPUT
+
+  # Phase 2: Comprehensive Quality Validation
+  quality-validation:
+    name: 'Quality Gates Validation'
+    needs: setup-and-validate
+    if: needs.setup-and-validate.outputs.quality_gate_required == 'true'
+    uses: ./.github/workflows/quality_gates.yml
+    with:
+      environment: ${{ needs.setup-and-validate.outputs.deployment_environment }}
+
+  # Phase 3: Performance Validation (parallel with quality)
+  performance-validation:
+    name: 'Performance Validation'
+    needs: setup-and-validate
+    if: inputs.run_performance_tests != false
+    uses: ./.github/workflows/performance_validation.yml
+
+  # Phase 4: Security Validation (parallel with quality)
+  security-validation:
+    name: 'Security Validation'
+    needs: setup-and-validate
+    if: inputs.run_security_scan != false
+    uses: ./.github/workflows/security_validation.yml
+    with:
+      security_profile: ${{ needs.setup-and-validate.outputs.deployment_environment == 'production' && 'comprehensive' || 'standard' }}
+
+  # Phase 5: Quality Gates Decision
+  quality-gates-decision:
+    name: 'Quality Gates Decision'
+    runs-on: ubuntu-latest
+    needs: [setup-and-validate, quality-validation, performance-validation, security-validation]
+    if: always() && needs.setup-and-validate.outputs.quality_gate_required == 'true'
+    outputs:
+      deployment_approved: ${{ steps.decision.outputs.deployment_approved }}
+      quality_score: ${{ steps.decision.outputs.quality_score }}
+      failure_reasons: ${{ steps.decision.outputs.failure_reasons }}
+    
+    steps:
+      - name: Evaluate Quality Gates
+        id: decision
+        run: |
+          echo "=== Quality Gates Decision Matrix ==="
+          
+          # Get results from all validation jobs
+          QUALITY_RESULT="${{ needs.quality-validation.result }}"
+          QUALITY_APPROVED="${{ needs.quality-validation.outputs.deployment_approved }}"
+          QUALITY_SCORE="${{ needs.quality-validation.outputs.quality_score }}"
+          
+          PERFORMANCE_RESULT="${{ needs.performance-validation.result }}"
+          PERFORMANCE_SCORE="${{ needs.performance-validation.outputs.performance_score }}"
+          
+          SECURITY_RESULT="${{ needs.security-validation.result }}"
+          
+          echo "Quality validation: $QUALITY_RESULT (approved: $QUALITY_APPROVED, score: $QUALITY_SCORE)"
+          echo "Performance validation: $PERFORMANCE_RESULT (score: $PERFORMANCE_SCORE)"
+          echo "Security validation: $SECURITY_RESULT"
+          
+          # Decision matrix
+          DEPLOYMENT_APPROVED=false
+          FAILURE_REASONS=()
+          
+          # Quality gates requirements
+          if [ "$QUALITY_RESULT" = "success" ] && [ "$QUALITY_APPROVED" = "true" ]; then
+            echo "✅ Quality gates passed"
+          else
+            echo "❌ Quality gates failed"
+            FAILURE_REASONS+=("Quality gates validation failed")
+          fi
+          
+          # Performance requirements (warning only for staging)
+          if [ "$PERFORMANCE_RESULT" = "success" ]; then
+            echo "✅ Performance validation passed"
+          else
+            echo "⚠️ Performance validation failed"
+            if [ "${{ needs.setup-and-validate.outputs.deployment_environment }}" = "production" ]; then
+              FAILURE_REASONS+=("Performance validation failed")
+            else
+              echo "ℹ️ Performance failure allowed for non-production environment"
+            fi
+          fi
+          
+          # Security requirements
+          if [ "$SECURITY_RESULT" = "success" ]; then
+            echo "✅ Security validation passed"
+          else
+            echo "❌ Security validation failed"
+            FAILURE_REASONS+=("Security validation failed")
+          fi
+          
+          # Final deployment decision
+          if [ ${#FAILURE_REASONS[@]} -eq 0 ]; then
+            DEPLOYMENT_APPROVED=true
+            echo "✅ DEPLOYMENT APPROVED - All quality gates passed"
+          else
+            echo "❌ DEPLOYMENT BLOCKED - Reasons: ${FAILURE_REASONS[*]}"
+          fi
+          
+          # Calculate overall quality score
+          OVERALL_SCORE="${QUALITY_SCORE:-0}"
+          if [ -n "$PERFORMANCE_SCORE" ] && [ "$PERFORMANCE_SCORE" != "" ]; then
+            OVERALL_SCORE=$(( (OVERALL_SCORE + PERFORMANCE_SCORE) / 2 ))
+          fi
+          
+          echo "deployment_approved=$DEPLOYMENT_APPROVED" >> $GITHUB_OUTPUT
+          echo "quality_score=$OVERALL_SCORE" >> $GITHUB_OUTPUT
+          echo "failure_reasons=${FAILURE_REASONS[*]}" >> $GITHUB_OUTPUT
+
+  # Phase 6: Deployment (conditional)
+  deployment:
+    name: 'Application Deployment'
+    needs: [setup-and-validate, quality-gates-decision]
+    if: |
+      always() && 
+      needs.setup-and-validate.outputs.should_deploy == 'true' && 
+      (needs.setup-and-validate.outputs.quality_gate_required == 'false' || needs.quality-gates-decision.outputs.deployment_approved == 'true')
+    uses: ./.github/workflows/deployment_automation.yml
+    with:
+      environment: ${{ needs.setup-and-validate.outputs.deployment_environment }}
+      force_deploy: ${{ inputs.skip_quality_gates == true }}
+
+  # Phase 7: Quality Dashboard Update
+  dashboard-update:
+    name: 'Update Quality Dashboard'
+    needs: [setup-and-validate, quality-gates-decision]
+    if: always()
+    uses: ./.github/workflows/quality_dashboard.yml
+    with:
+      dashboard_type: 'summary'
+
+  # Phase 8: Notifications
+  success-notification:
+    name: 'Success Notification'
+    needs: [setup-and-validate, quality-gates-decision, deployment]
+    if: |
+      always() && 
+      (needs.quality-gates-decision.outputs.deployment_approved == 'true' || needs.setup-and-validate.outputs.quality_gate_required == 'false') &&
+      needs.deployment.result == 'success'
+    uses: ./.github/workflows/notification_system.yml
+    with:
+      notification_type: 'success'
+      quality_score: ${{ needs.quality-gates-decision.outputs.quality_score }}
+      environment: ${{ needs.setup-and-validate.outputs.deployment_environment }}
+      details: 'Deployment completed successfully with all quality gates passed'
+    secrets:
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      EMAIL_RECIPIENTS: ${{ secrets.EMAIL_RECIPIENTS }}
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+
+  failure-notification:
+    name: 'Failure Notification'
+    needs: [setup-and-validate, quality-gates-decision, deployment]
+    if: |
+      always() && 
+      (needs.quality-gates-decision.outputs.deployment_approved != 'true' || 
+       needs.deployment.result == 'failure')
+    uses: ./.github/workflows/notification_system.yml
+    with:
+      notification_type: 'failure'
+      quality_score: ${{ needs.quality-gates-decision.outputs.quality_score }}
+      environment: ${{ needs.setup-and-validate.outputs.deployment_environment }}
+      details: 'Quality gates failed or deployment encountered errors. Reasons: ${{ needs.quality-gates-decision.outputs.failure_reasons }}'
+    secrets:
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      EMAIL_RECIPIENTS: ${{ secrets.EMAIL_RECIPIENTS }}
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+
+  # Phase 9: Rollback (if deployment failed)
+  emergency-rollback:
+    name: 'Emergency Rollback'
+    needs: [setup-and-validate, deployment]
+    if: |
+      always() && 
+      needs.deployment.result == 'failure' && 
+      needs.setup-and-validate.outputs.deployment_environment == 'production'
+    uses: ./.github/workflows/deployment_automation.yml
+    with:
+      environment: ${{ needs.setup-and-validate.outputs.deployment_environment }}
+      rollback_version: 'previous'  # Rollback to previous version
+
+  # Phase 10: Final Report
+  final-report:
+    name: 'Generate CI/CD Report'
+    runs-on: ubuntu-latest
+    needs: [setup-and-validate, quality-gates-decision, deployment, success-notification, failure-notification, emergency-rollback]
+    if: always()
+    
+    steps:
+      - name: Generate Comprehensive Report
+        run: |
+          echo "=== CI/CD Pipeline Execution Report ===" > cicd_report.md
+          echo "" >> cicd_report.md
+          echo "**Date:** $(date -u)" >> cicd_report.md
+          echo "**Repository:** ${{ github.repository }}" >> cicd_report.md
+          echo "**Branch:** ${{ github.ref_name }}" >> cicd_report.md
+          echo "**Commit:** ${{ github.sha }}" >> cicd_report.md
+          echo "**Event:** ${{ github.event_name }}" >> cicd_report.md
+          echo "**Environment:** ${{ needs.setup-and-validate.outputs.deployment_environment }}" >> cicd_report.md
+          echo "" >> cicd_report.md
+          
+          echo "## Pipeline Execution Summary" >> cicd_report.md
+          echo "" >> cicd_report.md
+          
+          # Pipeline phases status
+          echo "| Phase | Status | Duration | Notes |" >> cicd_report.md
+          echo "|-------|--------|----------|-------|" >> cicd_report.md
+          echo "| Setup & Validation | ${{ needs.setup-and-validate.result == 'success' && '✅ PASS' || '❌ FAIL' }} | - | Context validation and deployment decision |" >> cicd_report.md
+          echo "| Quality Gates | ${{ needs.quality-gates-decision.result == 'success' && '✅ PASS' || (needs.quality-gates-decision.result == 'skipped' && '⏭️ SKIPPED' || '❌ FAIL') }} | - | Code quality, tests, coverage validation |" >> cicd_report.md
+          echo "| Performance Tests | ${{ needs.performance-validation.result == 'success' && '✅ PASS' || (needs.performance-validation.result == 'skipped' && '⏭️ SKIPPED' || '❌ FAIL') }} | - | Response time and load testing |" >> cicd_report.md
+          echo "| Security Scan | ${{ needs.security-validation.result == 'success' && '✅ PASS' || (needs.security-validation.result == 'skipped' && '⏭️ SKIPPED' || '❌ FAIL') }} | - | Vulnerability and security validation |" >> cicd_report.md
+          echo "| Deployment | ${{ needs.deployment.result == 'success' && '✅ PASS' || (needs.deployment.result == 'skipped' && '⏭️ SKIPPED' || '❌ FAIL') }} | - | Application deployment to ${{ needs.setup-and-validate.outputs.deployment_environment }} |" >> cicd_report.md
+          echo "| Notifications | ${{ (needs.success-notification.result == 'success' || needs.failure-notification.result == 'success') && '✅ SENT' || '❌ FAILED' }} | - | Stakeholder notifications |" >> cicd_report.md
+          echo "" >> cicd_report.md
+          
+          echo "## Quality Metrics" >> cicd_report.md
+          echo "" >> cicd_report.md
+          if [ -n "${{ needs.quality-gates-decision.outputs.quality_score }}" ]; then
+            QUALITY_SCORE="${{ needs.quality-gates-decision.outputs.quality_score }}"
+            echo "**Overall Quality Score:** $QUALITY_SCORE/100" >> cicd_report.md
+            echo "" >> cicd_report.md
+            
+            if [ "$QUALITY_SCORE" -ge "90" ]; then
+              echo "🎉 **Excellent Quality** - Outstanding code quality metrics" >> cicd_report.md
+            elif [ "$QUALITY_SCORE" -ge "75" ]; then
+              echo "✅ **Good Quality** - Quality standards met" >> cicd_report.md
+            elif [ "$QUALITY_SCORE" -ge "60" ]; then
+              echo "⚠️ **Needs Improvement** - Some quality issues detected" >> cicd_report.md
+            else
+              echo "❌ **Poor Quality** - Significant quality issues require attention" >> cicd_report.md
+            fi
+          else
+            echo "Quality score not available (quality gates may have been skipped)" >> cicd_report.md
+          fi
+          echo "" >> cicd_report.md
+          
+          echo "## Deployment Status" >> cicd_report.md
+          echo "" >> cicd_report.md
+          
+          DEPLOYMENT_STATUS="${{ needs.deployment.result }}"
+          case "$DEPLOYMENT_STATUS" in
+            "success")
+              echo "✅ **Deployment Successful**" >> cicd_report.md
+              echo "" >> cicd_report.md
+              echo "Application has been successfully deployed to ${{ needs.setup-and-validate.outputs.deployment_environment }} environment." >> cicd_report.md
+              ;;
+            "failure")
+              echo "❌ **Deployment Failed**" >> cicd_report.md
+              echo "" >> cicd_report.md
+              echo "Deployment to ${{ needs.setup-and-validate.outputs.deployment_environment }} environment failed." >> cicd_report.md
+              if [ "${{ needs.emergency-rollback.result }}" = "success" ]; then
+                echo "Emergency rollback was executed successfully." >> cicd_report.md
+              fi
+              ;;
+            "skipped")
+              echo "⏭️ **Deployment Skipped**" >> cicd_report.md
+              echo "" >> cicd_report.md
+              if [ "${{ needs.quality-gates-decision.outputs.deployment_approved }}" != "true" ]; then
+                echo "Deployment was blocked due to quality gate failures." >> cicd_report.md
+              else
+                echo "Deployment was skipped due to branch or event conditions." >> cicd_report.md
+              fi
+              ;;
+          esac
+          echo "" >> cicd_report.md
+          
+          echo "## Action Items" >> cicd_report.md
+          echo "" >> cicd_report.md
+          
+          if [ "${{ needs.quality-gates-decision.outputs.deployment_approved }}" != "true" ]; then
+            echo "### Quality Gate Failures" >> cicd_report.md
+            echo "" >> cicd_report.md
+            echo "The following quality gates failed and require attention:" >> cicd_report.md
+            echo "" >> cicd_report.md
+            if [ -n "${{ needs.quality-gates-decision.outputs.failure_reasons }}" ]; then
+              IFS=' ' read -ra REASONS <<< "${{ needs.quality-gates-decision.outputs.failure_reasons }}"
+              for reason in "${REASONS[@]}"; do
+                echo "- $reason" >> cicd_report.md
+              done
+            fi
+            echo "" >> cicd_report.md
+          fi
+          
+          if [ "${{ needs.deployment.result }}" = "failure" ]; then
+            echo "### Deployment Issues" >> cicd_report.md
+            echo "" >> cicd_report.md
+            echo "- Review deployment logs for specific failure reasons" >> cicd_report.md
+            echo "- Verify environment configuration and dependencies" >> cicd_report.md
+            echo "- Check database migration status if applicable" >> cicd_report.md
+            echo "- Consider rollback if production deployment failed" >> cicd_report.md
+            echo "" >> cicd_report.md
+          fi
+          
+          echo "## Links" >> cicd_report.md
+          echo "" >> cicd_report.md
+          echo "- **Workflow Run:** [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> cicd_report.md
+          echo "- **Commit Details:** [${{ github.sha }}](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})" >> cicd_report.md
+          echo "- **Repository:** [${{ github.repository }}](${{ github.server_url }}/${{ github.repository }})" >> cicd_report.md
+          echo "" >> cicd_report.md
+          echo "---" >> cicd_report.md
+          echo "*Report generated automatically by CI/CD Quality Gates Integration*" >> cicd_report.md
+
+      - name: Upload CI/CD Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: cicd-execution-report
+          path: cicd_report.md
+          retention-days: 30
+
+      - name: Pipeline Summary
+        run: |
+          echo "=== CI/CD Pipeline Summary ==="
+          echo "Environment: ${{ needs.setup-and-validate.outputs.deployment_environment }}"
+          echo "Quality Score: ${{ needs.quality-gates-decision.outputs.quality_score }}/100"
+          echo "Deployment Approved: ${{ needs.quality-gates-decision.outputs.deployment_approved }}"
+          echo "Should Deploy: ${{ needs.setup-and-validate.outputs.should_deploy }}"
+          echo "Deployment Result: ${{ needs.deployment.result }}"
+          
+          if [ "${{ needs.quality-gates-decision.outputs.deployment_approved }}" = "true" ] && [ "${{ needs.deployment.result }}" = "success" ]; then
+            echo "🎉 CI/CD Pipeline completed successfully!"
+            exit 0
+          elif [ "${{ needs.quality-gates-decision.outputs.deployment_approved }}" != "true" ]; then
+            echo "❌ CI/CD Pipeline blocked by quality gates"
+            exit 1
+          elif [ "${{ needs.deployment.result }}" = "failure" ]; then
+            echo "❌ CI/CD Pipeline failed during deployment"
+            exit 1
+          else
+            echo "ℹ️ CI/CD Pipeline completed (no deployment required)"
+            exit 0
+          fi

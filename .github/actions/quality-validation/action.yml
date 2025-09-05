@@ -1,0 +1,436 @@
+name: 'Quality Validation'
+description: 'Composite action for comprehensive quality validation including linting, testing, coverage, and performance checks'
+
+inputs:
+  environment:
+    description: 'Target environment for validation'
+    required: false
+    default: 'test'
+  coverage_threshold:
+    description: 'Minimum code coverage percentage required'
+    required: false
+    default: '85'
+  performance_threshold:
+    description: 'Maximum response time in milliseconds'
+    required: false
+    default: '200'
+  ruby_version:
+    description: 'Ruby version to use'
+    required: false
+    default: '3.2.4'
+  fail_on_violations:
+    description: 'Whether to fail the action on quality violations'
+    required: false
+    default: 'true'
+
+outputs:
+  quality_score:
+    description: 'Overall quality score (0-100)'
+    value: ${{ steps.calculate-score.outputs.quality_score }}
+  linting_passed:
+    description: 'Whether linting validation passed'
+    value: ${{ steps.rubocop.outputs.passed }}
+  tests_passed:
+    description: 'Whether test validation passed'
+    value: ${{ steps.rspec.outputs.passed }}
+  coverage_passed:
+    description: 'Whether coverage threshold was met'
+    value: ${{ steps.coverage.outputs.passed }}
+  performance_passed:
+    description: 'Whether performance threshold was met'
+    value: ${{ steps.performance.outputs.passed }}
+  validation_report:
+    description: 'Path to detailed validation report'
+    value: ${{ steps.report.outputs.report_path }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Ruby Environment
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ inputs.ruby_version }}
+        bundler-cache: true
+
+    - name: Setup Database for Testing
+      shell: bash
+      run: |
+        echo "=== Database Setup ==="
+        
+        # Install PostgreSQL for testing
+        sudo apt-get update
+        sudo apt-get install -y postgresql postgresql-contrib
+        sudo systemctl start postgresql
+        sudo -u postgres createuser -s runner
+        sudo -u postgres createdb huginn_${{ inputs.environment }} || true
+        
+        # Run database setup
+        bundle exec rake db:create db:schema:load RAILS_ENV=${{ inputs.environment }}
+        
+        echo "Database setup completed"
+
+    - name: RuboCop Linting Validation
+      id: rubocop
+      shell: bash
+      run: |
+        echo "=== RuboCop Linting Validation ==="
+        
+        mkdir -p quality-reports
+        
+        # Run RuboCop with detailed output
+        if bundle exec rubocop --format json --out quality-reports/rubocop.json --format progress; then
+          echo "✅ RuboCop linting passed"
+          echo "passed=true" >> $GITHUB_OUTPUT
+          echo "violations=0" >> $GITHUB_OUTPUT
+          LINTING_SCORE=100
+        else
+          echo "❌ RuboCop linting failed"
+          
+          # Parse violations count
+          if command -v jq >/dev/null 2>&1 && [ -f "quality-reports/rubocop.json" ]; then
+            VIOLATIONS=$(jq '.summary.offense_count // 0' quality-reports/rubocop.json)
+            FILES_WITH_VIOLATIONS=$(jq '.files | map(select(.offenses | length > 0)) | length' quality-reports/rubocop.json)
+            
+            echo "Total violations: $VIOLATIONS"
+            echo "Files with violations: $FILES_WITH_VIOLATIONS"
+            
+            # Calculate linting score (deduct points for violations)
+            LINTING_SCORE=$(( 100 - (VIOLATIONS > 50 ? 50 : VIOLATIONS) ))
+          else
+            VIOLATIONS=1
+            LINTING_SCORE=0
+          fi
+          
+          echo "violations=$VIOLATIONS" >> $GITHUB_OUTPUT
+          echo "passed=false" >> $GITHUB_OUTPUT
+          
+          # Show critical violations
+          echo "::group::RuboCop Violations"
+          bundle exec rubocop --format simple | head -50
+          echo "::endgroup::"
+        fi
+        
+        echo "linting_score=$LINTING_SCORE" >> $GITHUB_OUTPUT
+
+    - name: RSpec Test Validation
+      id: rspec
+      shell: bash
+      run: |
+        echo "=== RSpec Test Validation ==="
+        
+        # Set up coverage tracking
+        export COVERAGE=true
+        
+        # Run RSpec tests with detailed reporting
+        if bundle exec rspec --format json --out quality-reports/rspec.json --format progress; then
+          echo "✅ All tests passed"
+          TEST_SUCCESS=true
+          TEST_SCORE=100
+        else
+          echo "❌ Some tests failed"
+          TEST_SUCCESS=false
+        fi
+        
+        # Parse test results
+        if [ -f "quality-reports/rspec.json" ]; then
+          TOTAL_TESTS=$(jq '.summary.example_count // 0' quality-reports/rspec.json)
+          FAILED_TESTS=$(jq '.summary.failure_count // 0' quality-reports/rspec.json)
+          PENDING_TESTS=$(jq '.summary.pending_count // 0' quality-reports/rspec.json)
+          
+          echo "Total tests: $TOTAL_TESTS"
+          echo "Failed tests: $FAILED_TESTS"
+          echo "Pending tests: $PENDING_TESTS"
+          
+          if [ "$TOTAL_TESTS" -gt "0" ]; then
+            TEST_SCORE=$(( (TOTAL_TESTS - FAILED_TESTS) * 100 / TOTAL_TESTS ))
+          else
+            TEST_SCORE=0
+          fi
+          
+          echo "total_tests=$TOTAL_TESTS" >> $GITHUB_OUTPUT
+          echo "failed_tests=$FAILED_TESTS" >> $GITHUB_OUTPUT
+          echo "pending_tests=$PENDING_TESTS" >> $GITHUB_OUTPUT
+        else
+          echo "::error::No test results found"
+          TOTAL_TESTS=0
+          FAILED_TESTS=0
+          TEST_SCORE=0
+        fi
+        
+        echo "passed=$TEST_SUCCESS" >> $GITHUB_OUTPUT
+        echo "test_score=$TEST_SCORE" >> $GITHUB_OUTPUT
+
+    - name: Coverage Validation
+      id: coverage
+      shell: bash
+      run: |
+        echo "=== Test Coverage Validation ==="
+        
+        COVERAGE_THRESHOLD=${{ inputs.coverage_threshold }}
+        
+        # Check SimpleCov results
+        if [ -f "coverage/.last_run.json" ]; then
+          COVERAGE_PERCENTAGE=$(jq '.result.line // 0' coverage/.last_run.json)
+          echo "Current coverage: ${COVERAGE_PERCENTAGE}%"
+          echo "Required coverage: ${COVERAGE_THRESHOLD}%"
+          
+          if (( $(echo "$COVERAGE_PERCENTAGE >= $COVERAGE_THRESHOLD" | bc -l) )); then
+            echo "✅ Coverage threshold met"
+            echo "passed=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Coverage threshold not met"
+            echo "passed=false" >> $GITHUB_OUTPUT
+            
+            # Show coverage details
+            echo "::group::Coverage Details"
+            if [ -f "coverage/index.html" ]; then
+              echo "Detailed coverage report available at coverage/index.html"
+            fi
+            echo "::endgroup::"
+          fi
+          
+          echo "percentage=$COVERAGE_PERCENTAGE" >> $GITHUB_OUTPUT
+        else
+          echo "::warning::Coverage report not found"
+          echo "passed=false" >> $GITHUB_OUTPUT
+          echo "percentage=0" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Performance Validation
+      id: performance
+      shell: bash
+      run: |
+        echo "=== Performance Validation ==="
+        
+        PERF_THRESHOLD=${{ inputs.performance_threshold }}
+        
+        # Start Rails server for performance testing
+        bundle exec rails server -e ${{ inputs.environment }} -p 3001 &
+        SERVER_PID=$!
+        
+        # Wait for server to start
+        sleep 15
+        
+        # Test server responsiveness
+        if curl -s --max-time 5 http://localhost:3001/ > /dev/null; then
+          echo "Server is responding"
+          
+          # Measure response time
+          RESPONSE_TIME=$(curl -w "%{time_total}" -s -o /dev/null http://localhost:3001/)
+          RESPONSE_TIME_MS=$(echo "$RESPONSE_TIME * 1000" | bc -l | cut -d. -f1)
+          
+          echo "Response time: ${RESPONSE_TIME_MS}ms"
+          echo "Threshold: ${PERF_THRESHOLD}ms"
+          
+          if [ "$RESPONSE_TIME_MS" -le "$PERF_THRESHOLD" ]; then
+            echo "✅ Performance threshold met"
+            echo "passed=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Performance threshold exceeded"
+            echo "passed=false" >> $GITHUB_OUTPUT
+          fi
+          
+          echo "response_time_ms=$RESPONSE_TIME_MS" >> $GITHUB_OUTPUT
+        else
+          echo "❌ Server not responding"
+          echo "passed=false" >> $GITHUB_OUTPUT
+          echo "response_time_ms=9999" >> $GITHUB_OUTPUT
+        fi
+        
+        # Clean up server
+        kill $SERVER_PID 2>/dev/null || true
+
+    - name: Security Scan
+      id: security
+      shell: bash
+      run: |
+        echo "=== Security Scan ==="
+        
+        # Install security scanning tools
+        gem install bundler-audit brakeman
+        bundler-audit update
+        
+        # Run bundler-audit
+        SECURITY_SCORE=100
+        if bundler-audit check --format json --output quality-reports/bundler_audit.json; then
+          echo "✅ No known vulnerabilities in dependencies"
+          VULNERABILITIES=0
+        else
+          echo "⚠️ Vulnerabilities found in dependencies"
+          VULNERABILITIES=1
+          SECURITY_SCORE=50
+        fi
+        
+        # Run Brakeman static analysis
+        if brakeman --format json --output quality-reports/brakeman.json --quiet; then
+          echo "✅ Brakeman scan completed without critical issues"
+        else
+          echo "⚠️ Brakeman found potential security issues"
+          
+          if [ -f "quality-reports/brakeman.json" ] && command -v jq >/dev/null 2>&1; then
+            WARNING_COUNT=$(jq '.warnings | length' quality-reports/brakeman.json)
+            echo "Security warnings: $WARNING_COUNT"
+            
+            # Reduce security score based on warnings
+            if [ "$WARNING_COUNT" -gt "5" ]; then
+              SECURITY_SCORE=$(( SECURITY_SCORE - 30 ))
+            elif [ "$WARNING_COUNT" -gt "0" ]; then
+              SECURITY_SCORE=$(( SECURITY_SCORE - 10 ))
+            fi
+          fi
+        fi
+        
+        if [ "$SECURITY_SCORE" -lt "0" ]; then
+          SECURITY_SCORE=0
+        fi
+        
+        echo "vulnerabilities=$VULNERABILITIES" >> $GITHUB_OUTPUT
+        echo "security_score=$SECURITY_SCORE" >> $GITHUB_OUTPUT
+
+    - name: Calculate Overall Quality Score
+      id: calculate-score
+      shell: bash
+      run: |
+        echo "=== Overall Quality Score Calculation ==="
+        
+        # Get individual scores
+        LINTING_SCORE=${{ steps.rubocop.outputs.linting_score }}
+        TEST_SCORE=${{ steps.rspec.outputs.test_score }}
+        COVERAGE_PERCENTAGE=${{ steps.coverage.outputs.percentage }}
+        PERF_PASSED=${{ steps.performance.outputs.passed }}
+        SECURITY_SCORE=${{ steps.security.outputs.security_score }}
+        
+        # Performance score (binary: 100 if passed, 50 if not)
+        if [ "$PERF_PASSED" = "true" ]; then
+          PERFORMANCE_SCORE=100
+        else
+          PERFORMANCE_SCORE=50
+        fi
+        
+        # Weighted quality score calculation
+        # Weights: Linting (20%), Tests (30%), Coverage (25%), Performance (10%), Security (15%)
+        QUALITY_SCORE=$(echo "scale=0; ($LINTING_SCORE * 20 + $TEST_SCORE * 30 + $COVERAGE_PERCENTAGE * 25 + $PERFORMANCE_SCORE * 10 + $SECURITY_SCORE * 15) / 100" | bc)
+        
+        echo "=== Quality Metrics Summary ==="
+        echo "Linting Score: $LINTING_SCORE/100 (Weight: 20%)"
+        echo "Test Score: $TEST_SCORE/100 (Weight: 30%)"
+        echo "Coverage: $COVERAGE_PERCENTAGE% (Weight: 25%)"
+        echo "Performance Score: $PERFORMANCE_SCORE/100 (Weight: 10%)"
+        echo "Security Score: $SECURITY_SCORE/100 (Weight: 15%)"
+        echo "Overall Quality Score: $QUALITY_SCORE/100"
+        
+        echo "quality_score=$QUALITY_SCORE" >> $GITHUB_OUTPUT
+
+    - name: Generate Validation Report
+      id: report
+      shell: bash
+      run: |
+        echo "=== Validation Report Generation ==="
+        
+        REPORT_PATH="quality-reports/validation_report.md"
+        
+        cat > $REPORT_PATH << EOF
+        # Quality Validation Report
+        
+        **Date:** $(date -u)
+        **Commit:** ${{ github.sha }}
+        **Branch:** ${{ github.ref_name }}
+        **Environment:** ${{ inputs.environment }}
+        
+        ## Overall Score: ${{ steps.calculate-score.outputs.quality_score }}/100
+        
+        ## Validation Results
+        
+        | Category | Score | Status | Details |
+        |----------|-------|--------|---------|
+        | **Linting** | ${{ steps.rubocop.outputs.linting_score }}/100 | ${{ steps.rubocop.outputs.passed == 'true' && '✅ PASS' || '❌ FAIL' }} | ${{ steps.rubocop.outputs.violations }} violations |
+        | **Tests** | ${{ steps.rspec.outputs.test_score }}/100 | ${{ steps.rspec.outputs.passed == 'true' && '✅ PASS' || '❌ FAIL' }} | ${{ steps.rspec.outputs.failed_tests }}/${{ steps.rspec.outputs.total_tests }} failed |
+        | **Coverage** | ${{ steps.coverage.outputs.percentage }}% | ${{ steps.coverage.outputs.passed == 'true' && '✅ PASS' || '❌ FAIL' }} | Threshold: ${{ inputs.coverage_threshold }}% |
+        | **Performance** | ${{ steps.performance.outputs.response_time_ms }}ms | ${{ steps.performance.outputs.passed == 'true' && '✅ PASS' || '❌ FAIL' }} | Threshold: ${{ inputs.performance_threshold }}ms |
+        | **Security** | ${{ steps.security.outputs.security_score }}/100 | ${{ steps.security.outputs.vulnerabilities == '0' && '✅ PASS' || '⚠️ WARN' }} | ${{ steps.security.outputs.vulnerabilities }} vulnerabilities |
+        
+        ## Quality Gate Decision
+        
+        EOF
+        
+        OVERALL_SCORE=${{ steps.calculate-score.outputs.quality_score }}
+        
+        if [ "$OVERALL_SCORE" -ge "75" ]; then
+          echo "✅ **QUALITY GATE PASSED** - Score: $OVERALL_SCORE/100" >> $REPORT_PATH
+          echo "" >> $REPORT_PATH
+          echo "All quality requirements met. Deployment approved." >> $REPORT_PATH
+        else
+          echo "❌ **QUALITY GATE FAILED** - Score: $OVERALL_SCORE/100" >> $REPORT_PATH
+          echo "" >> $REPORT_PATH
+          echo "Quality requirements not met. Please address the failing categories before deployment." >> $REPORT_PATH
+        fi
+        
+        cat >> $REPORT_PATH << EOF
+        
+        ## Detailed Reports
+        
+        - **RuboCop Report:** \`quality-reports/rubocop.json\`
+        - **RSpec Report:** \`quality-reports/rspec.json\`
+        - **Coverage Report:** \`coverage/index.html\`
+        - **Security Reports:** \`quality-reports/bundler_audit.json\`, \`quality-reports/brakeman.json\`
+        
+        ## Next Steps
+        
+        EOF
+        
+        if [ "${{ steps.rubocop.outputs.passed }}" != "true" ]; then
+          echo "1. **Fix RuboCop violations:** Review and fix code style issues" >> $REPORT_PATH
+        fi
+        
+        if [ "${{ steps.rspec.outputs.passed }}" != "true" ]; then
+          echo "2. **Fix failing tests:** Address test failures and ensure all tests pass" >> $REPORT_PATH
+        fi
+        
+        if [ "${{ steps.coverage.outputs.passed }}" != "true" ]; then
+          echo "3. **Improve test coverage:** Add tests to reach ${{ inputs.coverage_threshold }}% coverage" >> $REPORT_PATH
+        fi
+        
+        if [ "${{ steps.performance.outputs.passed }}" != "true" ]; then
+          echo "4. **Optimize performance:** Improve response times to under ${{ inputs.performance_threshold }}ms" >> $REPORT_PATH
+        fi
+        
+        if [ "${{ steps.security.outputs.vulnerabilities }}" != "0" ]; then
+          echo "5. **Address security issues:** Fix vulnerabilities and security warnings" >> $REPORT_PATH
+        fi
+        
+        echo "" >> $REPORT_PATH
+        echo "---" >> $REPORT_PATH
+        echo "*Report generated by Quality Validation Action*" >> $REPORT_PATH
+        
+        echo "report_path=$REPORT_PATH" >> $GITHUB_OUTPUT
+
+    - name: Upload Quality Reports
+      uses: actions/upload-artifact@v4
+      with:
+        name: quality-reports-${{ github.run_number }}
+        path: |
+          quality-reports/
+          coverage/
+        retention-days: 7
+
+    - name: Quality Gate Enforcement
+      shell: bash
+      run: |
+        echo "=== Quality Gate Enforcement ==="
+        
+        FAIL_ON_VIOLATIONS=${{ inputs.fail_on_violations }}
+        OVERALL_SCORE=${{ steps.calculate-score.outputs.quality_score }}
+        
+        echo "Quality Score: $OVERALL_SCORE/100"
+        echo "Fail on violations: $FAIL_ON_VIOLATIONS"
+        
+        if [ "$FAIL_ON_VIOLATIONS" = "true" ] && [ "$OVERALL_SCORE" -lt "75" ]; then
+          echo "❌ Quality gate failed - Score below threshold (75)"
+          echo "::error::Quality validation failed with score: $OVERALL_SCORE/100"
+          exit 1
+        elif [ "$OVERALL_SCORE" -lt "75" ]; then
+          echo "⚠️ Quality gate failed but continuing due to fail_on_violations=false"
+          echo "::warning::Quality score below threshold: $OVERALL_SCORE/100"
+        else
+          echo "✅ Quality gate passed - Score: $OVERALL_SCORE/100"
+        fi

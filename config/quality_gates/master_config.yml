@@ -1,0 +1,508 @@
+# Quality Gates Master Configuration
+# This file contains the comprehensive configuration for the Huginn Quality Gates system
+# Environment: <%= Rails.env %>
+# Generated: <%= Time.current.iso8601 %>
+
+# =============================================================================
+# QUALITY GATES CONFIGURATION
+# =============================================================================
+
+gates:
+  # Code Quality Gates - Syntax, style, and code standards validation
+  code_quality:
+    enabled: true
+    phase: completion
+    category: code_quality
+    weight: 3
+    critical: true
+    description: "Validates code syntax, style, and adherence to coding standards"
+    validators:
+      - rubocop        # Ruby style and syntax
+      - eslint         # JavaScript/TypeScript linting
+      - pylint         # Python code analysis (if applicable)
+    thresholds:
+      max_violations: 0        # Zero tolerance for critical violations
+      warning_threshold: 10    # Maximum warnings allowed
+      complexity_threshold: 15 # Maximum cyclomatic complexity
+    configuration:
+      rubocop:
+        config_file: ".rubocop.yml"
+        auto_correct: false
+      eslint:
+        config_file: ".eslintrc.js"
+        ignore_warnings: false
+    timeout: 120
+    retry_count: 1
+
+  # Security Gates - Security vulnerability and compliance validation
+  security:
+    enabled: true
+    phase: completion
+    category: security
+    weight: 5
+    critical: true
+    description: "Validates security vulnerabilities and compliance requirements"
+    validators:
+      - bundler_audit   # Ruby gem vulnerability scanning
+      - brakeman        # Rails security scanner
+      - security_scan   # General security analysis
+    thresholds:
+      max_high_severity: 0     # Zero high-severity vulnerabilities
+      max_medium_severity: 2   # Limited medium-severity vulnerabilities
+      max_low_severity: 10     # Limited low-severity vulnerabilities
+    configuration:
+      bundler_audit:
+        update_database: true
+        ignore: []
+      brakeman:
+        confidence_level: 2
+        ignore_file: "config/brakeman.ignore"
+    timeout: 180
+    retry_count: 1
+
+  # Performance Gates - Performance benchmarks and optimization validation
+  performance:
+    enabled: <%= Rails.env.production? %>
+    phase: completion
+    category: performance
+    weight: 2
+    critical: false
+    description: "Validates application performance and resource usage"
+    validators:
+      - performance_test    # Application performance benchmarks
+      - memory_check        # Memory usage analysis
+      - response_time       # Response time validation
+    thresholds:
+      max_response_time: 2000      # Maximum response time in milliseconds
+      max_memory_usage: 512        # Maximum memory usage in MB
+      min_throughput: 100          # Minimum requests per second
+    configuration:
+      performance_test:
+        duration: 60             # Test duration in seconds
+        concurrent_users: 10     # Number of concurrent users
+        ramp_up_time: 10        # Ramp-up time in seconds
+    timeout: 300
+    retry_count: 0
+
+  # Testing Gates - Test coverage and quality validation
+  testing:
+    enabled: true
+    phase: completion
+    category: testing
+    weight: 4
+    critical: true
+    description: "Validates test coverage and quality"
+    validators:
+      - unit_tests         # Unit test execution and results
+      - integration_tests  # Integration test execution
+      - coverage_check     # Code coverage analysis
+    thresholds:
+      min_line_coverage: 80      # Minimum line coverage percentage
+      min_branch_coverage: 75    # Minimum branch coverage percentage
+      min_test_count: 10         # Minimum number of tests
+      max_failing_tests: 0       # Maximum number of failing tests
+    configuration:
+      coverage_tool: "simplecov"
+      coverage_format: ["html", "json"]
+      exclude_patterns:
+        - "config/**/*"
+        - "db/**/*"
+        - "vendor/**/*"
+    timeout: 600
+    retry_count: 1
+
+  # Documentation Gates - Documentation completeness and quality
+  documentation:
+    enabled: false  # Disabled by default, enable as needed
+    phase: completion
+    category: documentation
+    weight: 1
+    critical: false
+    description: "Validates documentation completeness and quality"
+    validators:
+      - doc_coverage    # Documentation coverage analysis
+      - readme_check    # README file validation
+      - api_docs        # API documentation validation
+    thresholds:
+      min_doc_coverage: 60       # Minimum documentation coverage
+      required_sections:         # Required README sections
+        - "Installation"
+        - "Usage"
+        - "Contributing"
+        - "License"
+    timeout: 120
+    retry_count: 0
+
+  # Dependencies Gates - Dependency security and compliance
+  dependencies:
+    enabled: true
+    phase: pre_implementation
+    category: dependencies
+    weight: 3
+    critical: true
+    description: "Validates dependency security and licensing"
+    validators:
+      - vulnerability_scan  # Dependency vulnerability scanning
+      - dependency_check    # Dependency validation
+      - license_audit       # License compliance check
+    thresholds:
+      max_vulnerable_deps: 0     # Maximum vulnerable dependencies
+      allowed_licenses:          # Allowed dependency licenses
+        - "MIT"
+        - "Apache-2.0"
+        - "BSD-3-Clause"
+        - "ISC"
+    configuration:
+      update_advisories: true
+      fail_on_unknown_license: false
+    timeout: 180
+    retry_count: 1
+
+  # Deployment Gates - Deployment readiness validation
+  deployment:
+    enabled: <%= Rails.env.production? %>
+    phase: completion
+    category: deployment
+    weight: 2
+    critical: false
+    description: "Validates deployment readiness and configuration"
+    validators:
+      - deployment_test         # Deployment process validation
+      - configuration_check     # Configuration validation
+      - environment_validation  # Environment setup validation
+    thresholds:
+      required_env_vars:        # Required environment variables
+        - "DATABASE_URL"
+        - "SECRET_KEY_BASE"
+      required_config_files:    # Required configuration files
+        - "config/database.yml"
+        - "config/application.rb"
+    timeout: 300
+    retry_count: 1
+
+  # Monitoring Gates - System monitoring and health validation
+  monitoring:
+    enabled: <%= Rails.env.production? %>
+    phase: monitoring
+    category: monitoring
+    weight: 2
+    critical: false
+    description: "Validates monitoring setup and system health"
+    validators:
+      - health_check         # Application health validation
+      - metrics_collection   # Metrics collection validation
+      - alerting_setup      # Alerting configuration validation
+    thresholds:
+      max_response_time: 5000    # Maximum health check response time
+      required_metrics:          # Required metrics to be collected
+        - "response_time"
+        - "error_rate"
+        - "throughput"
+    timeout: 120
+    retry_count: 2
+
+# =============================================================================
+# NOTIFICATION CONFIGURATION
+# =============================================================================
+
+notifications:
+  enabled: true
+  
+  # Notification triggers - when to send notifications
+  on_failure: true      # Send notifications on gate failures
+  on_success: false     # Send notifications on successful completion
+  on_completion: true   # Send notifications on execution completion
+  on_improvement: false # Send notifications on quality improvements
+  
+  # Throttling configuration - prevent notification spam
+  throttling:
+    failure:
+      daily_limit: 10        # Maximum failure notifications per day
+      hourly_limit: 3        # Maximum failure notifications per hour
+    completion:
+      daily_limit: 5         # Maximum completion notifications per day
+    improvement:
+      daily_limit: 2         # Maximum improvement notifications per day
+  
+  # Notification routing - which notifications go to which channels
+  routing:
+    critical_failure:
+      channels: ["email", "slack", "webhook"]
+      min_severity: critical
+    quality_gate_failure:
+      channels: ["slack", "webhook"]  
+      min_severity: error
+    execution_complete:
+      channels: ["slack"]
+      min_severity: info
+    quality_improvement:
+      channels: ["slack"]
+      min_severity: info
+    quality_degradation:
+      channels: ["email", "slack"]
+      min_severity: warning
+    system_health:
+      channels: ["email", "webhook"]
+      min_severity: warning
+
+  # Notification channels configuration
+  channels:
+    email:
+      enabled: false  # Enable and configure as needed
+      smtp_settings:
+        address: "smtp.example.com"
+        port: 587
+        domain: "huginn.example.com"
+        user_name: ""
+        password: ""
+        authentication: "plain"
+        enable_starttls_auto: true
+      from_address: "quality-gates@huginn.example.com"
+      to_addresses:
+        - "development-team@example.com"
+      template: "default"
+    
+    slack:
+      enabled: false  # Enable and configure as needed
+      webhook_url: ""  # Slack incoming webhook URL
+      channel: "#quality-gates"
+      username: "Quality Gates Bot"
+      icon_emoji: ":warning:"
+      mention_channel: false
+      mention_users: []  # List of Slack user IDs to mention on critical failures
+    
+    webhook:
+      enabled: false  # Enable and configure as needed
+      url: ""  # Webhook URL to send notifications
+      method: "POST"
+      headers:
+        Content-Type: "application/json"
+        # Authorization: "Bearer YOUR_TOKEN"  # Uncomment and configure if needed
+      auth:
+        type: "none"  # Options: none, basic, bearer, api_key
+        # username: ""
+        # password: ""
+        # token: ""
+        # header: "X-API-Key"
+        # key: ""
+      timeout: 30
+      retry_count: 2
+    
+    sms:
+      enabled: false  # Enable and configure as needed (requires Twilio gem)
+      provider: "twilio"
+      account_sid: ""
+      auth_token: ""
+      from_number: ""
+      to_numbers: []  # List of phone numbers to send SMS alerts
+      
+    teams:
+      enabled: false  # Enable and configure as needed
+      webhook_url: ""  # Microsoft Teams incoming webhook URL
+      
+    discord:
+      enabled: false  # Enable and configure as needed
+      webhook_url: ""  # Discord webhook URL
+      username: "Quality Gates"
+      avatar_url: ""
+
+# =============================================================================
+# REPORTING CONFIGURATION  
+# =============================================================================
+
+reporting:
+  enabled: true
+  
+  # Report formats to generate
+  formats:
+    - "json"      # JSON format for programmatic access
+    - "html"      # HTML format for human-readable reports
+    - "markdown"  # Markdown format for documentation
+  
+  # Report storage configuration
+  directory: "development/reports"    # Directory to store reports
+  retention_days: 30                  # Number of days to retain reports
+  archive_old_reports: true          # Archive old reports instead of deleting
+  
+  # Report content configuration
+  detailed: true              # Include detailed findings and metrics
+  include_metrics: true       # Include performance and quality metrics
+  include_recommendations: true    # Include improvement recommendations
+  include_trends: true        # Include historical trend analysis
+  
+  # Report generation settings
+  generate_on_completion: true     # Generate report on execution completion
+  generate_on_failure: true       # Generate report on any gate failure
+  auto_cleanup: true              # Automatically clean up old reports
+
+# =============================================================================
+# DASHBOARD CONFIGURATION
+# =============================================================================
+
+dashboard:
+  enabled: false  # Enable dashboard integration
+  type: "internal"  # Options: internal, grafana, prometheus, webhook, custom
+  
+  # Real-time updates
+  real_time: false           # Enable real-time dashboard updates
+  refresh_interval: 60       # Dashboard refresh interval in seconds
+  
+  # Metrics retention
+  metrics_retention: "7d"    # How long to retain dashboard metrics
+  
+  # Internal dashboard configuration (when type is 'internal')
+  internal:
+    mount_path: "/quality_gates"
+    authentication: false     # Require authentication for dashboard access
+    cache_duration: 300      # Cache dashboard data for N seconds
+  
+  # Grafana configuration (when type is 'grafana')
+  grafana:
+    url: ""                  # Grafana base URL
+    api_key: ""             # Grafana API key
+    org_id: 1               # Grafana organization ID
+    dashboard_uid: "quality-gates"  # Dashboard UID
+    folder: "Quality Gates"  # Dashboard folder
+  
+  # Prometheus configuration (when type is 'prometheus')
+  prometheus:
+    gateway_url: ""          # Prometheus Push Gateway URL
+    job_name: "quality_gates"  # Prometheus job name
+    instance: ""             # Prometheus instance identifier (defaults to hostname)
+  
+  # Webhook configuration (when type is 'webhook')
+  webhook:
+    url: ""                  # Webhook URL for dashboard updates
+    headers: {}              # Custom headers
+    auth:
+      type: "none"           # Authentication type
+
+# =============================================================================
+# EXECUTION CONFIGURATION
+# =============================================================================
+
+execution:
+  # Execution behavior
+  fail_fast: false          # Stop execution on first critical failure
+  parallel: false           # Execute gates in parallel (experimental)
+  timeout: 1800             # Global execution timeout in seconds (30 minutes)
+  retry_count: 0            # Number of retries for failed gates
+  
+  # Logging configuration  
+  log_level: "info"         # Log level: debug, info, warn, error
+  log_format: "json"        # Log format: text, json
+  log_file: "log/quality_gates.log"  # Log file path
+  
+  # Performance settings
+  max_concurrent_gates: 5   # Maximum number of gates to run concurrently
+  gate_timeout: 600        # Default timeout for individual gates in seconds
+  memory_limit: "1GB"      # Memory limit for gate execution
+  
+  # Environment-specific overrides
+  development:
+    fail_fast: false
+    parallel: false
+    log_level: "debug"
+    timeout: 900           # 15 minutes for development
+  
+  test:
+    fail_fast: true
+    parallel: true
+    log_level: "warn"
+    timeout: 600           # 10 minutes for tests
+  
+  production:
+    fail_fast: false
+    parallel: true
+    log_level: "info"  
+    timeout: 1800          # 30 minutes for production
+
+# =============================================================================
+# INTEGRATION CONFIGURATION
+# =============================================================================
+
+integrations:
+  # Git integration
+  git:
+    enabled: true
+    track_commits: true        # Track quality metrics per commit
+    branch_protection: false   # Require quality gates to pass for merges
+    
+  # CI/CD integration  
+  ci_cd:
+    enabled: false
+    provider: ""              # Options: github_actions, gitlab_ci, jenkins, etc.
+    webhook_url: ""           # CI/CD webhook URL for status updates
+    api_token: ""             # API token for CI/CD integration
+    
+  # External monitoring integration
+  monitoring:
+    enabled: false
+    prometheus:
+      enabled: false
+      push_gateway: ""
+    grafana:
+      enabled: false
+      api_url: ""
+      api_key: ""
+    newrelic:
+      enabled: false
+      license_key: ""
+    datadog:
+      enabled: false
+      api_key: ""
+
+# =============================================================================
+# SECURITY CONFIGURATION
+# =============================================================================
+
+security:
+  # API security
+  api_authentication: false   # Require authentication for API access
+  api_rate_limiting: true     # Enable API rate limiting
+  
+  # Data security
+  encrypt_sensitive_data: true    # Encrypt sensitive configuration data
+  mask_credentials: true          # Mask credentials in logs and reports
+  
+  # Access control
+  allowed_ips: []            # List of allowed IP addresses (empty = allow all)
+  admin_users: []            # List of admin user identifiers
+
+# =============================================================================
+# ADVANCED CONFIGURATION
+# =============================================================================
+
+advanced:
+  # Custom validator paths
+  custom_validator_paths:
+    - "lib/quality_gates/custom_validators"
+    - "app/validators/quality_gates"
+  
+  # Plugin system
+  plugins:
+    enabled: false
+    auto_load: true
+    plugin_paths:
+      - "lib/quality_gates/plugins"
+  
+  # Experimental features
+  experimental:
+    ai_powered_recommendations: false  # AI-powered improvement recommendations
+    predictive_quality_analysis: false # Predictive quality trend analysis
+    auto_remediation: false           # Automatic issue remediation (dangerous!)
+  
+  # Performance tuning
+  performance:
+    cache_results: true       # Cache gate results for faster subsequent runs
+    cache_duration: 3600      # Cache duration in seconds
+    background_execution: false  # Execute gates in background jobs
+    queue_adapter: "delayed_job"  # Background job queue adapter
+
+# =============================================================================
+# ENVIRONMENT OVERRIDES
+# =============================================================================
+# Environment-specific settings override the defaults above
+# Use environment variables with QG_ prefix to override any setting
+# Example: QG_GATES_CODE_QUALITY_ENABLED=false
+# Example: QG_NOTIFICATIONS_SLACK_ENABLED=true

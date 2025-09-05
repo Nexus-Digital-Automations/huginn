@@ -1,0 +1,589 @@
+name: 'Quality Gates Enforcement'
+
+on:
+  push:
+    branches: ['master', 'main', 'develop']
+  pull_request:
+    branches: ['master', 'main', 'develop']
+  workflow_call:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: false
+        default: 'staging'
+        type: string
+    outputs:
+      quality_score:
+        description: 'Overall quality score'
+        value: ${{ jobs.quality-gates.outputs.quality_score }}
+      deployment_approved:
+        description: 'Whether deployment is approved'
+        value: ${{ jobs.quality-gates.outputs.deployment_approved }}
+
+env:
+  RAILS_ENV: test
+  COVERAGE: true
+  CI: true
+  QUALITY_GATE_RESPONSE_TIME_THRESHOLD: 200
+  QUALITY_GATE_ERROR_RATE_THRESHOLD: 0.1
+  QUALITY_GATE_COVERAGE_THRESHOLD: 85
+  QUALITY_GATE_SECURITY_THRESHOLD: 0
+
+jobs:
+  # Pre-implementation validation
+  pre-validation:
+    name: 'Pre-Implementation Validation'
+    runs-on: ubuntu-latest
+    outputs:
+      context_validated: ${{ steps.context.outputs.validated }}
+      impact_assessed: ${{ steps.impact.outputs.assessed }}
+      resources_planned: ${{ steps.resources.outputs.planned }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2.4'
+          bundler-cache: true
+
+      - name: Context Assessment
+        id: context
+        run: |
+          echo "=== Pre-Implementation Context Assessment ==="
+          
+          # Check for breaking changes
+          git diff --name-only HEAD~1 HEAD > changed_files.txt || echo "No previous commit found"
+          
+          # Assess context complexity
+          if [ -s changed_files.txt ]; then
+            CHANGED_COUNT=$(wc -l < changed_files.txt)
+            echo "Files changed: $CHANGED_COUNT"
+            
+            # Check for critical file changes
+            CRITICAL_CHANGES=$(grep -E "(Gemfile|config/|db/migrate)" changed_files.txt | wc -l || echo "0")
+            echo "Critical files changed: $CRITICAL_CHANGES"
+            
+            if [ "$CRITICAL_CHANGES" -gt "0" ]; then
+              echo "::warning::Critical infrastructure files modified - extended validation required"
+              echo "critical_changes=true" >> $GITHUB_OUTPUT
+            fi
+          fi
+          
+          # Validate project structure
+          echo "Validating project structure..."
+          if [ ! -f "Gemfile" ] || [ ! -f "config/application.rb" ]; then
+            echo "::error::Invalid Rails project structure"
+            exit 1
+          fi
+          
+          echo "Context assessment completed successfully"
+          echo "validated=true" >> $GITHUB_OUTPUT
+
+      - name: Impact Analysis
+        id: impact
+        run: |
+          echo "=== Impact Analysis ==="
+          
+          # Analyze potential impact areas
+          if [ -s changed_files.txt ]; then
+            # Database impact
+            DB_IMPACT=$(grep -E "db/migrate|db/schema" changed_files.txt | wc -l || echo "0")
+            if [ "$DB_IMPACT" -gt "0" ]; then
+              echo "::notice::Database migration impact detected"
+              echo "db_impact=true" >> $GITHUB_OUTPUT
+            fi
+            
+            # Security impact
+            SECURITY_IMPACT=$(grep -E "(auth|oauth|credential|password|token|secret)" changed_files.txt | wc -l || echo "0")
+            if [ "$SECURITY_IMPACT" -gt "0" ]; then
+              echo "::warning::Security-related changes detected"
+              echo "security_impact=true" >> $GITHUB_OUTPUT
+            fi
+            
+            # Performance impact
+            PERF_IMPACT=$(grep -E "(query|index|cache|background|job)" changed_files.txt | wc -l || echo "0")
+            if [ "$PERF_IMPACT" -gt "0" ]; then
+              echo "::notice::Performance-related changes detected"
+              echo "performance_impact=true" >> $GITHUB_OUTPUT
+            fi
+          fi
+          
+          echo "Impact analysis completed"
+          echo "assessed=true" >> $GITHUB_OUTPUT
+
+      - name: Resource Planning
+        id: resources
+        run: |
+          echo "=== Resource Planning Assessment ==="
+          
+          # Check test suite size for resource planning
+          TEST_COUNT=$(find spec -name "*_spec.rb" | wc -l || echo "0")
+          echo "Test files found: $TEST_COUNT"
+          
+          # Estimate resource requirements
+          if [ "$TEST_COUNT" -gt "100" ]; then
+            echo "Large test suite detected - allocating additional resources"
+            echo "resource_tier=large" >> $GITHUB_OUTPUT
+          elif [ "$TEST_COUNT" -gt "50" ]; then
+            echo "Medium test suite detected"
+            echo "resource_tier=medium" >> $GITHUB_OUTPUT
+          else
+            echo "Small test suite detected"
+            echo "resource_tier=small" >> $GITHUB_OUTPUT
+          fi
+          
+          echo "Resource planning completed"
+          echo "planned=true" >> $GITHUB_OUTPUT
+
+      - name: Upload Pre-Validation Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: pre-validation-results
+          path: |
+            changed_files.txt
+          retention-days: 1
+
+  # During-implementation validation
+  implementation-validation:
+    name: 'During-Implementation Validation'
+    runs-on: ubuntu-latest
+    needs: pre-validation
+    outputs:
+      interfaces_validated: ${{ steps.interfaces.outputs.validated }}
+      error_boundaries_checked: ${{ steps.boundaries.outputs.checked }}
+      integration_verified: ${{ steps.integration.outputs.verified }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2.4'
+          bundler-cache: true
+
+      - name: Setup Database
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql postgresql-contrib
+          sudo systemctl start postgresql
+          sudo -u postgres createuser -s runner
+          sudo -u postgres createdb huginn_test
+          bundle exec rake db:create db:schema:load RAILS_ENV=test
+
+      - name: Interface-First Validation
+        id: interfaces
+        run: |
+          echo "=== Interface-First Development Validation ==="
+          
+          # Check for proper API interfaces
+          echo "Validating API interfaces..."
+          if bundle exec rails routes | grep -q "api"; then
+            echo "API routes found - validating API compliance"
+            
+            # Check for proper API versioning
+            if ls app/controllers/api/ 2>/dev/null | grep -q "v[0-9]"; then
+              echo "✅ API versioning structure detected"
+            else
+              echo "::warning::Consider implementing API versioning"
+            fi
+          fi
+          
+          # Validate model interfaces
+          echo "Validating model interfaces..."
+          bundle exec ruby -e "
+            require './config/environment'
+            models = Dir.glob('app/models/*.rb').map { |f| File.basename(f, '.rb').camelize }
+            models.each do |model|
+              begin
+                klass = model.constantize
+                if klass.respond_to?(:columns)
+                  puts \"✅ Model interface valid: #{model}\"
+                end
+              rescue => e
+                puts \"::error::Invalid model interface: #{model} - #{e.message}\"
+                exit 1
+              end
+            end
+          "
+          
+          echo "Interface validation completed"
+          echo "validated=true" >> $GITHUB_OUTPUT
+
+      - name: Error Boundary Validation
+        id: boundaries
+        run: |
+          echo "=== Error Boundary Validation ==="
+          
+          # Check for proper error handling
+          echo "Checking error handling patterns..."
+          
+          # Validate controller error handling
+          CONTROLLERS_WITH_RESCUE=$(find app/controllers -name "*.rb" -exec grep -l "rescue" {} \; | wc -l)
+          TOTAL_CONTROLLERS=$(find app/controllers -name "*.rb" | wc -l)
+          
+          echo "Controllers with error handling: $CONTROLLERS_WITH_RESCUE/$TOTAL_CONTROLLERS"
+          
+          if [ "$CONTROLLERS_WITH_RESCUE" -gt "0" ]; then
+            echo "✅ Error handling patterns found in controllers"
+          else
+            echo "::warning::Consider adding error handling to controllers"
+          fi
+          
+          # Check for application-level error handling
+          if grep -q "rescue_from" app/controllers/application_controller.rb; then
+            echo "✅ Application-level error handling detected"
+          else
+            echo "::notice::Consider adding application-level error handling"
+          fi
+          
+          echo "Error boundary validation completed"
+          echo "checked=true" >> $GITHUB_OUTPUT
+
+      - name: Incremental Integration Testing
+        id: integration
+        run: |
+          echo "=== Incremental Integration Validation ==="
+          
+          # Run basic smoke tests first
+          echo "Running smoke tests..."
+          if bundle exec rspec spec/models --fail-fast --format progress; then
+            echo "✅ Model smoke tests passed"
+          else
+            echo "::error::Model smoke tests failed"
+            exit 1
+          fi
+          
+          # Run controller tests
+          echo "Running controller integration tests..."
+          if bundle exec rspec spec/controllers --fail-fast --format progress; then
+            echo "✅ Controller integration tests passed"
+          else
+            echo "::error::Controller integration tests failed"
+            exit 1
+          fi
+          
+          echo "Incremental integration completed"
+          echo "verified=true" >> $GITHUB_OUTPUT
+
+  # Core quality validation
+  quality-gates:
+    name: 'Quality Gates Validation'
+    runs-on: ubuntu-latest
+    needs: [pre-validation, implementation-validation]
+    outputs:
+      quality_score: ${{ steps.score.outputs.quality_score }}
+      deployment_approved: ${{ steps.approval.outputs.approved }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2.4'
+          bundler-cache: true
+
+      - name: Setup Database
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql postgresql-contrib
+          sudo systemctl start postgresql
+          sudo -u postgres createuser -s runner
+          sudo -u postgres createdb huginn_test
+          bundle exec rake db:create db:schema:load RAILS_ENV=test
+
+      - name: Run Linting
+        id: linting
+        run: |
+          echo "=== Code Quality Linting ==="
+          
+          # Run RuboCop with detailed output
+          if bundle exec rubocop --format json --out rubocop_results.json; then
+            echo "✅ RuboCop linting passed"
+            echo "linting_passed=true" >> $GITHUB_OUTPUT
+            echo "linting_score=100" >> $GITHUB_OUTPUT
+          else
+            echo "❌ RuboCop linting failed"
+            OFFENSE_COUNT=$(jq '.summary.offense_count // 0' rubocop_results.json 2>/dev/null || echo "0")
+            LINTING_SCORE=$(( 100 - (OFFENSE_COUNT * 2) ))
+            if [ "$LINTING_SCORE" -lt "0" ]; then
+              LINTING_SCORE=0
+            fi
+            echo "linting_passed=false" >> $GITHUB_OUTPUT
+            echo "linting_score=$LINTING_SCORE" >> $GITHUB_OUTPUT
+            
+            # Show critical issues
+            echo "::group::RuboCop Issues"
+            bundle exec rubocop --format progress
+            echo "::endgroup::"
+            
+            if [ "$OFFENSE_COUNT" -gt "20" ]; then
+              echo "::error::Too many linting violations ($OFFENSE_COUNT). Maximum allowed: 20"
+              exit 1
+            fi
+          fi
+
+      - name: Run Test Suite with Coverage
+        id: testing
+        run: |
+          echo "=== Test Suite Execution ==="
+          
+          # Run tests with coverage
+          bundle exec rspec --format json --out test_results.json
+          TEST_EXIT_CODE=$?
+          
+          # Parse test results
+          if [ -f "test_results.json" ]; then
+            TOTAL_TESTS=$(jq '.summary.example_count // 0' test_results.json)
+            FAILED_TESTS=$(jq '.summary.failure_count // 0' test_results.json)
+            PENDING_TESTS=$(jq '.summary.pending_count // 0' test_results.json)
+            
+            echo "Total tests: $TOTAL_TESTS"
+            echo "Failed tests: $FAILED_TESTS"
+            echo "Pending tests: $PENDING_TESTS"
+            
+            if [ "$TEST_EXIT_CODE" -eq "0" ]; then
+              echo "✅ All tests passed"
+              echo "tests_passed=true" >> $GITHUB_OUTPUT
+              echo "test_score=100" >> $GITHUB_OUTPUT
+            else
+              echo "❌ Some tests failed"
+              TEST_SCORE=$(( (TOTAL_TESTS - FAILED_TESTS) * 100 / TOTAL_TESTS ))
+              echo "tests_passed=false" >> $GITHUB_OUTPUT
+              echo "test_score=$TEST_SCORE" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "::error::Unable to parse test results"
+            echo "tests_passed=false" >> $GITHUB_OUTPUT
+            echo "test_score=0" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+          
+          # Check coverage
+          if [ -f "coverage/.last_run.json" ]; then
+            COVERAGE=$(jq '.result.line // 0' coverage/.last_run.json)
+            echo "Code coverage: ${COVERAGE}%"
+            echo "coverage_percentage=$COVERAGE" >> $GITHUB_OUTPUT
+            
+            if (( $(echo "$COVERAGE >= $QUALITY_GATE_COVERAGE_THRESHOLD" | bc -l) )); then
+              echo "✅ Coverage threshold met (${COVERAGE}% >= ${QUALITY_GATE_COVERAGE_THRESHOLD}%)"
+              echo "coverage_passed=true" >> $GITHUB_OUTPUT
+            else
+              echo "❌ Coverage threshold not met (${COVERAGE}% < ${QUALITY_GATE_COVERAGE_THRESHOLD}%)"
+              echo "coverage_passed=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "::warning::Coverage report not found"
+            echo "coverage_passed=false" >> $GITHUB_OUTPUT
+            echo "coverage_percentage=0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Performance Validation
+        id: performance
+        run: |
+          echo "=== Performance Validation ==="
+          
+          # Start Rails server in background for performance testing
+          bundle exec rails server -e test -p 3001 &
+          SERVER_PID=$!
+          
+          # Wait for server to start
+          sleep 10
+          
+          # Performance testing with curl
+          echo "Testing response times..."
+          
+          # Test key endpoints
+          ENDPOINTS=("/" "/users/sign_in" "/agents")
+          RESPONSE_TIMES=()
+          
+          for endpoint in "${ENDPOINTS[@]}"; do
+            echo "Testing endpoint: $endpoint"
+            
+            # Make request and measure time
+            RESPONSE_TIME=$(curl -w "%{time_total}" -s -o /dev/null "http://localhost:3001$endpoint" || echo "999")
+            RESPONSE_TIME_MS=$(echo "$RESPONSE_TIME * 1000" | bc -l | cut -d. -f1)
+            
+            echo "Response time: ${RESPONSE_TIME_MS}ms"
+            RESPONSE_TIMES+=($RESPONSE_TIME_MS)
+            
+            # Check against threshold
+            if [ "$RESPONSE_TIME_MS" -gt "$QUALITY_GATE_RESPONSE_TIME_THRESHOLD" ]; then
+              echo "::warning::Endpoint $endpoint exceeds response time threshold (${RESPONSE_TIME_MS}ms > ${QUALITY_GATE_RESPONSE_TIME_THRESHOLD}ms)"
+            fi
+          done
+          
+          # Calculate average response time
+          TOTAL_TIME=0
+          for time in "${RESPONSE_TIMES[@]}"; do
+            TOTAL_TIME=$((TOTAL_TIME + time))
+          done
+          AVG_TIME=$((TOTAL_TIME / ${#RESPONSE_TIMES[@]}))
+          
+          echo "Average response time: ${AVG_TIME}ms"
+          echo "avg_response_time=$AVG_TIME" >> $GITHUB_OUTPUT
+          
+          if [ "$AVG_TIME" -le "$QUALITY_GATE_RESPONSE_TIME_THRESHOLD" ]; then
+            echo "✅ Performance threshold met"
+            echo "performance_passed=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Performance threshold exceeded"
+            echo "performance_passed=false" >> $GITHUB_OUTPUT
+          fi
+          
+          # Clean up server
+          kill $SERVER_PID 2>/dev/null || true
+
+      - name: Calculate Quality Score
+        id: score
+        run: |
+          echo "=== Quality Score Calculation ==="
+          
+          # Get individual scores
+          LINTING_SCORE=${{ steps.linting.outputs.linting_score }}
+          TEST_SCORE=${{ steps.testing.outputs.test_score }}
+          COVERAGE_PERCENTAGE=${{ steps.testing.outputs.coverage_percentage }}
+          AVG_RESPONSE_TIME=${{ steps.performance.outputs.avg_response_time }}
+          
+          echo "Linting Score: $LINTING_SCORE/100"
+          echo "Test Score: $TEST_SCORE/100"
+          echo "Coverage: $COVERAGE_PERCENTAGE%"
+          echo "Avg Response Time: ${AVG_RESPONSE_TIME}ms"
+          
+          # Calculate performance score (inverse relationship with response time)
+          if [ "$AVG_RESPONSE_TIME" -le "$QUALITY_GATE_RESPONSE_TIME_THRESHOLD" ]; then
+            PERFORMANCE_SCORE=100
+          else
+            PERFORMANCE_SCORE=$(( 100 - ((AVG_RESPONSE_TIME - QUALITY_GATE_RESPONSE_TIME_THRESHOLD) / 10) ))
+            if [ "$PERFORMANCE_SCORE" -lt "0" ]; then
+              PERFORMANCE_SCORE=0
+            fi
+          fi
+          
+          # Weighted quality score calculation
+          QUALITY_SCORE=$(( (LINTING_SCORE * 20 + TEST_SCORE * 40 + COVERAGE_PERCENTAGE * 25 + PERFORMANCE_SCORE * 15) / 100 ))
+          
+          echo "Performance Score: $PERFORMANCE_SCORE/100"
+          echo "Overall Quality Score: $QUALITY_SCORE/100"
+          echo "quality_score=$QUALITY_SCORE" >> $GITHUB_OUTPUT
+          
+          # Quality gates summary
+          echo "=== Quality Gates Summary ==="
+          echo "| Metric | Score | Threshold | Status |"
+          echo "|--------|-------|-----------|--------|"
+          echo "| Linting | $LINTING_SCORE/100 | 80 | $( [ "$LINTING_SCORE" -ge "80" ] && echo "✅ PASS" || echo "❌ FAIL" ) |"
+          echo "| Tests | $TEST_SCORE/100 | 95 | $( [ "$TEST_SCORE" -ge "95" ] && echo "✅ PASS" || echo "❌ FAIL" ) |"
+          echo "| Coverage | $COVERAGE_PERCENTAGE% | $QUALITY_GATE_COVERAGE_THRESHOLD% | $( [ "$COVERAGE_PERCENTAGE" -ge "$QUALITY_GATE_COVERAGE_THRESHOLD" ] && echo "✅ PASS" || echo "❌ FAIL" ) |"
+          echo "| Performance | ${AVG_RESPONSE_TIME}ms | ${QUALITY_GATE_RESPONSE_TIME_THRESHOLD}ms | $( [ "$AVG_RESPONSE_TIME" -le "$QUALITY_GATE_RESPONSE_TIME_THRESHOLD" ] && echo "✅ PASS" || echo "❌ FAIL" ) |"
+          echo "| **Overall** | **$QUALITY_SCORE/100** | **75** | $( [ "$QUALITY_SCORE" -ge "75" ] && echo "✅ PASS" || echo "❌ FAIL" ) |"
+
+      - name: Deployment Approval Decision
+        id: approval
+        run: |
+          echo "=== Deployment Approval Decision ==="
+          
+          QUALITY_SCORE=${{ steps.score.outputs.quality_score }}
+          LINTING_PASSED=${{ steps.linting.outputs.linting_passed }}
+          TESTS_PASSED=${{ steps.testing.outputs.tests_passed }}
+          COVERAGE_PASSED=${{ steps.testing.outputs.coverage_passed }}
+          PERFORMANCE_PASSED=${{ steps.performance.outputs.performance_passed }}
+          
+          # Deployment approval criteria
+          DEPLOYMENT_APPROVED=false
+          
+          if [ "$LINTING_PASSED" = "true" ] && [ "$TESTS_PASSED" = "true" ] && [ "$COVERAGE_PASSED" = "true" ] && [ "$QUALITY_SCORE" -ge "75" ]; then
+            DEPLOYMENT_APPROVED=true
+            echo "✅ DEPLOYMENT APPROVED"
+            echo "All quality gates passed. Deployment is approved."
+          else
+            echo "❌ DEPLOYMENT BLOCKED"
+            echo "One or more quality gates failed:"
+            [ "$LINTING_PASSED" != "true" ] && echo "- Linting quality gate failed"
+            [ "$TESTS_PASSED" != "true" ] && echo "- Test quality gate failed"
+            [ "$COVERAGE_PASSED" != "true" ] && echo "- Coverage quality gate failed"
+            [ "$QUALITY_SCORE" -lt "75" ] && echo "- Overall quality score below threshold (${QUALITY_SCORE}/100 < 75)"
+          fi
+          
+          echo "approved=$DEPLOYMENT_APPROVED" >> $GITHUB_OUTPUT
+
+      - name: Upload Quality Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-reports
+          path: |
+            rubocop_results.json
+            test_results.json
+            coverage/
+            coverage/.last_run.json
+          retention-days: 7
+
+      - name: Upload Coverage Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports
+          path: coverage/
+          retention-days: 30
+
+  # Notification on failure
+  notify-quality-failure:
+    name: 'Quality Gate Failure Notification'
+    runs-on: ubuntu-latest
+    needs: quality-gates
+    if: needs.quality-gates.outputs.deployment_approved != 'true'
+    
+    steps:
+      - name: Create Issue for Quality Gate Failure
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const qualityScore = '${{ needs.quality-gates.outputs.quality_score }}';
+            
+            const issueBody = `
+            # 🚨 Quality Gate Failure
+            
+            **Build:** ${{ github.run_number }}
+            **Commit:** ${{ github.sha }}
+            **Branch:** ${{ github.ref_name }}
+            **Quality Score:** ${qualityScore}/100
+            
+            ## Failed Quality Gates
+            
+            The following quality gates have failed and are blocking deployment:
+            
+            Please review the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for detailed information.
+            
+            ## Next Steps
+            
+            1. Review the quality gate failures in the workflow logs
+            2. Fix the identified issues
+            3. Push your changes to trigger a new validation
+            4. Ensure all quality gates pass before deployment
+            
+            ## Quality Standards
+            
+            - **Linting:** Must pass RuboCop validation
+            - **Tests:** Must have 95%+ test success rate  
+            - **Coverage:** Must maintain ${process.env.QUALITY_GATE_COVERAGE_THRESHOLD}%+ code coverage
+            - **Performance:** Response times must be under ${process.env.QUALITY_GATE_RESPONSE_TIME_THRESHOLD}ms
+            - **Overall Quality:** Must achieve 75+ overall quality score
+            
+            ---
+            
+            *This issue was automatically created by the Quality Gates workflow.*
+            `;
+            
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🚨 Quality Gate Failure - Build ${{ github.run_number }}`,
+              body: issueBody,
+              labels: ['quality-gate-failure', 'ci-cd', 'blocked']
+            });

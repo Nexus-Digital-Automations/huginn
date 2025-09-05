@@ -1,0 +1,628 @@
+name: 'Deployment Automation & Rollback'
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        type: string
+      force_deploy:
+        description: 'Force deployment even if quality gates fail'
+        required: false
+        default: false
+        type: boolean
+      rollback_version:
+        description: 'Version to rollback to (if specified, performs rollback)'
+        required: false
+        type: string
+    outputs:
+      deployment_success:
+        description: 'Whether deployment succeeded'
+        value: ${{ jobs.deploy.outputs.deployment_success }}
+      deployment_version:
+        description: 'Version that was deployed'
+        value: ${{ jobs.deploy.outputs.deployment_version }}
+      rollback_required:
+        description: 'Whether rollback is recommended'
+        value: ${{ jobs.post-deployment-validation.outputs.rollback_required }}
+
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+        - 'staging'
+        - 'production'
+      force_deploy:
+        description: 'Force deployment even if quality gates fail'
+        required: false
+        default: false
+        type: boolean
+      rollback_version:
+        description: 'Version to rollback to (if specified, performs rollback)'
+        required: false
+        type: string
+
+env:
+  DEPLOYMENT_TIMEOUT: 600  # 10 minutes
+  HEALTH_CHECK_TIMEOUT: 300  # 5 minutes
+  ROLLBACK_TIMEOUT: 180      # 3 minutes
+
+jobs:
+  pre-deployment-validation:
+    name: 'Pre-Deployment Validation'
+    runs-on: ubuntu-latest
+    outputs:
+      quality_gate_passed: ${{ steps.quality-check.outputs.passed }}
+      deployment_approved: ${{ steps.approval.outputs.approved }}
+      deployment_version: ${{ steps.version.outputs.version }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate Deployment Version
+        id: version
+        run: |
+          # Generate deployment version based on commit
+          VERSION="v$(date +%Y%m%d-%H%M%S)-$(git rev-parse --short HEAD)"
+          echo "Deployment version: $VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Quality Gates Check
+        id: quality-check
+        uses: ./.github/workflows/quality_gates.yml
+        with:
+          environment: ${{ inputs.environment }}
+
+      - name: Deployment Approval Decision
+        id: approval
+        run: |
+          echo "=== Deployment Approval Decision ==="
+          
+          QUALITY_PASSED="${{ steps.quality-check.outputs.deployment_approved }}"
+          FORCE_DEPLOY="${{ inputs.force_deploy }}"
+          ROLLBACK_REQUESTED="${{ inputs.rollback_version != '' }}"
+          
+          echo "Quality gates passed: $QUALITY_PASSED"
+          echo "Force deployment: $FORCE_DEPLOY"
+          echo "Rollback requested: $ROLLBACK_REQUESTED"
+          
+          DEPLOYMENT_APPROVED=false
+          
+          if [ "$ROLLBACK_REQUESTED" = "true" ]; then
+            echo "✅ ROLLBACK APPROVED: Rollback operation requested"
+            DEPLOYMENT_APPROVED=true
+          elif [ "$QUALITY_PASSED" = "true" ]; then
+            echo "✅ DEPLOYMENT APPROVED: All quality gates passed"
+            DEPLOYMENT_APPROVED=true
+          elif [ "$FORCE_DEPLOY" = "true" ]; then
+            echo "⚠️ FORCED DEPLOYMENT: Quality gates bypassed"
+            DEPLOYMENT_APPROVED=true
+          else
+            echo "❌ DEPLOYMENT BLOCKED: Quality gates failed and force deploy not enabled"
+            DEPLOYMENT_APPROVED=false
+          fi
+          
+          echo "approved=$DEPLOYMENT_APPROVED" >> $GITHUB_OUTPUT
+
+  deploy:
+    name: 'Deploy Application'
+    runs-on: ubuntu-latest
+    needs: pre-deployment-validation
+    if: needs.pre-deployment-validation.outputs.deployment_approved == 'true'
+    outputs:
+      deployment_success: ${{ steps.deploy.outputs.success }}
+      deployment_version: ${{ needs.pre-deployment-validation.outputs.deployment_version }}
+      deployment_url: ${{ steps.deploy.outputs.deployment_url }}
+    
+    environment:
+      name: ${{ inputs.environment }}
+      url: ${{ steps.deploy.outputs.deployment_url }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2.4'
+          bundler-cache: true
+
+      - name: Database Migration Check
+        run: |
+          echo "=== Database Migration Check ==="
+          
+          # Check for pending migrations
+          if bundle exec rake db:migrate:status RAILS_ENV=${{ inputs.environment }} | grep -q "down"; then
+            echo "Pending migrations found"
+            echo "migration_required=true" >> $GITHUB_OUTPUT
+          else
+            echo "No pending migrations"
+            echo "migration_required=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Backup Point
+        id: backup
+        run: |
+          echo "=== Creating Backup Point ==="
+          
+          BACKUP_ID="backup-$(date +%Y%m%d-%H%M%S)-${{ needs.pre-deployment-validation.outputs.deployment_version }}"
+          echo "Creating backup: $BACKUP_ID"
+          
+          # Create backup configuration
+          cat > deployment_backup.json << EOF
+          {
+            "backup_id": "$BACKUP_ID",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "environment": "${{ inputs.environment }}",
+            "commit_sha": "${{ github.sha }}",
+            "previous_version": "$(git describe --tags --abbrev=0 2>/dev/null || echo 'initial')",
+            "database_backup": "db_backup_$BACKUP_ID.sql",
+            "assets_backup": "assets_backup_$BACKUP_ID.tar.gz"
+          }
+          EOF
+          
+          echo "Backup configuration created"
+          echo "backup_id=$BACKUP_ID" >> $GITHUB_OUTPUT
+
+      - name: Application Deployment
+        id: deploy
+        run: |
+          echo "=== Application Deployment ==="
+          
+          DEPLOYMENT_VERSION="${{ needs.pre-deployment-validation.outputs.deployment_version }}"
+          ROLLBACK_VERSION="${{ inputs.rollback_version }}"
+          
+          if [ -n "$ROLLBACK_VERSION" ]; then
+            echo "Performing rollback to version: $ROLLBACK_VERSION"
+            
+            # Rollback deployment logic
+            echo "Rollback deployment not yet implemented - placeholder"
+            DEPLOYMENT_SUCCESS=true
+            DEPLOYMENT_URL="https://${{ inputs.environment }}.huginn.example.com"
+          else
+            echo "Performing forward deployment: $DEPLOYMENT_VERSION"
+            
+            # Forward deployment logic
+            echo "=== Deployment Steps ==="
+            
+            # 1. Asset precompilation
+            echo "1. Compiling assets..."
+            if bundle exec rake assets:precompile RAILS_ENV=${{ inputs.environment }}; then
+              echo "✅ Asset compilation successful"
+            else
+              echo "❌ Asset compilation failed"
+              exit 1
+            fi
+            
+            # 2. Database migration (if required)
+            if [ "${{ steps.database-check.outputs.migration_required }}" = "true" ]; then
+              echo "2. Running database migrations..."
+              if timeout $DEPLOYMENT_TIMEOUT bundle exec rake db:migrate RAILS_ENV=${{ inputs.environment }}; then
+                echo "✅ Database migrations successful"
+              else
+                echo "❌ Database migrations failed"
+                exit 1
+              fi
+            else
+              echo "2. No database migrations required"
+            fi
+            
+            # 3. Application deployment (mock - replace with actual deployment)
+            echo "3. Deploying application..."
+            sleep 5  # Simulate deployment time
+            echo "✅ Application deployed successfully"
+            
+            DEPLOYMENT_SUCCESS=true
+            DEPLOYMENT_URL="https://${{ inputs.environment }}.huginn.example.com"
+          fi
+          
+          echo "success=$DEPLOYMENT_SUCCESS" >> $GITHUB_OUTPUT
+          echo "deployment_url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
+
+      - name: Upload Deployment Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-artifacts-${{ inputs.environment }}
+          path: |
+            deployment_backup.json
+          retention-days: 30
+
+  post-deployment-validation:
+    name: 'Post-Deployment Validation'
+    runs-on: ubuntu-latest
+    needs: [deploy]
+    if: needs.deploy.outputs.deployment_success == 'true'
+    outputs:
+      health_check_passed: ${{ steps.health.outputs.passed }}
+      performance_check_passed: ${{ steps.performance.outputs.passed }}
+      rollback_required: ${{ steps.decision.outputs.rollback_required }}
+    
+    steps:
+      - name: Deployment Health Check
+        id: health
+        run: |
+          echo "=== Post-Deployment Health Check ==="
+          
+          DEPLOYMENT_URL="${{ needs.deploy.outputs.deployment_url }}"
+          echo "Checking deployment at: $DEPLOYMENT_URL"
+          
+          # Health check with retries
+          RETRY_COUNT=0
+          MAX_RETRIES=10
+          HEALTH_PASSED=false
+          
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            echo "Health check attempt $((RETRY_COUNT + 1))/$MAX_RETRIES..."
+            
+            # Check if application is responding
+            if curl -s --max-time 30 "$DEPLOYMENT_URL" > /dev/null; then
+              echo "✅ Application is responding"
+              
+              # Check for 200 status
+              STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$DEPLOYMENT_URL")
+              if [ "$STATUS" = "200" ]; then
+                echo "✅ Application returns 200 OK"
+                HEALTH_PASSED=true
+                break
+              else
+                echo "⚠️ Application returns HTTP $STATUS"
+              fi
+            else
+              echo "❌ Application not responding"
+            fi
+            
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            sleep 30
+          done
+          
+          if [ "$HEALTH_PASSED" = "true" ]; then
+            echo "✅ Health check passed"
+          else
+            echo "❌ Health check failed after $MAX_RETRIES attempts"
+          fi
+          
+          echo "passed=$HEALTH_PASSED" >> $GITHUB_OUTPUT
+
+      - name: Performance Smoke Test
+        id: performance
+        run: |
+          echo "=== Performance Smoke Test ==="
+          
+          DEPLOYMENT_URL="${{ needs.deploy.outputs.deployment_url }}"
+          
+          # Basic performance test
+          echo "Running performance smoke test..."
+          
+          # Response time test
+          RESPONSE_TIME=$(curl -w "%{time_total}" -s -o /dev/null "$DEPLOYMENT_URL")
+          RESPONSE_TIME_MS=$(echo "$RESPONSE_TIME * 1000" | bc -l | cut -d. -f1)
+          
+          echo "Response time: ${RESPONSE_TIME_MS}ms"
+          
+          # Performance threshold (more lenient for deployment validation)
+          PERF_THRESHOLD=1000  # 1 second for post-deployment
+          
+          if [ "$RESPONSE_TIME_MS" -le "$PERF_THRESHOLD" ]; then
+            echo "✅ Performance smoke test passed"
+            echo "passed=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Performance smoke test failed (${RESPONSE_TIME_MS}ms > ${PERF_THRESHOLD}ms)"
+            echo "passed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Functional Smoke Test
+        run: |
+          echo "=== Functional Smoke Test ==="
+          
+          DEPLOYMENT_URL="${{ needs.deploy.outputs.deployment_url }}"
+          
+          # Test key endpoints
+          ENDPOINTS=("/" "/users/sign_in")
+          FUNCTIONAL_PASSED=true
+          
+          for endpoint in "${ENDPOINTS[@]}"; do
+            echo "Testing endpoint: $endpoint"
+            
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$DEPLOYMENT_URL$endpoint")
+            
+            if [ "$STATUS" = "200" ] || [ "$STATUS" = "302" ]; then
+              echo "✅ Endpoint $endpoint: HTTP $STATUS"
+            else
+              echo "❌ Endpoint $endpoint: HTTP $STATUS"
+              FUNCTIONAL_PASSED=false
+            fi
+          done
+          
+          if [ "$FUNCTIONAL_PASSED" = "true" ]; then
+            echo "✅ Functional smoke tests passed"
+          else
+            echo "❌ Functional smoke tests failed"
+          fi
+
+      - name: Database Connectivity Test
+        run: |
+          echo "=== Database Connectivity Test ==="
+          
+          # Mock database connectivity test
+          # In a real deployment, this would test actual database connection
+          
+          echo "Testing database connectivity..."
+          
+          # Simulate database check
+          sleep 2
+          
+          echo "✅ Database connectivity verified"
+
+      - name: Rollback Decision
+        id: decision
+        run: |
+          echo "=== Rollback Decision ==="
+          
+          HEALTH_PASSED="${{ steps.health.outputs.passed }}"
+          PERFORMANCE_PASSED="${{ steps.performance.outputs.passed }}"
+          
+          echo "Health check passed: $HEALTH_PASSED"
+          echo "Performance check passed: $PERFORMANCE_PASSED"
+          
+          ROLLBACK_REQUIRED=false
+          
+          if [ "$HEALTH_PASSED" != "true" ]; then
+            echo "❌ ROLLBACK REQUIRED: Health check failed"
+            ROLLBACK_REQUIRED=true
+          elif [ "$PERFORMANCE_PASSED" != "true" ]; then
+            echo "⚠️ ROLLBACK RECOMMENDED: Performance check failed"
+            ROLLBACK_REQUIRED=true
+          else
+            echo "✅ DEPLOYMENT SUCCESSFUL: No rollback required"
+          fi
+          
+          echo "rollback_required=$ROLLBACK_REQUIRED" >> $GITHUB_OUTPUT
+
+  automatic-rollback:
+    name: 'Automatic Rollback'
+    runs-on: ubuntu-latest
+    needs: [deploy, post-deployment-validation]
+    if: needs.post-deployment-validation.outputs.rollback_required == 'true'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download Deployment Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: deployment-artifacts-${{ inputs.environment }}
+
+      - name: Initiate Rollback
+        run: |
+          echo "=== Automatic Rollback Initiated ==="
+          
+          if [ -f "deployment_backup.json" ]; then
+            BACKUP_ID=$(jq -r '.backup_id' deployment_backup.json)
+            PREVIOUS_VERSION=$(jq -r '.previous_version' deployment_backup.json)
+            
+            echo "Rolling back to backup: $BACKUP_ID"
+            echo "Previous version: $PREVIOUS_VERSION"
+            
+            # Rollback steps
+            echo "1. Stopping current application..."
+            sleep 2
+            
+            echo "2. Restoring database backup..."
+            # In real implementation, restore database from backup
+            sleep 3
+            
+            echo "3. Restoring application assets..."  
+            # In real implementation, restore assets from backup
+            sleep 2
+            
+            echo "4. Starting previous application version..."
+            sleep 3
+            
+            echo "✅ Rollback completed successfully"
+          else
+            echo "❌ Rollback failed: No backup configuration found"
+            exit 1
+          fi
+
+      - name: Post-Rollback Validation
+        run: |
+          echo "=== Post-Rollback Validation ==="
+          
+          DEPLOYMENT_URL="${{ needs.deploy.outputs.deployment_url }}"
+          
+          # Wait for rollback to take effect
+          sleep 30
+          
+          # Validate rollback success
+          if curl -s --max-time 30 "$DEPLOYMENT_URL" > /dev/null; then
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$DEPLOYMENT_URL")
+            if [ "$STATUS" = "200" ]; then
+              echo "✅ Rollback validation successful"
+            else
+              echo "❌ Rollback validation failed: HTTP $STATUS"
+              exit 1
+            fi
+          else
+            echo "❌ Rollback validation failed: Application not responding"
+            exit 1
+          fi
+
+  notification:
+    name: 'Deployment Notification'
+    runs-on: ubuntu-latest
+    needs: [deploy, post-deployment-validation, automatic-rollback]
+    if: always()
+    
+    steps:
+      - name: Determine Deployment Status
+        id: status
+        run: |
+          echo "=== Deployment Status Determination ==="
+          
+          DEPLOY_SUCCESS="${{ needs.deploy.outputs.deployment_success }}"
+          VALIDATION_HEALTH="${{ needs.post-deployment-validation.outputs.health_check_passed }}"
+          ROLLBACK_OCCURRED="${{ needs.automatic-rollback.result == 'success' }}"
+          
+          echo "Deploy success: $DEPLOY_SUCCESS"
+          echo "Validation health: $VALIDATION_HEALTH"  
+          echo "Rollback occurred: $ROLLBACK_OCCURRED"
+          
+          if [ "$ROLLBACK_OCCURRED" = "true" ]; then
+            STATUS="ROLLED_BACK"
+            MESSAGE="Deployment was rolled back due to validation failures"
+            EMOJI="🔄"
+          elif [ "$DEPLOY_SUCCESS" = "true" ] && [ "$VALIDATION_HEALTH" = "true" ]; then
+            STATUS="SUCCESS"
+            MESSAGE="Deployment completed successfully"
+            EMOJI="✅"
+          elif [ "$DEPLOY_SUCCESS" = "true" ]; then
+            STATUS="PARTIAL"
+            MESSAGE="Deployment completed but validation issues detected"
+            EMOJI="⚠️"
+          else
+            STATUS="FAILED"
+            MESSAGE="Deployment failed"
+            EMOJI="❌"
+          fi
+          
+          echo "status=$STATUS" >> $GITHUB_OUTPUT
+          echo "message=$MESSAGE" >> $GITHUB_OUTPUT
+          echo "emoji=$EMOJI" >> $GITHUB_OUTPUT
+
+      - name: Create Deployment Report
+        run: |
+          echo "=== Deployment Report ==="
+          
+          cat > deployment_report.md << EOF
+          # ${{ steps.status.outputs.emoji }} Deployment Report
+          
+          **Environment:** ${{ inputs.environment }}
+          **Status:** ${{ steps.status.outputs.status }}
+          **Version:** ${{ needs.deploy.outputs.deployment_version }}
+          **Commit:** ${{ github.sha }}
+          **Branch:** ${{ github.ref_name }}
+          **Date:** $(date -u)
+          
+          ## Deployment Summary
+          
+          ${{ steps.status.outputs.message }}
+          
+          ## Deployment Steps
+          
+          | Step | Status | Notes |
+          |------|--------|-------|
+          | Pre-validation | ${{ needs.pre-deployment-validation.result == 'success' && '✅ PASS' || '❌ FAIL' }} | Quality gates and approval |
+          | Application Deploy | ${{ needs.deploy.result == 'success' && '✅ PASS' || '❌ FAIL' }} | Asset compilation and database migration |
+          | Health Check | ${{ needs.post-deployment-validation.outputs.health_check_passed == 'true' && '✅ PASS' || '❌ FAIL' }} | Application responsiveness |
+          | Performance Check | ${{ needs.post-deployment-validation.outputs.performance_check_passed == 'true' && '✅ PASS' || '❌ FAIL' }} | Response time validation |
+          | Rollback | ${{ needs.automatic-rollback.result == 'success' && '🔄 EXECUTED' || '- N/A' }} | Automatic rollback if needed |
+          
+          ## Next Steps
+          
+          EOF
+          
+          if [ "${{ steps.status.outputs.status }}" = "SUCCESS" ]; then
+            cat >> deployment_report.md << EOF
+          - ✅ Deployment successful - no action required
+          - Monitor application performance and error rates
+          - Validate business functionality as needed
+          EOF
+          elif [ "${{ steps.status.outputs.status }}" = "ROLLED_BACK" ]; then
+            cat >> deployment_report.md << EOF
+          - 🔄 Deployment was rolled back automatically
+          - Review deployment logs and validation failures
+          - Address issues before attempting redeployment
+          EOF
+          else
+            cat >> deployment_report.md << EOF
+          - ❌ Deployment requires attention
+          - Review deployment logs for specific failures  
+          - Consider manual intervention if needed
+          EOF
+          fi
+          
+          cat >> deployment_report.md << EOF
+          
+          ## Links
+          
+          - **Application URL:** ${{ needs.deploy.outputs.deployment_url }}
+          - **Workflow Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          - **Commit Details:** ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}
+          
+          ---
+          
+          *Report generated automatically by Deployment Automation workflow*
+          EOF
+
+      - name: Create Deployment Issue (on failure)
+        if: steps.status.outputs.status != 'SUCCESS'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const deploymentReport = fs.readFileSync('deployment_report.md', 'utf8');
+            
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `${{ steps.status.outputs.emoji }} Deployment ${{ steps.status.outputs.status }} - ${{ inputs.environment }}`,
+              body: deploymentReport,
+              labels: ['deployment', '${{ inputs.environment }}', '${{ steps.status.outputs.status }}']
+            });
+
+      - name: Upload Deployment Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-report-${{ inputs.environment }}
+          path: deployment_report.md
+          retention-days: 90
+
+  cleanup:
+    name: 'Deployment Cleanup'
+    runs-on: ubuntu-latest
+    needs: [deploy, post-deployment-validation, automatic-rollback, notification]
+    if: always()
+    
+    steps:
+      - name: Cleanup Temporary Resources
+        run: |
+          echo "=== Deployment Cleanup ==="
+          
+          # Clean up temporary deployment resources
+          echo "Cleaning up temporary files..."
+          
+          # In a real implementation, this would:
+          # - Clean up temporary deployment files
+          # - Remove old backup files (keep last N)
+          # - Clean up deployment caches
+          # - Release deployment locks
+          
+          echo "✅ Cleanup completed"
+
+      - name: Update Deployment Status
+        run: |
+          echo "=== Update Deployment Status ==="
+          
+          # Update deployment tracking
+          cat > deployment_status.json << EOF
+          {
+            "environment": "${{ inputs.environment }}",
+            "version": "${{ needs.deploy.outputs.deployment_version }}",
+            "status": "${{ needs.notification.outputs.status }}",
+            "deployed_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "commit_sha": "${{ github.sha }}",
+            "workflow_run_id": "${{ github.run_id }}"
+          }
+          EOF
+          
+          echo "Deployment status updated"

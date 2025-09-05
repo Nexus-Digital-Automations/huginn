@@ -96,6 +96,35 @@ Rails.application.routes.draw do
 
   get "/worker_status" => "worker_status#show"
 
+  # Error Monitoring System Routes
+  resources :error_monitoring, :only => [:index] do
+    collection do
+      get :statistics
+      get :trends
+      get :circuit_breakers
+      get :recovery
+      get :health
+      get :configuration
+      post :configuration, action: :update_configuration
+      get :export_report
+      post :force_circuit_state
+      post :reset_circuit_breaker
+      post :enable_degradation
+      post :restore_functionality
+    end
+  end
+
+  # Performance Monitoring Dashboard Routes
+  get "/performance_monitoring" => "performance_monitoring#dashboard"
+  get "/performance_monitoring/dashboard" => "performance_monitoring#dashboard"  
+  get "/performance_monitoring/metrics" => "performance_monitoring#metrics"
+  get "/performance_monitoring/status" => "performance_monitoring#status"
+  get "/performance_monitoring/alerts" => "performance_monitoring#alerts"
+  get "/performance_monitoring/history" => "performance_monitoring#history"
+  get "/performance_monitoring/recommendations" => "performance_monitoring#recommendations"
+  get "/performance_monitoring/report" => "performance_monitoring#report"
+  post "/performance_monitoring/run_tests" => "performance_monitoring#run_tests"
+
   match "/users/:user_id/web_requests/:agent_id/:secret" => "web_requests#handle_request", :as => :web_requests, :via => [:get, :post, :put, :delete]
   post  "/users/:user_id/webhooks/:agent_id/:secret" => "web_requests#handle_request" # legacy
   post  "/users/:user_id/update_location/:secret" => "web_requests#update_location" # legacy

@@ -1,0 +1,289 @@
+# Performance Monitoring Configuration
+# 
+# This file contains configuration settings for the comprehensive performance monitoring system.
+# Settings can be overridden by environment variables using the pattern:
+# PERFORMANCE_MONITORING_<SECTION>_<SETTING> (e.g., PERFORMANCE_MONITORING_RESPONSE_MONITOR_DEFAULT_THRESHOLD)
+
+# Response Time Monitoring Configuration
+response_monitor:
+  # Default response time threshold in seconds (200ms = 0.2 seconds)
+  default_threshold: 0.2
+  
+  # Sampling rate for monitoring (0.0 to 1.0, where 1.0 = monitor all requests)
+  sampling_rate: 1.0
+  
+  # Enable detailed logging in development
+  enable_detailed_logging: true
+  
+  # Metrics storage backend (:memory, :redis, :database)
+  metrics_storage: :memory
+  
+  # Critical paths with specific thresholds and alert levels
+  critical_paths:
+    # Agent execution and event processing
+    agent_execution:
+      threshold: 0.15  # 150ms threshold for agent execution
+      alert_level: :error
+      description: "Core agent execution and event processing"
+      
+    agent_check:
+      threshold: 0.10  # 100ms threshold for agent checks
+      alert_level: :warning
+      description: "Agent periodic check operations"
+      
+    event_processing:
+      threshold: 0.20  # 200ms threshold for event processing
+      alert_level: :warning
+      description: "Event creation and propagation"
+    
+    # User authentication and session management
+    user_authentication:
+      threshold: 0.05  # 50ms threshold for authentication
+      alert_level: :error
+      description: "User login and authentication"
+      
+    user_authorization:
+      threshold: 0.03  # 30ms threshold for authorization
+      alert_level: :warning
+      description: "User permission and access checks"
+    
+    # Database queries and transaction performance  
+    database_query:
+      threshold: 0.10  # 100ms threshold for database queries
+      alert_level: :warning
+      description: "Database query execution"
+      
+    database_transaction:
+      threshold: 0.25  # 250ms threshold for transactions
+      alert_level: :error
+      description: "Database transaction processing"
+    
+    # API endpoint response times
+    api_agents_index:
+      threshold: 0.15  # 150ms for agents listing
+      alert_level: :warning
+      description: "Agents index API endpoint"
+      
+    api_events_index:
+      threshold: 0.20  # 200ms for events listing
+      alert_level: :warning
+      description: "Events index API endpoint"
+      
+    api_agent_create:
+      threshold: 0.30  # 300ms for agent creation
+      alert_level: :error
+      description: "Agent creation API endpoint"
+    
+    # Background job processing performance
+    delayed_job_processing:
+      threshold: 2.0   # 2 second threshold for background jobs
+      alert_level: :warning
+      description: "Delayed job processing"
+      
+    agent_propagate_job:
+      threshold: 1.0   # 1 second threshold for propagation jobs
+      alert_level: :error
+      description: "Agent event propagation jobs"
+
+# Benchmark System Configuration
+benchmark_system:
+  # Performance degradation thresholds
+  performance_degradation_threshold: 0.08    # 8% degradation triggers warning
+  critical_degradation_threshold: 0.20       # 20% degradation triggers critical alert
+  improvement_threshold: 0.05                # 5% improvement detection threshold
+  
+  # Baseline and results storage paths
+  baseline_file: "config/performance_baseline.json"
+  results_directory: "development/reports/benchmarks"
+  
+  # Benchmark execution settings
+  warmup_iterations: 3      # Number of warmup iterations
+  benchmark_iterations: 10  # Number of measurement iterations
+  auto_update_baseline: false  # Automatically update baseline with new results
+  
+  # Benchmark suites configuration
+  benchmark_suites:
+    agent_performance:
+      description: "Core agent performance benchmarks"
+      tests:
+        - agent_creation
+        - agent_execution
+        - event_propagation
+        - memory_cleanup
+    
+    database_performance:
+      description: "Database operation benchmarks"
+      tests:
+        - query_performance
+        - transaction_speed
+        - connection_overhead
+        - migration_speed
+    
+    api_performance:
+      description: "API endpoint performance benchmarks"  
+      tests:
+        - authentication_speed
+        - data_serialization
+        - request_processing
+        - response_generation
+
+# Resource Monitoring Configuration
+resource_monitor:
+  # Memory monitoring thresholds (percentages)
+  memory_warning_threshold: 75     # 75% memory usage warning
+  memory_critical_threshold: 90    # 90% memory usage critical alert
+  
+  # CPU monitoring thresholds (percentages)
+  cpu_warning_threshold: 80        # 80% CPU usage warning
+  cpu_critical_threshold: 95       # 95% CPU usage critical alert
+  
+  # Garbage collection monitoring
+  gc_frequency_threshold: 50       # GC runs per minute threshold
+  
+  # Database connection monitoring
+  database_connection_threshold: 80 # 80% of max connections threshold
+  
+  # Monitoring intervals and retention
+  monitoring_interval: 60          # Seconds between resource snapshots
+  history_retention_days: 7        # Days to retain monitoring history
+  
+  # Storage configuration
+  storage_directory: "development/reports/resource_monitoring"
+  
+  # Automated optimization recommendations
+  optimization_analysis_window: 24  # Hours of data for optimization analysis
+
+# Regression Detection Configuration
+regression_detector:
+  # Regression detection thresholds
+  regression_threshold: 0.08           # 8% performance degradation threshold
+  critical_regression_threshold: 0.20  # 20% critical regression threshold
+  improvement_threshold: 0.05          # 5% improvement detection threshold
+  
+  # Statistical analysis settings
+  minimum_sample_size: 3              # Minimum test runs for statistical significance
+  confidence_level: 0.90              # 90% confidence level for statistical tests
+  statistical_test_method: :welch_t_test  # Statistical test method (:welch_t_test, :mann_whitney)
+  outlier_detection_enabled: true     # Enable outlier detection and removal
+  
+  # Test execution settings
+  warmup_runs: 2                      # Number of warmup runs before measurement
+  measurement_runs: 5                 # Number of measurement runs for analysis
+  
+  # Storage configuration
+  baseline_storage_path: "config/performance_baselines"
+  results_storage_path: "development/reports/regression_detection"
+  
+  # CI/CD integration settings
+  ci_cd_integration:
+    fail_on_critical_regression: true    # Fail CI/CD pipeline on critical regressions
+    warn_on_regression: true            # Show warnings for non-critical regressions
+    require_baseline: false             # Require baseline for all tests
+    auto_update_baseline_on_success: false # Update baseline when all tests pass
+
+# Dashboard Integration Configuration
+dashboard:
+  # Real-time monitoring dashboard settings
+  enabled: true
+  update_interval: 30                 # Seconds between dashboard updates
+  
+  # Performance metrics to display
+  metrics:
+    - response_times
+    - memory_usage
+    - cpu_usage
+    - gc_frequency
+    - database_connections
+    - active_agents
+    - event_processing_rate
+  
+  # Historical data ranges for dashboard charts
+  time_ranges:
+    - "1h"    # Last hour
+    - "6h"    # Last 6 hours  
+    - "24h"   # Last 24 hours
+    - "7d"    # Last 7 days
+  
+  # Alert thresholds for dashboard indicators
+  alert_indicators:
+    response_time_slow: 0.5           # 500ms response time shows as slow
+    memory_usage_high: 85             # 85% memory usage shows as high
+    cpu_usage_high: 90                # 90% CPU usage shows as high
+    error_rate_high: 0.05            # 5% error rate shows as high
+
+# Alerting Configuration  
+alerting:
+  # Alert delivery methods
+  methods:
+    - :log        # Log alerts to application log
+    - :email      # Send email alerts (requires configuration)
+    # - :slack    # Send Slack notifications (requires webhook configuration)
+    # - :webhook  # Send webhook notifications
+  
+  # Email alerting configuration (if enabled)
+  email:
+    enabled: false
+    smtp_host: "localhost"
+    smtp_port: 587
+    from_address: "performance-alerts@huginn.local"
+    to_addresses:
+      - "admin@huginn.local"
+  
+  # Slack alerting configuration (if enabled)  
+  slack:
+    enabled: false
+    webhook_url: ""
+    channel: "#performance-alerts"
+    username: "Huginn Performance Monitor"
+  
+  # Webhook alerting configuration (if enabled)
+  webhook:
+    enabled: false
+    url: ""
+    method: "POST"
+    headers:
+      Content-Type: "application/json"
+  
+  # Alert rate limiting
+  rate_limiting:
+    enabled: true
+    max_alerts_per_hour: 10          # Maximum alerts per hour per type
+    cooldown_period: 300             # Seconds between duplicate alerts
+
+# Environment-specific overrides
+development:
+  response_monitor:
+    enable_detailed_logging: true
+    sampling_rate: 1.0
+  benchmark_system:
+    benchmark_iterations: 5          # Fewer iterations in development
+  resource_monitor:
+    monitoring_interval: 30          # More frequent monitoring in development
+  alerting:
+    methods:
+      - :log                         # Only log alerts in development
+
+test:
+  response_monitor:
+    enable_detailed_logging: false
+    sampling_rate: 0.1               # Minimal monitoring in tests
+  benchmark_system:
+    benchmark_iterations: 3          # Minimal iterations in tests
+  resource_monitor:
+    monitoring_interval: 300         # Less frequent monitoring in tests
+  alerting:
+    methods: []                      # No alerts in test environment
+
+production:
+  response_monitor:
+    enable_detailed_logging: false
+    sampling_rate: 0.1               # Sample 10% of requests in production
+  alerting:
+    methods:
+      - :log
+      - :email                       # Enable email alerts in production
+    email:
+      enabled: true
+    rate_limiting:
+      enabled: true
+      max_alerts_per_hour: 5         # Lower rate limit in production

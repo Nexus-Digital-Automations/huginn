@@ -1,0 +1,616 @@
+<%# Error Monitoring Dashboard - Main Overview %>
+<% content_for :title, "Error Monitoring Dashboard" %>
+
+<div class="error-monitoring-dashboard">
+  <div class="dashboard-header">
+    <div class="row">
+      <div class="col-md-8">
+        <h1 class="page-title">
+          <i class="fa fa-shield-alt"></i>
+          Error Monitoring Dashboard
+        </h1>
+        <p class="page-subtitle">
+          Real-time error tracking and system health monitoring
+        </p>
+      </div>
+      <div class="col-md-4 text-right">
+        <div class="dashboard-actions">
+          <%= link_to "Export Report", export_report_error_monitoring_index_path, 
+                      class: "btn btn-outline-primary", 
+                      data: { 
+                        toggle: "modal", 
+                        target: "#exportModal" 
+                      } %>
+          <%= link_to "Configuration", configuration_error_monitoring_index_path, 
+                      class: "btn btn-outline-secondary" %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <% if @dashboard_data[:error] %>
+    <div class="alert alert-danger">
+      <strong>Dashboard Error:</strong> <%= @dashboard_data[:error] %>
+    </div>
+  <% else %>
+    <!-- System Health Overview -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="card system-health-card">
+          <div class="card-header">
+            <h3 class="card-title">
+              <i class="fa fa-heartbeat"></i>
+              System Health Overview
+            </h3>
+            <div class="card-tools">
+              <span class="badge badge-<%= health_status_color(@dashboard_data[:system_health]) %>">
+                <%= @dashboard_data[:system_health].to_s.humanize %>
+              </span>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <!-- Error Rate Status -->
+              <div class="col-md-3">
+                <div class="metric-box">
+                  <div class="metric-header">
+                    <i class="fa fa-exclamation-triangle text-<%= @dashboard_data[:threshold_compliance] ? 'success' : 'danger' %>"></i>
+                    <span class="metric-label">Error Rate</span>
+                  </div>
+                  <div class="metric-value">
+                    <%= number_to_percentage(@dashboard_data[:current_error_rate] * 100, precision: 4) %>
+                  </div>
+                  <div class="metric-status">
+                    <small class="text-muted">
+                      Threshold: <%= number_to_percentage(@dashboard_data[:error_rate_threshold] * 100, precision: 2) %>
+                    </small>
+                    <span class="badge badge-<%= @dashboard_data[:threshold_compliance] ? 'success' : 'danger' %>">
+                      <%= @dashboard_data[:threshold_compliance] ? 'Compliant' : 'Breach' %>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Circuit Breaker Status -->
+              <div class="col-md-3">
+                <div class="metric-box">
+                  <div class="metric-header">
+                    <i class="fa fa-plug text-<%= circuit_breaker_color(@dashboard_data[:circuit_breaker_status][:overall_health]) %>"></i>
+                    <span class="metric-label">Circuit Breakers</span>
+                  </div>
+                  <div class="metric-value">
+                    <%= @dashboard_data[:circuit_breaker_status][:services].length %>
+                  </div>
+                  <div class="metric-status">
+                    <small class="text-muted">Services Monitored</small>
+                    <span class="badge badge-<%= circuit_breaker_color(@dashboard_data[:circuit_breaker_status][:overall_health]) %>">
+                      <%= @dashboard_data[:circuit_breaker_status][:overall_health].to_s.humanize %>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Recovery System -->
+              <div class="col-md-3">
+                <div class="metric-box">
+                  <div class="metric-header">
+                    <i class="fa fa-sync-alt text-<%= recovery_system_color(@dashboard_data[:recovery_status][:overall_health]) %>"></i>
+                    <span class="metric-label">Recovery System</span>
+                  </div>
+                  <div class="metric-value">
+                    <%= @dashboard_data[:recovery_status][:active_degradations].length %>
+                  </div>
+                  <div class="metric-status">
+                    <small class="text-muted">Active Degradations</small>
+                    <span class="badge badge-<%= recovery_system_color(@dashboard_data[:recovery_status][:overall_health]) %>">
+                      <%= @dashboard_data[:recovery_status][:overall_health].to_s.humanize %>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Recent Activity -->
+              <div class="col-md-3">
+                <div class="metric-box">
+                  <div class="metric-header">
+                    <i class="fa fa-clock text-info"></i>
+                    <span class="metric-label">Recent Activity</span>
+                  </div>
+                  <div class="metric-value">
+                    <%= @dashboard_data[:recovery_status][:recent_recovery_activity][:last_hour] %>
+                  </div>
+                  <div class="metric-status">
+                    <small class="text-muted">Recovery Attempts (1h)</small>
+                    <span class="badge badge-info">
+                      <%= number_to_percentage(@dashboard_data[:recovery_status][:recent_recovery_activity][:success_rate_1h] * 100, precision: 1) %> Success
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Alerts -->
+    <% if @dashboard_data[:alert_summary].any? %>
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="card alert-summary-card">
+            <div class="card-header bg-warning text-dark">
+              <h3 class="card-title">
+                <i class="fa fa-bell"></i>
+                Active Alerts
+                <span class="badge badge-light"><%= @dashboard_data[:alert_summary].length %></span>
+              </h3>
+            </div>
+            <div class="card-body p-0">
+              <div class="list-group list-group-flush">
+                <% @dashboard_data[:alert_summary].each do |alert| %>
+                  <div class="list-group-item alert-item">
+                    <div class="d-flex w-100 justify-content-between">
+                      <div class="alert-content">
+                        <span class="badge badge-<%= alert_severity_color(alert[:severity]) %> mr-2">
+                          <%= alert[:severity].to_s.humanize %>
+                        </span>
+                        <strong><%= alert[:type].to_s.humanize %></strong>
+                        <p class="mb-0 text-muted"><%= alert[:message] %></p>
+                      </div>
+                      <small class="text-muted">
+                        <%= time_ago_in_words(alert[:timestamp]) %> ago
+                      </small>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    <% end %>
+
+    <!-- Main Dashboard Content -->
+    <div class="row">
+      <!-- Error Trends Chart -->
+      <div class="col-lg-8">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">
+              <i class="fa fa-chart-line"></i>
+              Error Trends (Last 24 Hours)
+            </h3>
+            <div class="card-tools">
+              <div class="btn-group btn-group-sm">
+                <button class="btn btn-outline-secondary active" data-time-range="24">24h</button>
+                <button class="btn btn-outline-secondary" data-time-range="72">3d</button>
+                <button class="btn btn-outline-secondary" data-time-range="168">7d</button>
+              </div>
+            </div>
+          </div>
+          <div class="card-body">
+            <canvas id="errorTrendsChart" height="100"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Stats -->
+      <div class="col-lg-4">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">
+              <i class="fa fa-tachometer-alt"></i>
+              Quick Statistics
+            </h3>
+          </div>
+          <div class="card-body">
+            <div class="quick-stats">
+              <div class="stat-item">
+                <span class="stat-label">Total Errors (24h)</span>
+                <span class="stat-value text-danger">
+                  <%= @dashboard_data[:recent_errors].length %>
+                </span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Open Circuits</span>
+                <span class="stat-value text-warning">
+                  <%= @dashboard_data[:circuit_breaker_status][:services].count { |name, status| status[:state] == :open } %>
+                </span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Recovery Success Rate</span>
+                <span class="stat-value text-success">
+                  <%= number_to_percentage(@dashboard_data[:recovery_status][:recent_recovery_activity][:success_rate_1h] * 100, precision: 1) %>
+                </span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">System Uptime</span>
+                <span class="stat-value text-info">
+                  <%= calculate_system_uptime(@dashboard_data) %>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Navigation Links -->
+        <div class="card mt-3">
+          <div class="card-header">
+            <h3 class="card-title">
+              <i class="fa fa-sitemap"></i>
+              Monitoring Sections
+            </h3>
+          </div>
+          <div class="card-body p-0">
+            <div class="list-group list-group-flush">
+              <%= link_to statistics_error_monitoring_index_path, class: "list-group-item list-group-item-action" do %>
+                <i class="fa fa-chart-bar text-primary"></i>
+                <strong>Detailed Statistics</strong>
+                <small class="text-muted d-block">Comprehensive error analytics and metrics</small>
+              <% end %>
+              
+              <%= link_to trends_error_monitoring_index_path, class: "list-group-item list-group-item-action" do %>
+                <i class="fa fa-trending-up text-info"></i>
+                <strong>Trends & Patterns</strong>
+                <small class="text-muted d-block">Error pattern analysis and trending data</small>
+              <% end %>
+              
+              <%= link_to circuit_breakers_error_monitoring_index_path, class: "list-group-item list-group-item-action" do %>
+                <i class="fa fa-plug text-warning"></i>
+                <strong>Circuit Breakers</strong>
+                <small class="text-muted d-block">Service protection and failure isolation</small>
+              <% end %>
+              
+              <%= link_to recovery_error_monitoring_index_path, class: "list-group-item list-group-item-action" do %>
+                <i class="fa fa-sync-alt text-success"></i>
+                <strong>Recovery Management</strong>
+                <small class="text-muted d-block">Automated recovery and degradation control</small>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Errors -->
+    <div class="row mt-4">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">
+              <i class="fa fa-list"></i>
+              Recent Errors
+            </h3>
+            <div class="card-tools">
+              <%= link_to "View All", logs_path, class: "btn btn-sm btn-outline-primary" %>
+            </div>
+          </div>
+          <div class="card-body p-0">
+            <% if @dashboard_data[:recent_errors].any? %>
+              <div class="table-responsive">
+                <table class="table table-striped table-hover mb-0">
+                  <thead>
+                    <tr>
+                      <th>Time</th>
+                      <th>Severity</th>
+                      <th>Message</th>
+                      <th>Agent</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% @dashboard_data[:recent_errors].first(10).each do |error| %>
+                      <tr>
+                        <td>
+                          <span class="text-muted" title="<%= error[:created_at] %>">
+                            <%= time_ago_in_words(error[:created_at]) %> ago
+                          </span>
+                        </td>
+                        <td>
+                          <span class="badge badge-<%= severity_color(error[:severity]) %>">
+                            <%= error[:severity].to_s.humanize %>
+                          </span>
+                        </td>
+                        <td>
+                          <span class="error-message" title="<%= error[:message] %>">
+                            <%= truncate(error[:message], length: 100) %>
+                          </span>
+                        </td>
+                        <td>
+                          <% if error[:agent_id] %>
+                            <%= link_to "Agent ##{error[:agent_id]}", agent_path(error[:agent_id]), 
+                                        class: "text-primary" %>
+                          <% else %>
+                            <span class="text-muted">System</span>
+                          <% end %>
+                        </td>
+                        <td>
+                          <%= link_to logs_path(anchor: "log_#{error[:id]}"), 
+                                      class: "btn btn-sm btn-outline-info", 
+                                      title: "View Details" do %>
+                            <i class="fa fa-eye"></i>
+                          <% end %>
+                        </td>
+                      </tr>
+                    <% end %>
+                  </tbody>
+                </table>
+              </div>
+            <% else %>
+              <div class="text-center py-4">
+                <i class="fa fa-check-circle text-success fa-3x mb-3"></i>
+                <h4 class="text-muted">No Recent Errors</h4>
+                <p class="text-muted">Your system is running smoothly!</p>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+</div>
+
+<!-- Export Report Modal -->
+<div class="modal fade" id="exportModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Export Error Report</h5>
+        <button type="button" class="close" data-dismiss="modal">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <%= form_with url: export_report_error_monitoring_index_path, method: :get, class: "modal-body" do |f| %>
+        <div class="form-group">
+          <label for="hours">Time Range</label>
+          <%= f.select :hours, options_for_select([
+                ['Last 1 hour', 1],
+                ['Last 6 hours', 6], 
+                ['Last 24 hours', 24],
+                ['Last 3 days', 72],
+                ['Last 7 days', 168]
+              ], 24), {}, { class: "form-control" } %>
+        </div>
+        
+        <div class="form-group">
+          <label for="format">Export Format</label>
+          <%= f.select :format, options_for_select([
+                ['JSON', 'json'],
+                ['CSV', 'csv'],
+                ['YAML', 'yaml']
+              ], 'json'), {}, { class: "form-control" } %>
+        </div>
+        
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+          <%= f.submit "Export Report", class: "btn btn-primary" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<style>
+.error-monitoring-dashboard {
+  margin: 20px 0;
+}
+
+.dashboard-header {
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.page-title {
+  margin: 0;
+  color: #495057;
+}
+
+.page-subtitle {
+  color: #6c757d;
+  margin: 5px 0 0 0;
+}
+
+.system-health-card .card-header {
+  background-color: #f8f9fa;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.metric-box {
+  text-align: center;
+  padding: 20px 10px;
+  border-right: 1px solid #dee2e6;
+}
+
+.metric-box:last-child {
+  border-right: none;
+}
+
+.metric-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.metric-header i {
+  margin-right: 8px;
+  font-size: 1.2em;
+}
+
+.metric-label {
+  font-size: 0.9em;
+  font-weight: 600;
+  color: #6c757d;
+}
+
+.metric-value {
+  font-size: 2em;
+  font-weight: bold;
+  margin: 10px 0;
+  color: #495057;
+}
+
+.metric-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.alert-item {
+  border-left: 4px solid #ffc107;
+}
+
+.alert-item:hover {
+  background-color: #f8f9fa;
+}
+
+.alert-content {
+  flex-grow: 1;
+}
+
+.quick-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.stat-item {
+  display: flex;
+  justify-content: between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.stat-item:last-child {
+  border-bottom: none;
+}
+
+.stat-label {
+  font-size: 0.9em;
+  color: #6c757d;
+  flex-grow: 1;
+}
+
+.stat-value {
+  font-weight: bold;
+  font-size: 1.1em;
+}
+
+.error-message {
+  font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+  font-size: 0.9em;
+}
+
+@media (max-width: 768px) {
+  .metric-box {
+    border-right: none;
+    border-bottom: 1px solid #dee2e6;
+    margin-bottom: 15px;
+  }
+  
+  .metric-box:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+  }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize error trends chart
+  const ctx = document.getElementById('errorTrendsChart');
+  if (ctx) {
+    const trendsData = <%= @dashboard_data[:error_trends].to_json.html_safe %>;
+    initializeErrorTrendsChart(ctx, trendsData);
+  }
+  
+  // Handle time range buttons
+  document.querySelectorAll('[data-time-range]').forEach(button => {
+    button.addEventListener('click', function() {
+      const timeRange = this.dataset.timeRange;
+      updateDashboardTimeRange(timeRange);
+    });
+  });
+  
+  // Auto-refresh dashboard every 30 seconds
+  setInterval(function() {
+    refreshHealthStatus();
+  }, 30000);
+});
+
+function initializeErrorTrendsChart(ctx, data) {
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: data.map(d => new Date(d.hour).toLocaleTimeString()),
+      datasets: [{
+        label: 'Error Count',
+        data: data.map(d => d.count),
+        borderColor: '#dc3545',
+        backgroundColor: 'rgba(220, 53, 69, 0.1)',
+        tension: 0.4,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            stepSize: 1
+          }
+        }
+      },
+      plugins: {
+        legend: {
+          display: false
+        }
+      }
+    }
+  });
+}
+
+function updateDashboardTimeRange(hours) {
+  // Update active button
+  document.querySelectorAll('[data-time-range]').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  document.querySelector(`[data-time-range="${hours}"]`).classList.add('active');
+  
+  // Reload page with new time range
+  window.location.href = `?hours=${hours}`;
+}
+
+function refreshHealthStatus() {
+  fetch('<%= health_error_monitoring_index_path %>')
+    .then(response => response.json())
+    .then(data => {
+      updateHealthIndicators(data);
+    })
+    .catch(error => {
+      console.warn('Health status refresh failed:', error);
+    });
+}
+
+function updateHealthIndicators(data) {
+  // Update error rate
+  const errorRateElement = document.querySelector('.metric-value');
+  if (errorRateElement && data.error_rate) {
+    errorRateElement.textContent = (data.error_rate.current * 100).toFixed(4) + '%';
+  }
+  
+  // Update status badges
+  const statusElements = document.querySelectorAll('.badge');
+  statusElements.forEach(badge => {
+    if (badge.textContent.includes('Compliant') || badge.textContent.includes('Breach')) {
+      badge.textContent = data.error_rate.status === 'compliant' ? 'Compliant' : 'Breach';
+      badge.className = `badge badge-${data.error_rate.status === 'compliant' ? 'success' : 'danger'}`;
+    }
+  });
+}
+</script>

@@ -171,11 +171,11 @@ module QualityGates
         integrations[:webhook_endpoints] = { type: 'http', required: true }
       end
       
-      if feature_name.match?/(twitter|social|api)/i)
+      if feature_name.match?(/(twitter|social|api)/i)
         integrations[:oauth_provider] = { type: 'oauth2', required: true }
       end
       
-      if feature_name.match?/(database|mysql|postgres)/i)
+      if feature_name.match?(/(database|mysql|postgres)/i)
         integrations[:database] = { type: 'sql', required: true }
       end
       
@@ -209,7 +209,7 @@ module QualityGates
         modifications[:agent_type] = extract_agent_type_from_name(feature_name)
       end
       
-      if feature_name.match?/(modify|update|enhance).*agent/i)
+      if feature_name.match?(/(modify|update|enhance).*agent/i)
         modifications[:existing_agent] = true
       end
       

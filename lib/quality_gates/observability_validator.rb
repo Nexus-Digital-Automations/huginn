@@ -133,7 +133,7 @@ module QualityGates
         end
 
         # Detect logging libraries
-        if content.match?/lograge|semantic_logger|rails_semantic_logger/i
+        if content.match?(lograge|semantic_logger|rails_semantic_logger/i)
           logging_libraries << extract_logging_gems(content)
         end
       end
@@ -266,7 +266,7 @@ module QualityGates
 
       config_files.each do |file_path|
         content = File.read(file_path)
-        if content.match?/daily|weekly|size|rotate/i
+        if content.match?(daily|weekly|size|rotate/i)
           has_rotation = true
           break
         end
@@ -326,7 +326,7 @@ module QualityGates
       config_files = find_configuration_files
       has_aggregation_config = config_files.any? do |file|
         content = File.read(file)
-        content.match?/fluentd|logstash|elasticsearch|datadog|newrelic/i
+        content.match?(fluentd|logstash|elasticsearch|datadog|newrelic/i)
       end
 
       {
@@ -480,7 +480,7 @@ module QualityGates
 
       config_files.each do |file_path|
         content = File.read(file_path)
-        if content.match?/memory|cpu|disk|network|gc|database_pool/i
+        if content.match?(memory|cpu|disk|network|gc|database_pool/i)
           system_metrics_config = true
           break
         end
@@ -772,7 +772,7 @@ module QualityGates
       ruby_files = find_ruby_files
       readiness_logic = ruby_files.any? do |file_path|
         content = File.read(file_path)
-        content.match?/ready\?|readiness|ready.*?check/i
+        content.match?(/ready\?|readiness|ready.*?check/i)
       end
 
       {
@@ -795,7 +795,7 @@ module QualityGates
       ruby_files = find_ruby_files
       liveness_logic = ruby_files.any? do |file_path|
         content = File.read(file_path)
-        content.match?/alive\?|liveness|live.*?check/i
+        content.match?(/alive\?|liveness|live.*?check/i)
       end
 
       {
@@ -924,7 +924,7 @@ module QualityGates
 
       config_files.each do |file_path|
         content = File.read(file_path)
-        if content.match?/alert|notification|webhook|email.*?error/i
+        if content.match?(/alert|notification|webhook|email.*?error/i)
           has_alerting = true
           break
         end
@@ -1013,7 +1013,7 @@ module QualityGates
 
       config_files.each do |file_path|
         content = File.read(file_path)
-        if content.match?/query.*?log|slow.*?query|database.*?log/i
+        if content.match?(query.*?log|slow.*?query|database.*?log/i)
           db_monitoring = true
           break
         end
@@ -1088,7 +1088,7 @@ module QualityGates
       config_files.each do |file_path|
         content = File.read(file_path)
         
-        if content.match?/alert|rule|threshold/i
+        if content.match?(alert|rule|threshold/i)
           alert_indicators = content.scan(/(?:error_rate|response_time|memory|cpu) > [\d.]+/i)
           if alert_indicators.any?
             alert_rules << {
@@ -1199,7 +1199,7 @@ module QualityGates
         next unless full_path.exist?
 
         content = full_path.read
-        if content.match?/chart|graph|panel|widget|visualization/i
+        if content.match?(chart|graph|panel|widget|visualization/i)
           has_visualizations = true
           break
         end

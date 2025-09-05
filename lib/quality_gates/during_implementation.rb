@@ -6,6 +6,10 @@ require_relative 'error_boundary_validator'
 require_relative 'integration_validator'
 require_relative 'documentation_validator'
 require_relative 'observability_validator'
+require_relative '../security_validation/vulnerability_scanner'
+require_relative '../security_validation/auth_validator'
+require_relative '../security_validation/data_protection_validator'
+require_relative '../security_validation/compliance_checker'
 
 module QualityGates
   # Main orchestrator for during-implementation quality gates
@@ -33,14 +37,32 @@ module QualityGates
         error_boundary: ErrorBoundaryValidator.new(project_root),
         integration: IntegrationValidator.new(project_root),
         documentation: DocumentationValidator.new(project_root),
-        observability: ObservabilityValidator.new(project_root)
+        observability: ObservabilityValidator.new(project_root),
+        security_vulnerability: SecurityValidation::VulnerabilityScanner.new(project_root),
+        security_auth: SecurityValidation::AuthValidator.new(project_root),
+        security_data_protection: SecurityValidation::DataProtectionValidator.new(project_root),
+        security_compliance: SecurityValidation::ComplianceChecker.new(project_root)
       }
 
       validation_results = {}
       validators.each do |name, validator|
         begin
           log_operation_step("Running #{name} validation")
-          validation_results[name] = validator.validate
+          
+          # Call appropriate validation method based on validator type
+          case name
+          when :security_vulnerability
+            validation_results[name] = validator.scan_all_vulnerabilities
+          when :security_auth
+            validation_results[name] = validator.validate_authentication_security
+          when :security_data_protection
+            validation_results[name] = validator.validate_data_protection
+          when :security_compliance
+            validation_results[name] = validator.validate_security_compliance
+          else
+            validation_results[name] = validator.validate
+          end
+          
           log_validation_summary(name, validation_results[name])
         rescue StandardError => e
           log_validation_error(name, e)
@@ -177,6 +199,14 @@ module QualityGates
         DocumentationValidator.new(project_root)
       when :observability, :monitoring, :logging
         ObservabilityValidator.new(project_root)
+      when :security, :security_validation, :vulnerability
+        SecurityValidation::VulnerabilityScanner.new(project_root)
+      when :security_auth, :authentication
+        SecurityValidation::AuthValidator.new(project_root)
+      when :security_data_protection, :data_protection, :encryption
+        SecurityValidation::DataProtectionValidator.new(project_root)
+      when :security_compliance, :compliance
+        SecurityValidation::ComplianceChecker.new(project_root)
       else
         logger.warn("⚠️  Unknown validator type: #{type}")
         nil

@@ -1,6 +1,45 @@
 # frozen_string_literal: true
 
+require 'logger' unless defined?(Logger)
+
 module QualityGates
+  # Data structure for validation results
+  class ValidationResult
+    attr_reader :passed, :errors, :warnings, :details
+
+    def initialize(passed:, errors: [], warnings: [], details: {})
+      @passed = passed
+      @errors = Array(errors)
+      @warnings = Array(warnings)
+      @details = details || {}
+    end
+
+    def passed?
+      @passed
+    end
+
+    def failed?
+      !@passed
+    end
+
+    def has_errors?
+      @errors.any?
+    end
+
+    def has_warnings?
+      @warnings.any?
+    end
+
+    def detailed_results
+      {
+        passed: @passed,
+        errors: @errors,
+        warnings: @warnings,
+        details: @details
+      }
+    end
+  end
+
   # Shared utilities module for Quality Gates validators
   # Provides common functionality used across all validation components
   module Utils

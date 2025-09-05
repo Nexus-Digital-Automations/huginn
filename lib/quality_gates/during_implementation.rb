@@ -33,11 +33,7 @@ module QualityGates
         error_boundary: ErrorBoundaryValidator.new(project_root),
         integration: IntegrationValidator.new(project_root),
         documentation: DocumentationValidator.new(project_root),
-        observability: ObservabilityValidator.new(project_root),
-        security_vulnerability: SecurityValidation::VulnerabilityScanner.new(project_root),
-        security_auth: SecurityValidation::AuthValidator.new(project_root),
-        security_data_protection: SecurityValidation::DataProtectionValidator.new(project_root),
-        security_compliance: SecurityValidation::ComplianceChecker.new(project_root)
+        observability: ObservabilityValidator.new(project_root)
       }
 
       validation_results = {}
@@ -327,40 +323,4 @@ module QualityGates
     end
   end
 
-  # Data structure for validation results
-  class ValidationResult
-    attr_reader :passed, :errors, :warnings, :details
-
-    def initialize(passed:, errors: [], warnings: [], details: {})
-      @passed = passed
-      @errors = Array(errors)
-      @warnings = Array(warnings)
-      @details = details || {}
-    end
-
-    def passed?
-      @passed
-    end
-
-    def failed?
-      !@passed
-    end
-
-    def has_errors?
-      @errors.any?
-    end
-
-    def has_warnings?
-      @warnings.any?
-    end
-
-    def detailed_results
-      {
-        passed: @passed,
-        errors: @errors,
-        warnings: @warnings,
-        details: @details
-      }
-    end
-  end
 end

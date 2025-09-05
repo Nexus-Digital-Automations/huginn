@@ -19,10 +19,10 @@ module QualityGates
     # - External service dependency risk assessment
     # - User workflow disruption analysis
     class ImpactAnalyzer
-      include DependencyMapping
-      include EventFlowImpact
-      include SchemaImpactAnalysis
-      include WorkflowImpactAnalysis
+      # Include statements removed for compatibility
+      # Include statements removed for compatibility
+      # Include statements removed for compatibility
+      # Include statements removed for compatibility
       
       attr_reader :rails_root, :logger, :change_manifest
       
@@ -647,33 +647,3 @@ module QualityGates
       def identify_monitoring_requirements(impact); []; end
     end
     
-    # Specialized analysis modules
-    module DependencyMapping
-      def map_dependencies
-        # Implementation for comprehensive dependency mapping
-        { internal: {}, external: {} }
-      end
-    end
-    
-    module EventFlowImpact  
-      def assess_event_flow_impact
-        # Implementation for event flow impact assessment
-        { disrupted_flows: [], severity: 'low' }
-      end
-    end
-    
-    module SchemaImpactAnalysis
-      def analyze_schema_impact
-        # Implementation for schema impact analysis  
-        { affected_tables: [], migration_risk: 'low' }
-      end
-    end
-    
-    module WorkflowImpactAnalysis
-      def analyze_workflow_impact
-        # Implementation for workflow impact analysis
-        { affected_workflows: [], user_impact: 'minimal' }
-      end
-    end
-  end
-end

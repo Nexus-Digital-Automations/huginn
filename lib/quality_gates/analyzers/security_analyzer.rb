@@ -21,11 +21,11 @@ module QualityGates
     # - External service integration security assessment
     # - Agent-specific security pattern validation
     class SecurityAnalyzer
-      include AuthenticationSecurity
-      include AuthorizationSecurity
-      include DataProtectionSecurity
-      include InputValidationSecurity
-      include ExternalServiceSecurity
+      # Include statements removed for compatibility
+      # Include statements removed for compatibility
+      # Include statements removed for compatibility
+      # Include statements removed for compatibility
+      # Include statements removed for compatibility
       
       attr_reader :rails_root, :logger, :config
       
@@ -880,40 +880,3 @@ module QualityGates
       end
     end
     
-    # Specialized security analysis modules
-    module AuthenticationSecurity
-      def analyze_authentication_mechanisms
-        # Implementation for authentication security analysis
-        { strength: 'good', vulnerabilities: [] }
-      end
-    end
-    
-    module AuthorizationSecurity
-      def analyze_authorization_patterns
-        # Implementation for authorization security analysis
-        { coverage: 80, patterns: ['ownership', 'role_based'] }
-      end
-    end
-    
-    module DataProtectionSecurity
-      def analyze_data_protection_measures
-        # Implementation for data protection analysis
-        { encryption: 'partial', compliance: 'basic' }
-      end
-    end
-    
-    module InputValidationSecurity
-      def analyze_input_validation_coverage
-        # Implementation for input validation analysis
-        { coverage: 85, sanitization: 'good' }
-      end
-    end
-    
-    module ExternalServiceSecurity
-      def analyze_external_service_security
-        # Implementation for external service security analysis
-        { integrations: 'secure', monitoring: 'basic' }
-      end
-    end
-  end
-end

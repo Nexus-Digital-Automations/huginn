@@ -20,10 +20,10 @@ module QualityGates
     # - Testing resource requirements and validation strategies
     # - Deployment resource requirements and rollout planning
     class ResourcePlanner
-      include ApiRequirementMapping
-      include DataRequirementAnalysis
-      include InfrastructureRequirements
-      include DevelopmentResourceEstimation
+      # Include statements removed for compatibility
+      # Include statements removed for compatibility
+      # Include statements removed for compatibility
+      # Include statements removed for compatibility
       
       attr_reader :rails_root, :logger, :config
       
@@ -761,33 +761,3 @@ module QualityGates
       end
     end
     
-    # Specialized resource planning modules
-    module ApiRequirementMapping
-      def map_api_requirements
-        # Implementation for API requirement mapping
-        { endpoints: [], authentication: {}, documentation: {} }
-      end
-    end
-    
-    module DataRequirementAnalysis
-      def analyze_data_requirements
-        # Implementation for data requirement analysis
-        { storage: {}, performance: {}, retention: {} }
-      end
-    end
-    
-    module InfrastructureRequirements
-      def assess_infrastructure_needs
-        # Implementation for infrastructure requirement assessment
-        { compute: {}, storage: {}, network: {} }
-      end
-    end
-    
-    module DevelopmentResourceEstimation
-      def estimate_development_resources
-        # Implementation for development resource estimation
-        { time: {}, skills: {}, team: {} }
-      end
-    end
-  end
-end

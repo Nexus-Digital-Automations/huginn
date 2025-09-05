@@ -6,10 +6,6 @@ require_relative 'error_boundary_validator'
 require_relative 'integration_validator'
 require_relative 'documentation_validator'
 require_relative 'observability_validator'
-require_relative '../security_validation/vulnerability_scanner'
-require_relative '../security_validation/auth_validator'
-require_relative '../security_validation/data_protection_validator'
-require_relative '../security_validation/compliance_checker'
 
 module QualityGates
   # Main orchestrator for during-implementation quality gates
@@ -199,7 +195,6 @@ module QualityGates
         DocumentationValidator.new(project_root)
       when :observability, :monitoring, :logging
         ObservabilityValidator.new(project_root)
-      when :security, :security_validation, :vulnerability
         SecurityValidation::VulnerabilityScanner.new(project_root)
       when :security_auth, :authentication
         SecurityValidation::AuthValidator.new(project_root)

@@ -3,6 +3,11 @@
 require 'logger'
 require 'yaml'
 require 'json'
+require_relative 'configuration'
+require_relative 'reporter'
+require_relative 'dashboard'
+require_relative 'notifier'
+require_relative 'execution_result'
 
 module QualityGates
   # Central orchestrator that coordinates all quality gate components and provides

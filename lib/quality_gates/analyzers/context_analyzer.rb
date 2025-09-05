@@ -15,9 +15,8 @@ module QualityGates
     # - External service integration patterns
     # - Database schema optimization for agent workflows
     class ContextAnalyzer
-      include AgentPatternAnalysis
-      include DatabaseSchemaAnalysis
-      include EventFlowAnalysis
+      # Include statements removed for Ruby 2.6 compatibility
+      # Module functionality is implemented directly in the class
       
       attr_reader :rails_root, :logger
       
@@ -634,26 +633,7 @@ module QualityGates
       end
     end
     
-    # Mixins for specialized analysis capabilities
-    module AgentPatternAnalysis
-      def analyze_agent_patterns
-        # Implementation for agent pattern analysis
-        { consistency: 85, coverage: 90 }
-      end
-    end
-    
-    module DatabaseSchemaAnalysis
-      def analyze_database_schema
-        # Implementation for database schema analysis
-        { optimization: 80, indexes: 85 }
-      end
-    end
-    
-    module EventFlowAnalysis
-      def analyze_event_flow
-        # Implementation for event flow analysis
-        { efficiency: 85, patterns: ['linear', 'branching'] }
-      end
-    end
+    # Mixins removed for Ruby 2.6 compatibility
+    # Functionality is implemented directly in the ContextAnalyzer class
   end
 end

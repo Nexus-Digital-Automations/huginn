@@ -1013,7 +1013,7 @@ module QualityGates
 
       config_files.each do |file_path|
         content = File.read(file_path)
-        if content.match?(query.*?log|slow.*?query|database.*?log/i)
+        if content.match?(/query.*?log|slow.*?query|database.*?log/i)
           db_monitoring = true
           break
         end

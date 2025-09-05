@@ -58,7 +58,7 @@ module QualityGates
       failed = 0
 
       tests.each do |test_method|
-        print "🔍 Running #{test_method.to_s.humanize}... "
+        print "🔍 Running #{test_method.to_s.tr('_', ' ')}... "
         
         begin
           send(test_method)

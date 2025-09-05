@@ -22,11 +22,11 @@ module QualityGates
     # - System resource utilization and capacity assessment
     # - External API integration performance measurement
     class PerformanceAnalyzer
-      include ApplicationPerformance
-      include DatabasePerformance
-      include MemoryAnalysis
-      include SystemResourceAnalysis
-      include AgentPerformanceAnalysis
+      # Include statements removed for compatibility
+      # Include statements removed for compatibility
+      # Include statements removed for compatibility
+      # Include statements removed for compatibility
+      # Include statements removed for compatibility
       
       attr_reader :rails_root, :logger, :config
       
@@ -823,40 +823,3 @@ module QualityGates
       end
     end
     
-    # Specialized performance analysis modules
-    module ApplicationPerformance
-      def measure_application_metrics
-        # Implementation for application performance measurement
-        { response_times: {}, throughput: {} }
-      end
-    end
-    
-    module DatabasePerformance
-      def analyze_database_metrics
-        # Implementation for database performance analysis
-        { query_times: {}, connection_stats: {} }
-      end
-    end
-    
-    module MemoryAnalysis
-      def analyze_memory_patterns
-        # Implementation for memory usage analysis
-        { heap_stats: {}, gc_stats: {} }
-      end
-    end
-    
-    module SystemResourceAnalysis
-      def analyze_system_resources
-        # Implementation for system resource analysis
-        { cpu_usage: {}, disk_io: {}, network: {} }
-      end
-    end
-    
-    module AgentPerformanceAnalysis
-      def analyze_agent_performance
-        # Implementation for agent-specific performance analysis
-        { execution_times: {}, resource_usage: {} }
-      end
-    end
-  end
-end

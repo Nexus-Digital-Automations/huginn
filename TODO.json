@@ -284,50 +284,6 @@
       "strike_number": 3
     },
     {
-      "id": "task_1757042731010_7hhv17mcy",
-      "title": "Comprehensive Scalability & Performance Optimization Research for High-Load Performance Monitoring Dashboards",
-      "description": "Research enterprise-grade scalability patterns and performance optimization strategies for high-load performance monitoring dashboards supporting millions of metrics and thousands of concurrent users",
-      "mode": "DEVELOPMENT",
-      "category": "research",
-      "priority": "medium",
-      "status": "pending",
-      "dependencies": [],
-      "important_files": [
-        "/Users/jeremyparker/Desktop/Claude Coding Projects/huginn/app/controllers/performance_monitoring_controller.rb",
-        "/Users/jeremyparker/Desktop/Claude Coding Projects/huginn/lib/performance_monitoring",
-        "/Users/jeremyparker/Desktop/Claude Coding Projects/huginn/development/research-reports/postgresql-production-security-reliability-research.md",
-        "/Users/jeremyparker/Desktop/Claude Coding Projects/huginn/development/research-reports"
-      ],
-      "success_criteria": [],
-      "estimate": "",
-      "requires_research": false,
-      "subtasks": [],
-      "created_at": "2025-09-05T03:25:31.010Z",
-      "auto_research_created": false
-    },
-    {
-      "id": "task_1757042722810_sclqegb14",
-      "title": "Cost Optimization & Resource Management Research for Performance Dashboards and Automated Reporting Systems at Enterprise Scale",
-      "description": "Comprehensive research of cost-effective strategies and resource management patterns for performance dashboards and automated reporting systems at enterprise scale, focusing on infrastructure cost analysis, resource optimization, data lifecycle management, cloud cost optimization, and ROI measurement.",
-      "mode": "DEVELOPMENT",
-      "category": "research",
-      "priority": "medium",
-      "status": "pending",
-      "dependencies": [],
-      "important_files": [
-        "config/performance_monitoring.yml",
-        "lib/performance_monitoring/middleware.rb",
-        "lib/error_monitoring/error_tracker.rb",
-        "development/reports/quality_gates_system_overview.md"
-      ],
-      "success_criteria": [],
-      "estimate": "",
-      "requires_research": false,
-      "subtasks": [],
-      "created_at": "2025-09-05T03:25:22.810Z",
-      "auto_research_created": false
-    },
-    {
       "id": "task_1757042694092_ibaqv8yi3",
       "title": "Research real-time data streaming technologies and patterns for live performance dashboard updates in Rails applications",
       "description": "Comprehensive research on real-time streaming technologies including WebSockets, Server-Sent Events, ActionCable, and polling strategies specifically for Rails performance monitoring dashboards. Focus on scalability, performance impact, and production implementation patterns.",

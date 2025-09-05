@@ -8,7 +8,7 @@
       "mode": "RESEARCH",
       "category": "research",
       "priority": "high",
-      "status": "pending",
+      "status": "in_progress",
       "dependencies": [],
       "important_files": [
         "./development/research-reports/research-report-task_1757038037184_g6oye8xp8.md"
@@ -25,7 +25,19 @@
       "subtasks": [],
       "created_at": "2025-09-05T02:07:17.184Z",
       "created_by": "auto-research-system",
-      "auto_created_for": "task_1757038037184_vt8n8e8gw"
+      "auto_created_for": "task_1757038037184_vt8n8e8gw",
+      "assigned_agent": "development_session_1757040439367_1_general_3b548f6a",
+      "started_at": "2025-09-05T02:58:18.051Z",
+      "claimed_by": "development_session_1757040439367_1_general_3b548f6a",
+      "agent_assignment_history": [
+        {
+          "agentId": "development_session_1757040439367_1_general_3b548f6a",
+          "role": "primary",
+          "assignedAt": "2025-09-05T02:58:18.051Z",
+          "reassignReason": null,
+          "claimPriority": "normal"
+        }
+      ]
     },
     {
       "id": "task_1757038030144_ezbyjv7cr",
@@ -34,7 +46,7 @@
       "mode": "RESEARCH",
       "category": "research",
       "priority": "high",
-      "status": "pending",
+      "status": "in_progress",
       "dependencies": [],
       "important_files": [
         "./development/research-reports/research-report-task_1757038030144_ezbyjv7cr.md"
@@ -51,7 +63,19 @@
       "subtasks": [],
       "created_at": "2025-09-05T02:07:10.144Z",
       "created_by": "auto-research-system",
-      "auto_created_for": "task_1757038030144_9c8g84r36"
+      "auto_created_for": "task_1757038030144_9c8g84r36",
+      "assigned_agent": "development_session_1757040439367_1_general_3b548f6a",
+      "started_at": "2025-09-05T03:02:03.363Z",
+      "claimed_by": "development_session_1757040439367_1_general_3b548f6a",
+      "agent_assignment_history": [
+        {
+          "agentId": "development_session_1757040439367_1_general_3b548f6a",
+          "role": "primary",
+          "assignedAt": "2025-09-05T03:02:03.363Z",
+          "reassignReason": null,
+          "claimPriority": "normal"
+        }
+      ]
     },
     {
       "id": "task_1757038020068_04t57tqf7",
@@ -60,7 +84,7 @@
       "mode": "RESEARCH",
       "category": "research",
       "priority": "high",
-      "status": "pending",
+      "status": "in_progress",
       "dependencies": [],
       "important_files": [
         "./development/research-reports/research-report-task_1757038020068_04t57tqf7.md"
@@ -77,7 +101,19 @@
       "subtasks": [],
       "created_at": "2025-09-05T02:07:00.068Z",
       "created_by": "auto-research-system",
-      "auto_created_for": "task_1757038020068_tj2lfk2wj"
+      "auto_created_for": "task_1757038020068_tj2lfk2wj",
+      "assigned_agent": "development_session_1757040439367_1_general_3b548f6a",
+      "started_at": "2025-09-05T03:05:10.621Z",
+      "claimed_by": "development_session_1757040439367_1_general_3b548f6a",
+      "agent_assignment_history": [
+        {
+          "agentId": "development_session_1757040439367_1_general_3b548f6a",
+          "role": "primary",
+          "assignedAt": "2025-09-05T03:05:10.621Z",
+          "reassignReason": null,
+          "claimPriority": "normal"
+        }
+      ]
     },
     {
       "id": "task_1757038012760_91u0yr2a6",
@@ -86,7 +122,7 @@
       "mode": "RESEARCH",
       "category": "research",
       "priority": "high",
-      "status": "pending",
+      "status": "in_progress",
       "dependencies": [],
       "important_files": [
         "./development/research-reports/research-report-task_1757038012760_91u0yr2a6.md"
@@ -103,7 +139,19 @@
       "subtasks": [],
       "created_at": "2025-09-05T02:06:52.760Z",
       "created_by": "auto-research-system",
-      "auto_created_for": "task_1757038012760_uiyxgne0l"
+      "auto_created_for": "task_1757038012760_uiyxgne0l",
+      "assigned_agent": "development_session_1757040439367_1_general_3b548f6a",
+      "started_at": "2025-09-05T03:08:27.496Z",
+      "claimed_by": "development_session_1757040439367_1_general_3b548f6a",
+      "agent_assignment_history": [
+        {
+          "agentId": "development_session_1757040439367_1_general_3b548f6a",
+          "role": "primary",
+          "assignedAt": "2025-09-05T03:08:27.496Z",
+          "reassignReason": null,
+          "claimPriority": "normal"
+        }
+      ]
     },
     {
       "id": "task_1757040912981_k4ws761p2",
@@ -112,7 +160,7 @@
       "mode": "DEVELOPMENT",
       "category": "linter-error",
       "priority": "high",
-      "status": "pending",
+      "status": "in_progress",
       "dependencies": [],
       "important_files": [
         "lib/quality_gates/notifier.rb.temp",
@@ -134,7 +182,19 @@
       "requires_research": false,
       "subtasks": [],
       "created_at": "2025-09-05T02:55:12.982Z",
-      "auto_research_created": false
+      "auto_research_created": false,
+      "assigned_agent": "development_session_1757041885494_1_general_aa7cf1f1",
+      "started_at": "2025-09-05T03:11:41.127Z",
+      "claimed_by": "development_session_1757041885494_1_general_aa7cf1f1",
+      "agent_assignment_history": [
+        {
+          "agentId": "development_session_1757041885494_1_general_aa7cf1f1",
+          "role": "primary",
+          "assignedAt": "2025-09-05T03:11:41.127Z",
+          "reassignReason": null,
+          "claimPriority": "normal"
+        }
+      ]
     },
     {
       "id": "task_1757038051532_2sfmsvupu",
@@ -355,13 +415,13 @@
   "strikes_completed_last_run": false,
   "last_hook_activation": 1756874454344,
   "agents": {
-    "development_session_1757040439367_1_general_3b548f6a": {
+    "development_session_1757041885494_1_general_aa7cf1f1": {
       "name": "development Agent",
       "role": "development",
       "specialization": [],
       "status": "active",
       "assignedTasks": [],
-      "lastHeartbeat": "2025-09-05T02:47:19.369Z",
+      "lastHeartbeat": "2025-09-05T03:11:25.495Z",
       "parentAgentId": null,
       "capabilities": [
         "file-operations",
@@ -372,15 +432,9 @@
       ],
       "workload": 0,
       "maxConcurrentTasks": 5,
-      "createdAt": "2025-09-05T02:47:19.369Z",
-      "sessionId": "session_1757040439367",
-      "metadata": {
-        "renewedAt": "2025-09-05T02:57:34.451Z",
-        "renewalReason": "Agent reinitialization requested"
-      },
-      "lastRenewal": "2025-09-05T02:53:58.193Z",
-      "renewalCount": 1,
-      "agentId": "development_session_1757040439367_1_general_3b548f6a"
+      "createdAt": "2025-09-05T03:11:25.495Z",
+      "sessionId": "session_1757041885494",
+      "metadata": {}
     }
   },
   "current_task_index": 0,

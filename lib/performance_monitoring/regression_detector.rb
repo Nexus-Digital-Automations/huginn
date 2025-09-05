@@ -169,11 +169,23 @@ module PerformanceMonitoring
           ruby_version: RUBY_VERSION,
           rails_version: Rails.version,
           platform: RUBY_PLATFORM,
-          hostname: `hostname`.strip,
-          cpu_count: `nproc`.to_i rescue 1
+          hostname: get_hostname,
+          cpu_count: get_cpu_count
         }
       rescue
         {}
+      end
+      
+      def get_hostname
+        `hostname`.strip
+      rescue
+        'unknown'
+      end
+      
+      def get_cpu_count
+        `nproc`.to_i
+      rescue
+        1
       end
     end
 

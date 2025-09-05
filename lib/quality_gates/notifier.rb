@@ -21,12 +21,12 @@ module QualityGates
 
     # Supported notification channels
     NOTIFICATION_CHANNELS = {
-      email: NotificationChannels::EmailChannel,
-      slack: NotificationChannels::SlackChannel,
-      webhook: NotificationChannels::WebhookChannel,
-      sms: NotificationChannels::SmsChannel,
-      teams: NotificationChannels::TeamsChannel,
-      discord: NotificationChannels::DiscordChannel
+      email: QualityGates::NotificationChannels::EmailChannel,
+      slack: QualityGates::NotificationChannels::SlackChannel,
+      webhook: QualityGates::NotificationChannels::WebhookChannel,
+      sms: QualityGates::NotificationChannels::SmsChannel,
+      teams: QualityGates::NotificationChannels::TeamsChannel,
+      discord: QualityGates::NotificationChannels::DiscordChannel
     }.freeze
 
     # Notification severity levels

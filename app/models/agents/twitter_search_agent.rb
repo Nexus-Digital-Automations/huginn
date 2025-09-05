@@ -1,5 +1,9 @@
+# frozen_string_literal: true
+
 module Agents
+
   class TwitterSearchAgent < Agent
+
     include TwitterConcern
 
     can_dry_run!
@@ -31,7 +35,7 @@ module Agents
       #{tweet_event_description('full_text')}
     MD
 
-    default_schedule "every_1h"
+    default_schedule 'every_1h'
 
     def working?
       event_created_within?(interpolated[:expected_update_period_in_days]) && !recent_error_logs?
@@ -40,24 +44,20 @@ module Agents
     def default_options
       {
         'search' => 'freebandnames',
-        'expected_update_period_in_days' => '2'
+        'expected_update_period_in_days' => '2',
       }
     end
 
     def validate_options
-      if options[:search].blank?
-        errors.add(:base, "search is required")
-      end
+      errors.add(:base, 'search is required') if options[:search].blank?
 
-      if options[:expected_update_period_in_days].blank?
-        errors.add(:base, "expected_update_period_in_days is required")
-      end
+      errors.add(:base, 'expected_update_period_in_days is required') if options[:expected_update_period_in_days].blank?
 
       if options[:starting_at].present?
         begin
           Time.parse(interpolated[:starting_at])
         rescue StandardError
-          errors.add(:base, "Error parsing starting_at")
+          errors.add(:base, 'Error parsing starting_at')
         end
       end
     end
@@ -68,7 +68,7 @@ module Agents
           Time.parse(interpolated[:starting_at])
         rescue StandardError
         end
-      end || created_at || Time.now # for dry-running
+      end || created_at || Time.now
     end
 
     def max_results
@@ -96,5 +96,7 @@ module Agents
 
       save!
     end
+
   end
+
 end

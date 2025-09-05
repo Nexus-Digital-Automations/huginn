@@ -1,11 +1,15 @@
+# frozen_string_literal: true
+
 module Agents
+
   class LiquidOutputAgent < Agent
+
     include FormConfigurable
 
     cannot_be_scheduled!
     cannot_create_events!
 
-    DATE_UNITS = %w[second seconds minute minutes hour hours day days week weeks month months year years]
+    DATE_UNITS = %w[second seconds minute minutes hour hours day days week weeks month months year years].freeze
 
     description  do
       <<~MD
@@ -13,7 +17,7 @@ module Agents
 
         This Agent will output data at:
 
-        `https://#{ENV['DOMAIN']}#{Rails.application.routes.url_helpers.web_requests_path(agent_id: ':id', user_id:, secret: ':secret', format: :any_extension)}`
+        `https://#{ENV.fetch('DOMAIN', nil)}#{Rails.application.routes.url_helpers.web_requests_path(agent_id: ':id', user_id:, secret: ':secret', format: :any_extension)}`
 
         where `:secret` is the secret specified in your options.  You can use any extension you wish.
 
@@ -87,12 +91,12 @@ module Agents
         </table>
       EOF
       {
-        "secret" => "a-secret-key",
-        "expected_receive_period_in_days" => 2,
-        "mime_type" => 'text/html',
-        "mode" => 'Last event in',
-        "event_limit" => '',
-        "content" => content,
+        'secret' => 'a-secret-key',
+        'expected_receive_period_in_days' => 2,
+        'mime_type' => 'text/html',
+        'mode' => 'Last event in',
+        'event_limit' => '',
+        'content' => content,
       }
     end
 
@@ -114,16 +118,16 @@ module Agents
       if options['secret'].present?
         case options['secret']
         when %r{[/.]}
-          errors.add(:base, "secret may not contain a slash or dot")
+          errors.add(:base, 'secret may not contain a slash or dot')
         when String
         else
-          errors.add(:base, "secret must be a string")
+          errors.add(:base, 'secret must be a string')
         end
       else
         errors.add(:base, "Please specify one secret for 'authenticating' incoming feed requests")
       end
 
-      unless options['expected_receive_period_in_days'].present? && options['expected_receive_period_in_days'].to_i > 0
+      unless options['expected_receive_period_in_days'].present? && options['expected_receive_period_in_days'].to_i.positive?
         errors.add(
           :base,
           "Please provide 'expected_receive_period_in_days' to indicate how many days can pass before this Agent is considered to be not working"
@@ -131,7 +135,7 @@ module Agents
       end
 
       event_limit =
-        if value = options['event_limit'].presence
+        if (value = options['event_limit'].presence)
           begin
             Integer(value)
           rescue StandardError
@@ -140,9 +144,9 @@ module Agents
         end
 
       if event_limit == false && date_limit.blank?
-        errors.add(:base, "Event limit must be an integer that is less than 1001 or an integer plus a valid unit.")
+        errors.add(:base, 'Event limit must be an integer that is less than 1001 or an integer plus a valid unit.')
       elsif event_limit && event_limit > 1000
-        errors.add(:base, "For performance reasons, you cannot have an event limit greater than 1000.")
+        errors.add(:base, 'For performance reasons, you cannot have an event limit greater than 1000.')
       end
     end
 
@@ -181,10 +185,10 @@ module Agents
     end
 
     def unauthorized_content(format)
-      if format =~ /json/
-        { error: "Not Authorized" }
+      if format.include?('json')
+        { error: 'Not Authorized' }
       else
-        "Not Authorized"
+        'Not Authorized'
       end
     end
 
@@ -208,15 +212,11 @@ module Agents
         events = received_events
         events = events.where('events.created_at > ?', date_limit) if date_limit
         events = events.limit count_limit
-        events = events.to_a.map { |x| x.payload }
+        events = events.to_a.map(&:payload)
         { 'events' => events }
       else
         memory['last_event'] || {}
       end
-    end
-
-    public def etag
-      memory['etag'] || '"0.000000000"'
     end
 
     def last_modified_at
@@ -233,7 +233,7 @@ module Agents
     end
 
     def max_age
-      options['expected_receive_period_in_days'].to_i * 86400
+      options['expected_receive_period_in_days'].to_i * 86_400
     end
 
     def response_headers
@@ -253,7 +253,7 @@ module Agents
     def date_limit
       return nil unless options['event_limit'].to_s.include?(' ')
 
-      value, unit = options['event_limit'].split(' ')
+      value, unit = options['event_limit'].split
       value = begin
         Integer(value)
       rescue StandardError
@@ -266,5 +266,15 @@ module Agents
 
       value.send(unit.to_sym).ago
     end
-  end
+
+  public
+
+        def etag
+              memory['etag'] || '"0.000000000"'
+        end
+
+
+  
+end
+
 end

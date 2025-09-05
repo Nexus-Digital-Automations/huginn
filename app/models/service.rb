@@ -1,3 +1,20 @@
+# Service represents external service integrations and authentication credentials.
+#
+# Services provide authentication and configuration for agents that need to
+# connect to external APIs and services. Each service stores:
+#
+# * Provider identification (OAuth provider, API service, etc.)
+# * Authentication tokens and credentials
+# * Service-specific configuration options
+# * User association for access control
+#
+# When a service is deleted, all associated agents are automatically disabled
+# to prevent authentication errors and maintain system integrity.
+#
+# Common service types include:
+# * OAuth providers (Twitter, Google, Facebook, etc.)
+# * API services (weather, news, notification services)
+# * Custom authentication services
 class Service < ActiveRecord::Base
   serialize :options, Hash
 

@@ -1,5 +1,24 @@
 # frozen_string_literal: true
 
+# EventsController manages the display and interaction with Agent-generated Events.
+#
+# Events are the primary communication mechanism between Agents in Huginn, containing
+# payloads of data that flow through the agent network. This controller provides:
+#
+# * Event browsing and pagination for agents
+# * Individual event inspection and details
+# * Event filtering and search capabilities
+# * JSON API endpoints for programmatic access
+#
+# Events are always scoped to the current user's agents to ensure proper
+# access control. The controller supports both HTML views for user interaction
+# and JSON responses for API integrations.
+#
+# Key features include:
+# * Agent-specific event listing with pagination
+# * Event payload visualization and formatting
+# * Time-based event browsing and filtering
+# * Geographic location display for location-aware events
 class EventsController < ApplicationController
 
   before_action :load_event, except: [:index, :show]

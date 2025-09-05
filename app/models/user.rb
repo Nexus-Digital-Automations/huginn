@@ -1,4 +1,30 @@
-# Huginn is designed to be a multi-User system.  Users have many Agents (and Events created by those Agents).
+# User represents a Huginn system user with authentication and agent management capabilities.
+#
+# Huginn is designed to be a multi-User system where each User has many Agents
+# (and Events created by those Agents). The User model provides:
+#
+# * Authentication via Devise (database, OAuth, lockable, confirmable)
+# * Flexible login supporting both username and email authentication
+# * Agent, Event, and Scenario ownership and management
+# * Service integration for external API connections
+# * User credential storage for secure agent configurations
+# * Account activation/deactivation controls
+# * Invitation code system for controlled registration
+#
+# Authentication features:
+# * Database authentication with email/username login
+# * Account recovery and rememberable sessions
+# * Account locking for security
+# * Optional email confirmation (configurable via REQUIRE_CONFIRMED_EMAIL)
+# * OAuth integration for external service authentication
+# * Invitation code validation for controlled access
+#
+# User data management:
+# * Agents with execution logging and event generation
+# * Scenarios for grouping related agents
+# * Services for external API authentication
+# * User credentials for secure agent configuration
+# * Account activation/deactivation with agent state management
 class User < ActiveRecord::Base
   devise :database_authenticatable, :registerable,
          :recoverable, :rememberable, :trackable,

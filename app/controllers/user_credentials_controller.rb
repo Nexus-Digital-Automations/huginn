@@ -1,5 +1,20 @@
 # frozen_string_literal: true
 
+# UserCredentialsController manages secure credential storage for Agent configurations.
+#
+# This controller provides CRUD operations for UserCredentials, which store
+# sensitive information like API keys, passwords, and tokens that agents need
+# to access external services without exposing secrets in agent configurations:
+#
+# * Listing user credentials with sorting and pagination
+# * Creating new credentials with secure storage
+# * Updating existing credential values and modes
+# * Deleting credentials with dependency validation
+# * Supporting both plain text and JavaScript evaluation modes
+#
+# All credential operations are scoped to the current user to ensure proper
+# access control. Credentials are referenced in agent configurations using
+# liquid templating syntax: {{ credential.name }}
 class UserCredentialsController < ApplicationController
 
   include SortableTable

@@ -1,5 +1,24 @@
 # frozen_string_literal: true
 
+# JobsController provides administrative interface for managing background jobs.
+#
+# This controller gives system administrators visibility into the Delayed Job
+# queue system that powers Huginn's background processing. It provides:
+#
+# * Job queue monitoring and status viewing
+# * Failed job inspection and analysis  
+# * Job retry and management capabilities
+# * Performance metrics and queue health
+#
+# Access is restricted to admin users only to protect sensitive system
+# information. The controller supports both HTML views for administration
+# and JSON responses for monitoring integrations.
+#
+# Key administrative functions:
+# * View pending, running, and failed jobs
+# * Inspect job payloads and error details
+# * Monitor system performance and queue depth
+# * Manage job execution and troubleshooting
 class JobsController < ApplicationController
 
   before_action :authenticate_admin!

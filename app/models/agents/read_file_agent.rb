@@ -1,5 +1,9 @@
+# frozen_string_literal: true
+
 module Agents
+
   class ReadFileAgent < Agent
+
     include FormConfigurable
     include FileHandling
 
@@ -8,7 +12,7 @@ module Agents
 
     def default_options
       {
-        'data_key' => 'data'
+        'data_key' => 'data',
       }
     end
 
@@ -33,9 +37,7 @@ module Agents
     form_configurable :data_key, type: :string
 
     def validate_options
-      if options['data_key'].blank?
-        errors.add(:base, "The 'data_key' options is required.")
-      end
+      errors.add(:base, "The 'data_key' options is required.") if options['data_key'].blank?
     end
 
     def working?
@@ -44,10 +46,12 @@ module Agents
 
     def receive(incoming_events)
       incoming_events.each do |event|
-        next unless io = get_io(event)
+        next unless (io = get_io(event))
 
         create_event payload: { interpolated['data_key'] => io.read }
       end
     end
+
   end
+
 end

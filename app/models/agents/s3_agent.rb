@@ -1,5 +1,9 @@
+# frozen_string_literal: true
+
 module Agents
+
   class S3Agent < Agent
+
     include FormConfigurable
     include FileHandling
 
@@ -44,18 +48,18 @@ module Agents
       "Events will looks like this:\n\n    " +
         if boolify(interpolated['watch'])
           Utils.pretty_print({
-            "file_pointer" => {
-              "file" => "filename",
-              "agent_id" => id
+            'file_pointer' => {
+              'file' => 'filename',
+              'agent_id' => id,
             },
-            "event_type" => "modified/added/removed"
+            'event_type' => 'modified/added/removed',
           })
         else
           Utils.pretty_print({
-            "file_pointer" => {
-              "file" => "filename",
-              "agent_id" => id
-            }
+            'file_pointer' => {
+              'file' => 'filename',
+              'agent_id' => id,
+            },
           })
         end
     end
@@ -66,8 +70,8 @@ module Agents
         'access_key_id' => '',
         'access_key_secret' => '',
         'watch' => 'true',
-        'bucket' => "",
-        'data' => '{{ data }}'
+        'bucket' => '',
+        'data' => '{{ data }}',
       }
     end
 
@@ -85,12 +89,8 @@ module Agents
       if options['mode'].blank? || !['read', 'write'].include?(options['mode'])
         errors.add(:base, "The 'mode' option is required and must be set to 'read' or 'write'")
       end
-      if options['bucket'].blank?
-        errors.add(:base, "The 'bucket' option is required.")
-      end
-      if options['region'].blank?
-        errors.add(:base, "The 'region' option is required.")
-      end
+      errors.add(:base, "The 'bucket' option is required.") if options['bucket'].blank?
+      errors.add(:base, "The 'region' option is required.") if options['region'].blank?
 
       case interpolated['mode']
       when 'read'
@@ -98,12 +98,8 @@ module Agents
           errors.add(:base, "The 'watch' option is required and must be set to 'true' or 'false'")
         end
       when 'write'
-        if options['filename'].blank?
-          errors.add(:base, "filename must be specified in 'write' mode")
-        end
-        if options['data'].blank?
-          errors.add(:base, "data must be specified in 'write' mode")
-        end
+        errors.add(:base, "filename must be specified in 'write' mode") if options['filename'].blank?
+        errors.add(:base, "data must be specified in 'write' mode") if options['data'].blank?
       end
     end
 
@@ -165,7 +161,7 @@ module Agents
 
     def watch(contents)
       if last_check_at.nil?
-        self.memory['seen_contents'] = contents
+        memory['seen_contents'] = contents
         return
       end
 
@@ -183,7 +179,7 @@ module Agents
         create_event payload: get_file_pointer(key).merge(event_type: :added)
       end
 
-      self.memory['seen_contents'] = new_memory
+      memory['seen_contents'] = new_memory
     end
 
     def get_bucket_contents
@@ -201,10 +197,12 @@ module Agents
                                       region: interpolated['region'])
     end
 
-    def buckets(log = false)
+    def buckets(_log = false)
       @buckets ||= client.list_buckets.buckets
-    rescue Aws::S3::Errors::ServiceError => e
+    rescue Aws::S3::Errors::ServiceError
       false
     end
+
   end
+
 end

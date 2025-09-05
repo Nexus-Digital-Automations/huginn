@@ -1,10 +1,14 @@
+# frozen_string_literal: true
+
 require 'date'
 require 'cgi'
 module Agents
+
   class PublicTransportAgent < Agent
+
     cannot_receive_events!
 
-    default_schedule "every_2m"
+    default_schedule 'every_2m'
 
     description <<~MD
       The Public Transport Request Agent generates Events based on NextBus GPS transit predictions.
@@ -43,33 +47,33 @@ module Agents
     MD
 
     event_description "Events look like this:\n\n    " +
-      Utils.pretty_print({
-        "routeTitle": "N-Judah",
-        "stopTag": "5215",
-        "prediction": {
-          "epochTime": "1389622846689",
-          "seconds": "3454",
-          "minutes": "57",
-          "isDeparture": "false",
-          "affectedByLayover": "true",
-          "dirTag": "N__OB4KJU",
-          "vehicle": "1489",
-          "block": "9709",
-          "tripTag": "5840086"
-        }
-      })
+                      Utils.pretty_print({
+                        routeTitle: 'N-Judah',
+                        stopTag: '5215',
+                        prediction: {
+                          epochTime: '1389622846689',
+                          seconds: '3454',
+                          minutes: '57',
+                          isDeparture: 'false',
+                          affectedByLayover: 'true',
+                          dirTag: 'N__OB4KJU',
+                          vehicle: '1489',
+                          block: '9709',
+                          tripTag: '5840086',
+                        },
+                      })
 
     def check_url
       query = URI.encode_www_form([
-        ["command", "predictionsForMultiStops"],
-        ["a", interpolated["agency"]],
-        *interpolated["stops"].map { |a| ["stops", a] }
+        ['command', 'predictionsForMultiStops'],
+        ['a', interpolated['agency']],
+        *interpolated['stops'].map { |a| ['stops', a] },
       ])
       "http://webservices.nextbus.com/service/publicXMLFeed?#{query}"
     end
 
     def stops
-      interpolated["stops"].collect { |a| a.split("|").last }
+      interpolated['stops'].collect { |a| a.split('|').last }
     end
 
     def check
@@ -77,19 +81,19 @@ module Agents
       request = Typhoeus::Request.new(check_url, followlocation: true)
       request.on_success do |response|
         page = Nokogiri::XML response.body
-        predictions = page.css("//prediction")
+        predictions = page.css('//prediction')
         predictions.each do |pr|
           parent = pr.parent.parent
-          vals = { "routeTitle" => parent["routeTitle"], "stopTag" => parent["stopTag"] }
-          next unless pr["minutes"] && pr["minutes"].to_i < interpolated["alert_window_in_minutes"].to_i
+          vals = { 'routeTitle' => parent['routeTitle'], 'stopTag' => parent['stopTag'] }
+          next unless pr['minutes'] && pr['minutes'].to_i < interpolated['alert_window_in_minutes'].to_i
 
           vals = vals.merge Hash.from_xml(pr.to_xml)
           if not_already_in_memory?(vals)
             create_event(payload: vals)
-            log "creating event..."
+            log 'creating event...'
             update_memory(vals)
           else
-            log "not creating event since already in memory"
+            log 'not creating event since already in memory'
           end
         end
       end
@@ -103,34 +107,34 @@ module Agents
     end
 
     def cleanup_old_memory
-      self.memory["existing_routes"] ||= []
+      memory['existing_routes'] ||= []
       time = 2.hours.ago
-      self.memory["existing_routes"].reject! { |h| h["currentTime"].to_time <= time }
+      memory['existing_routes'].reject! { |h| h['currentTime'].to_time <= time }
     end
 
     def add_to_memory(vals)
-      (self.memory["existing_routes"] ||= []) << {
-        "stopTag" => vals["stopTag"],
-        "tripTag" => vals["prediction"]["tripTag"],
-        "epochTime" => vals["prediction"]["epochTime"],
-        "currentTime" => Time.now
+      (memory['existing_routes'] ||= []) << {
+        'stopTag' => vals['stopTag'],
+        'tripTag' => vals['prediction']['tripTag'],
+        'epochTime' => vals['prediction']['epochTime'],
+        'currentTime' => Time.now,
       }
     end
 
     def not_already_in_memory?(vals)
-      m = self.memory["existing_routes"] || []
-      m.select { |h|
-        h['stopTag'] == vals["stopTag"] &&
-          h['tripTag'] == vals["prediction"]["tripTag"] &&
-          h['epochTime'] == vals["prediction"]["epochTime"]
-      }.count == 0
+      m = memory['existing_routes'] || []
+      m.count do |h|
+        h['stopTag'] == vals['stopTag'] &&
+          h['tripTag'] == vals['prediction']['tripTag'] &&
+          h['epochTime'] == vals['prediction']['epochTime']
+      end.zero?
     end
 
     def default_options
       {
-        agency: "sf-muni",
-        stops: ["N|5221", "N|5215"],
-        alert_window_in_minutes: 5
+        agency: 'sf-muni',
+        stops: ['N|5221', 'N|5215'],
+        alert_window_in_minutes: 5,
       }
     end
 
@@ -143,5 +147,7 @@ module Agents
     def working?
       event_created_within?(2) && !recent_error_logs?
     end
+
   end
+
 end

@@ -1,5 +1,9 @@
+# frozen_string_literal: true
+
 module Agents
+
   class PushbulletAgent < Agent
+
     include FormConfigurable
 
     cannot_be_scheduled!
@@ -12,8 +16,8 @@ module Agents
     TYPE_TO_ATTRIBUTES = {
       'note' => [:title, :body],
       'link' => [:title, :body, :url],
-      'address' => [:name, :address]
-    }
+      'address' => [:name, :address],
+    }.freeze
     class Unauthorized < StandardError; end
 
     description <<~MD
@@ -42,7 +46,7 @@ module Agents
       {
         'api_key' => '',
         'device_id' => '',
-        'title' => "{{title}}",
+        'title' => '{{title}}',
         'body' => '{{body}}',
         'type' => 'note',
       }
@@ -58,13 +62,16 @@ module Agents
     form_configurable :address
 
     def validate_options
-      errors.add(:base, "you need to specify a pushbullet api_key") if options['api_key'].blank?
-      errors.add(:base, "you need to specify a device_id") if options['device_id'].blank?
-      errors.add(:base, "you need to specify a valid message type") if options['type'].blank? ||
-        !['note', 'link', 'address'].include?(options['type'])
+      errors.add(:base, 'you need to specify a pushbullet api_key') if options['api_key'].blank?
+      errors.add(:base, 'you need to specify a device_id') if options['device_id'].blank?
+      errors.add(:base, 'you need to specify a valid message type') if options['type'].blank? ||
+                                                                       !['note', 'link',
+                                                                         'address'].include?(options['type'])
       TYPE_TO_ATTRIBUTES[options['type']].each do |attr|
-        errors.add(:base,
-                   "you need to specify '#{attr}' for the type '#{options['type']}'") if options[attr].blank?
+        if options[attr].blank?
+          errors.add(:base,
+                     "you need to specify '#{attr}' for the type '#{options['type']}'")
+        end
       end
     end
 
@@ -88,7 +95,7 @@ module Agents
     def receive(incoming_events)
       incoming_events.each do |event|
         safely do
-          response = request(:post, 'pushes', query_options(event))
+          request(:post, 'pushes', query_options(event))
         end
       end
     end
@@ -120,7 +127,7 @@ module Agents
 
       safely do
         response = request(:post, 'devices', basic_auth.merge(body: { nickname: 'Huginn', type: 'stream' }))
-        self.options[:device_id] = response['iden']
+        options[:device_id] = response['iden']
       end
     end
 
@@ -130,12 +137,14 @@ module Agents
 
     def query_options(event)
       mo = interpolated(event)
-      dev_ident = mo[:device_id] == "__ALL__" ? '' : mo[:device_id]
+      dev_ident = mo[:device_id] == '__ALL__' ? '' : mo[:device_id]
       basic_auth.merge(body: { device_iden: dev_ident, type: mo[:type] }.merge(payload(mo)))
     end
 
     def payload(mo)
-      Hash[TYPE_TO_ATTRIBUTES[mo[:type]].map { |k| [k, mo[k]] }]
+      TYPE_TO_ATTRIBUTES[mo[:type]].to_h { |k| [k, mo[k]] }
     end
+
   end
+
 end

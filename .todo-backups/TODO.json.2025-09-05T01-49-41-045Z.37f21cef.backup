@@ -47,7 +47,7 @@
       "mode": "DEVELOPMENT",
       "category": "linter-error",
       "priority": "medium",
-      "status": "in_progress",
+      "status": "pending",
       "dependencies": [],
       "important_files": [
         "app/models/",
@@ -64,19 +64,7 @@
       "requires_research": false,
       "subtasks": [],
       "created_at": "2025-09-03T05:46:08.879Z",
-      "auto_research_created": false,
-      "assigned_agent": "development_session_1756880590008_1_general_3e17a4d7",
-      "started_at": "2025-09-05T01:49:41.044Z",
-      "claimed_by": "development_session_1756880590008_1_general_3e17a4d7",
-      "agent_assignment_history": [
-        {
-          "agentId": "development_session_1756880590008_1_general_3e17a4d7",
-          "role": "primary",
-          "assignedAt": "2025-09-05T01:49:41.044Z",
-          "reassignReason": null,
-          "claimPriority": "normal"
-        }
-      ]
+      "auto_research_created": false
     },
     {
       "id": "task_1756876575679_dzpzats6q",

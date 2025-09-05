@@ -470,6 +470,36 @@ timeout 10s node "/Users/jeremyparker/Desktop/Claude Coding Projects/infinite-co
 - **Development notes** → `development/notes/`
 - **Backup files** → `backups/`
 
+## 🚨 DOCUMENTATION REQUIREMENTS
+
+**MANDATORY DOCUMENTATION REVIEW:**
+- **READ RELEVANT DOCS** - Always check `docs/` directory for relevant documentation before making changes
+- **REFERENCE FIRST** - Review architecture, API, and development docs before implementation
+
+**DOCUMENTATION STRUCTURE:**
+```
+docs/
+├── api/              # API documentation  
+├── architecture/     # System design
+├── deployment/       # Setup guides
+├── development/      # Contributing guides
+├── troubleshooting/  # Common issues
+├── user/            # User guides
+└── README.md        # Navigation index
+```
+
+**DOCUMENTATION STANDARDS:**
+- **ALWAYS create docs/ directory** for project documentation
+- **ORGANIZE by purpose** - separate technical from user documentation  
+- **INCLUDE README.md** in docs/ as navigation index
+- **FOLLOW NAMING** - use kebab-case for file names
+- **MAINTAIN STRUCTURE** - consistent subdirectory organization across projects
+
+**MANDATORY DOCUMENTATION MAINTENANCE:**
+- **UPDATE DOCS WITH FEATURES** - Always update relevant documentation when adding/modifying features
+- **SYNC API CHANGES** - Update API docs immediately when endpoints change
+- **VALIDATION REQUIREMENT** - Documentation updates must be part of feature completion
+
 ## 🚨 MANDATORY GIT WORKFLOW
 
 **ABSOLUTE REQUIREMENT**: ALWAYS commit and push work after EVERY task completion
@@ -598,12 +628,13 @@ timeout 10s node -e 'const TaskManager = require("/Users/jeremyparker/Desktop/Cl
 
 **STANDARD APPROACH:**
 1. **Create Task** - Follow task creation mandate
-2. **Evaluate Existing Tasks** - Check if can modify existing vs create new
-3. **Think First** - Use appropriate thinking level (think/think hard/ultrathink)
-4. **Initialize Agent** - Use TaskManager API initialization
-5. **Deploy Task Subagents** - Maximize concurrent task subagents when appropriate
-6. **Implement & Validate** - Execute with evidence-based completion
-7. **Complete Tasks** - Mark completed via TaskManager API
+2. **Evaluate Existing Tasks** - Check if can modify existing vs create new  
+3. **Review Documentation** - Check `docs/` directory for relevant documentation before making changes
+4. **Think First** - Use appropriate thinking level (think/think hard/ultrathink)
+5. **Initialize Agent** - Use TaskManager API initialization
+6. **Deploy Task Subagents** - Maximize concurrent task subagents when appropriate
+7. **Implement & Validate** - Execute with evidence-based completion
+8. **Complete Tasks** - Mark completed via TaskManager API
 
 ## 🚨 INFINITE OPERATION MANDATE - NO TIME LIMITS
 

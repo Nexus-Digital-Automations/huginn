@@ -3,6 +3,21 @@ require 'cgi'
 require 'uri'
 require 'addressable/uri'
 
+# Utils provides common utility functions used throughout the Huginn application.
+#
+# This module contains general-purpose helper methods for:
+#
+# * String manipulation and formatting (unindent, pretty_jsonify, etc.)
+# * JSONPath parsing and value extraction 
+# * URL validation and parsing with security checks
+# * HTTP header and request processing
+# * Data type conversions and validation
+# * Array and hash manipulation utilities
+# * Interpolation and templating support
+#
+# The utilities are designed to be stateless and thread-safe, providing
+# consistent functionality across agents, models, and controllers while
+# maintaining security best practices for URL handling and data processing.
 module Utils
   def self.unindent(s)
     s = s.gsub(/\t/, '  ').chomp

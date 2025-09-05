@@ -1,10 +1,14 @@
+# frozen_string_literal: true
+
 require 'uri'
 require 'time'
 
 module Agents
+
   class FtpsiteAgent < Agent
+
     include FileHandling
-    default_schedule "every_12h"
+    default_schedule 'every_12h'
 
     gem_dependency_check { defined?(Net::FTP) && defined?(Net::FTP::List) }
 
@@ -61,30 +65,30 @@ module Agents
     def default_options
       {
         'mode' => 'read',
-        'expected_update_period_in_days' => "1",
-        'url' => "ftp://example.org/pub/releases/",
+        'expected_update_period_in_days' => '1',
+        'url' => 'ftp://example.org/pub/releases/',
         'patterns' => [
           'foo-*.tar.gz',
         ],
         'after' => Time.now.iso8601,
         'force_encoding' => '',
         'filename' => '',
-        'data' => '{{ data }}'
+        'data' => '{{ data }}',
       }
     end
 
     def validate_options
       # Check for required fields
       begin
-        if !options['url'].include?('{{')
+        unless options['url'].include?('{{')
           url = interpolated['url']
-          String === url or raise
+          url.is_a?(String) or raise
           uri = URI(url)
           URI::FTP === uri or raise
-          errors.add(:base, "url must end with a slash") if uri.path.present? && !uri.path.end_with?('/')
+          errors.add(:base, 'url must end with a slash') if uri.path.present? && !uri.path.end_with?('/')
         end
       rescue StandardError
-        errors.add(:base, "url must be a valid FTP URL")
+        errors.add(:base, 'url must be a valid FTP URL')
       end
 
       options['mode'] = 'read' if options['mode'].blank? && new_record?
@@ -97,21 +101,15 @@ module Agents
         patterns = options['patterns']
         case patterns
         when Array
-          if patterns.empty?
-            errors.add(:base, "patterns must not be empty")
-          end
+          errors.add(:base, 'patterns must not be empty') if patterns.empty?
         when nil, ''
-          errors.add(:base, "patterns must be specified")
+          errors.add(:base, 'patterns must be specified')
         else
-          errors.add(:base, "patterns must be an array")
+          errors.add(:base, 'patterns must be an array')
         end
       when 'write'
-        if options['filename'].blank?
-          errors.add(:base, "filename must be specified in 'write' mode")
-        end
-        if options['data'].blank?
-          errors.add(:base, "data must be specified in 'write' mode")
-        end
+        errors.add(:base, "filename must be specified in 'write' mode") if options['filename'].blank?
+        errors.add(:base, "data must be specified in 'write' mode") if options['data'].blank?
       end
 
       # Check for optional fields
@@ -119,13 +117,13 @@ module Agents
         begin
           Time.parse(timestamp)
         rescue StandardError
-          errors.add(:base, "timestamp cannot be parsed as time")
+          errors.add(:base, 'timestamp cannot be parsed as time')
         end
       end
 
-      if options['expected_update_period_in_days'].present?
-        errors.add(:base,
-                   "Invalid expected_update_period_in_days format") unless is_positive_integer?(options['expected_update_period_in_days'])
+      if options['expected_update_period_in_days'].present? && !is_positive_integer?(options['expected_update_period_in_days'])
+          errors.add(:base,
+                     'Invalid expected_update_period_in_days format')
       end
     end
 
@@ -133,9 +131,9 @@ module Agents
       return if interpolated['mode'] != 'read'
 
       saving_entries do |found|
-        each_entry { |filename, mtime|
+        each_entry do |filename, mtime|
           found[filename, mtime]
-        }
+        end
       end
     end
 
@@ -144,11 +142,13 @@ module Agents
 
       incoming_events.each do |event|
         mo = interpolated(event)
-        mo['data'].encode!(
-          interpolated['force_encoding'],
-          invalid: :replace,
-          undef: :replace
-        ) if interpolated['force_encoding'].present?
+        if interpolated['force_encoding'].present?
+          mo['data'].encode!(
+            interpolated['force_encoding'],
+            invalid: :replace,
+            undef: :replace
+          )
+        end
         open_ftp(base_uri) do |ftp|
           ftp.storbinary("STOR #{mo['filename']}", StringIO.new(mo['data']), Net::FTP::DEFAULT_BLOCKSIZE)
         end
@@ -159,14 +159,14 @@ module Agents
       patterns = interpolated['patterns']
 
       after =
-        if str = interpolated['after']
+        if (str = interpolated['after'])
           Time.parse(str)
         else
           Time.at(0)
         end
 
       open_ftp(base_uri) do |ftp|
-        log "Listing the directory"
+        log 'Listing the directory'
         # Do not use a block style call because we need to call other
         # commands during iteration.
         list = ftp.list('-a')
@@ -176,9 +176,9 @@ module Agents
           filename = entry.basename
           mtime = Time.parse(entry.mtime.to_s).utc
 
-          patterns.any? { |pattern|
+          patterns.any? do |pattern|
             File.fnmatch?(pattern, filename)
-          } or next
+          end or next
 
           after < mtime or next
 
@@ -194,13 +194,13 @@ module Agents
       ftp.connect(uri.host, uri.port)
 
       user =
-        if str = uri.user
+        if (str = uri.user)
           CGI.unescape(str)
         else
           'anonymous'
         end
       password =
-        if str = uri.password
+        if (str = uri.password)
           CGI.unescape(str)
         else
           'anonymous@'
@@ -217,7 +217,7 @@ module Agents
 
       yield ftp
     ensure
-      log "Closing the connection"
+      log 'Closing the connection'
       ftp.close
     end
 
@@ -237,15 +237,15 @@ module Agents
         end
       }
 
-      new_files.sort_by { |filename|
+      new_files.sort_by do |filename|
         found_entries[filename]
-      }.each { |filename|
+      end.each do |filename|
         create_event payload: get_file_pointer(filename).merge({
           'url' => (base_uri + uri_path_escape(filename)).to_s,
           'filename' => filename,
           'timestamp' => found_entries[filename],
         })
-      }
+      end
 
       memory['known_entries'] = found_entries
       save!
@@ -266,10 +266,12 @@ module Agents
 
     def uri_path_escape(string)
       str = string.b
-      str.gsub!(/([^A-Za-z0-9\-._~!$&()*+,=@]+)/) { |m|
-        '%' + m.unpack('H2' * m.bytesize).join('%').upcase
-      }
+      str.gsub!(/([^A-Za-z0-9\-._~!$&()*+,=@]+)/) do |m|
+        "%#{m.unpack('H2' * m.bytesize).join('%').upcase}"
+      end
       str.force_encoding(Encoding::US_ASCII)
     end
+
   end
+
 end

@@ -1,5 +1,24 @@
 # frozen_string_literal: true
 
+# AgentsController manages all operations related to Huginn Agents.
+#
+# This controller handles the full CRUD lifecycle for Agents including:
+# * Listing agents with sorting and filtering capabilities
+# * Creating new agents with type-specific configuration
+# * Updating existing agent configurations and schedules
+# * Deleting agents and managing dependencies
+# * Running agents manually and managing execution
+# * Agent-specific operations like memory management and event handling
+#
+# The controller includes specialized functionality for:
+# * Agent cloning and duplication
+# * Web request handling for webhook agents
+# * Event propagation and agent communication
+# * Scenario management and agent grouping
+# * Type-specific configuration and validation
+#
+# All operations are scoped to the current authenticated user's agents
+# to ensure proper access control and data isolation.
 class AgentsController < ApplicationController
 
   include DotHelper

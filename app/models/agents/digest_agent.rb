@@ -1,8 +1,12 @@
+# frozen_string_literal: true
+
 module Agents
+
   class DigestAgent < Agent
+
     include FormConfigurable
 
-    default_schedule "6am"
+    default_schedule '6am'
 
     description <<~MD
       The Digest Agent collects any Events sent to it and emits them as a single event.
@@ -27,9 +31,9 @@ module Agents
 
     def default_options
       {
-        "expected_receive_period_in_days" => "2",
-        "message" => "{{ events | map: 'message' | join: ',' }}",
-        "retained_events" => "0"
+        'expected_receive_period_in_days' => '2',
+        'message' => "{{ events | map: 'message' | join: ',' }}",
+        'retained_events' => '0',
       }
     end
 
@@ -38,34 +42,36 @@ module Agents
     form_configurable :retained_events
 
     def validate_options
-      errors.add(:base,
-                 'retained_events must be 0 to 999') unless options['retained_events'].to_i >= 0 && options['retained_events'].to_i < 1000
+      unless options['retained_events'].to_i >= 0 && options['retained_events'].to_i < 1000
+        errors.add(:base,
+                   'retained_events must be 0 to 999')
+      end
     end
 
     def working?
-      last_receive_at && last_receive_at > interpolated["expected_receive_period_in_days"].to_i.days.ago && !recent_error_logs?
+      last_receive_at && last_receive_at > interpolated['expected_receive_period_in_days'].to_i.days.ago && !recent_error_logs?
     end
 
     def receive(incoming_events)
-      self.memory["queue"] ||= []
+      memory['queue'] ||= []
       incoming_events.each do |event|
-        self.memory["queue"] << event.id
+        memory['queue'] << event.id
       end
-      if interpolated["retained_events"].to_i > 0 && memory["queue"].length > interpolated["retained_events"].to_i
-        memory["queue"].shift(memory["queue"].length - interpolated["retained_events"].to_i)
+      if interpolated['retained_events'].to_i.positive? && memory['queue'].length > interpolated['retained_events'].to_i
+        memory['queue'].shift(memory['queue'].length - interpolated['retained_events'].to_i)
       end
     end
 
     def check
-      if self.memory["queue"] && self.memory["queue"].length > 0
-        events = received_events.where(id: self.memory["queue"]).order(id: :asc).to_a
-        payload = { "events" => events.map { |event| event.payload } }
-        payload["message"] = interpolated(payload)["message"]
+      if memory['queue'] && !memory['queue'].empty?
+        events = received_events.where(id: memory['queue']).order(id: :asc).to_a
+        payload = { 'events' => events.map(&:payload) }
+        payload['message'] = interpolated(payload)['message']
         create_event(payload:)
-        if interpolated["retained_events"].to_i == 0
-          self.memory["queue"] = []
-        end
+        memory['queue'] = [] if interpolated['retained_events'].to_i.zero?
       end
     end
+
   end
+
 end

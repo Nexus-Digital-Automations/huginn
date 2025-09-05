@@ -1,5 +1,16 @@
 # frozen_string_literal: true
 
+# ApplicationController serves as the base controller for all Huginn application controllers.
+# 
+# This controller provides common functionality including:
+# * User authentication via Devise
+# * CSRF protection for all actions
+# * Common rescue handlers for undefined agent types
+# * Secure redirect functionality with host validation
+# * Parameter configuration for Devise controllers
+#
+# All Huginn controllers inherit from this base controller to ensure consistent
+# security policies and shared functionality across the application.
 class ApplicationController < ActionController::Base
 
   before_action :authenticate_user!

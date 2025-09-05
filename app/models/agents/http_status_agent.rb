@@ -1,14 +1,18 @@
+# frozen_string_literal: true
+
 require 'time_tracker'
 
 module Agents
+
   class HttpStatusAgent < Agent
+
     include WebRequestConcern
     include FormConfigurable
 
     can_dry_run!
     can_order_created_events!
 
-    default_schedule "every_12h"
+    default_schedule 'every_12h'
 
     form_configurable :url
     form_configurable :disable_redirect_follow, type: :boolean
@@ -39,18 +43,18 @@ module Agents
     MD
 
     def working?
-      memory['last_status'].to_i > 0
+      memory['last_status'].to_i.positive?
     end
 
     def default_options
       {
-        'url' => "http://google.com",
-        'disable_redirect_follow' => "true",
+        'url' => 'http://google.com',
+        'disable_redirect_follow' => 'true',
       }
     end
 
     def validate_options
-      errors.add(:base, "a url must be specified") unless options['url'].present?
+      errors.add(:base, 'a url must be specified') unless options['url'].present?
     end
 
     def header_array(str)
@@ -88,10 +92,10 @@ module Agents
                          'status' => current_status })
         # Deal with headers
         if local_headers.present?
-          header_results = local_headers.each_with_object({}) { |header, hash|
+          header_results = local_headers.each_with_object({}) do |header, hash|
             hash[header] = measured_result.result.headers[header]
-          }
-          payload.merge!({ 'headers' => header_results })
+          end
+          payload['headers'] = header_results
         end
         create_event(payload:)
         memory['last_status'] = measured_result.status.to_s
@@ -103,9 +107,11 @@ module Agents
 
     def ping(url)
       result = faraday.get url
-      result.status > 0 ? result : nil
+      result.status.positive? ? result : nil
     rescue StandardError
       nil
     end
+
   end
+
 end

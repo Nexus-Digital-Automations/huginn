@@ -2,6 +2,26 @@
 
 require 'agents_exporter'
 
+# ScenariosController manages collections of related Agents grouped into Scenarios.
+#
+# Scenarios provide a way to organize and manage groups of related agents that
+# work together to accomplish specific automation tasks. This controller handles:
+#
+# * Creating and managing scenario collections
+# * Adding and removing agents from scenarios
+# * Importing and exporting complete scenarios
+# * Sharing scenarios between users and systems
+# * Scenario-level operations and bulk management
+#
+# Key functionality includes:
+# * Scenario CRUD operations with agent membership management
+# * JSON and ZIP export formats for portability
+# * Public scenario sharing via export links
+# * Agent dependency management within scenarios  
+# * Bulk operations across all agents in a scenario
+#
+# Export functionality allows scenarios to be shared without authentication
+# to support scenario distribution and collaboration between Huginn instances.
 class ScenariosController < ApplicationController
 
   include SortableTable

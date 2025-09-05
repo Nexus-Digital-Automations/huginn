@@ -1,5 +1,9 @@
+# frozen_string_literal: true
+
 module Agents
+
   class StubhubAgent < Agent
+
     cannot_receive_events!
 
     description <<~MD
@@ -23,7 +27,7 @@ module Agents
           }
     MD
 
-    default_schedule "every_1d"
+    default_schedule 'every_1d'
 
     def working?
       event_created_within?(1) && !recent_error_logs?
@@ -50,6 +54,7 @@ module Agents
     end
 
     class StubhubFetcher
+
       def self.call(url)
         new(url).fields
       end
@@ -59,7 +64,7 @@ module Agents
       end
 
       def event_id
-        /(\d*)\/{0,1}\z/.match(url)[1]
+        %r{(\d*)/{0,1}\z}.match(url)[1]
       end
 
       def base_url
@@ -89,13 +94,16 @@ module Agents
           'min_price' => stubhub_fields['minPrice'].to_s,
           'total_postings' => stubhub_fields['totalPostings'].to_s,
           'total_tickets' => stubhub_fields['totalTickets'].to_i.to_s,
-          'venue_name' => stubhub_fields['venue_name']
+          'venue_name' => stubhub_fields['venue_name'],
         }
       end
 
       private
 
       attr_reader :url
+
     end
+
   end
+
 end

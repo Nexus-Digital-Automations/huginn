@@ -1,8 +1,12 @@
+# frozen_string_literal: true
+
 require 'json'
 require 'uri'
 
 module Agents
+
   class PhantomJsCloudAgent < Agent
+
     include ERB::Util
     include FormConfigurable
     include WebRequestConcern
@@ -53,7 +57,7 @@ module Agents
         'output_as_json' => false,
         'ignore_images' => false,
         'user_agent' => self.class.default_user_agent,
-        'wait_interval' => '1000'
+        'wait_interval' => '1000',
       }
     end
 
@@ -98,9 +102,7 @@ module Agents
       prs[:ignoreImages] = ignore_images if ignore_images
       prs[:userAgent] = user_agent if user_agent.present?
 
-      if wait_interval != default_options['wait_interval']
-        prs[:wait_interval] = wait_interval
-      end
+      prs[:wait_interval] = wait_interval if wait_interval != default_options['wait_interval']
 
       prs
     end
@@ -109,16 +111,14 @@ module Agents
       api_key = interpolated[:api_key]
       page_request_hash = {
         url: interpolated[:url],
-        renderType: render_type
+        renderType: render_type,
       }
 
       page_request_hash[:outputAsJson] = output_as_json if output_as_json
 
       page_request_settings_hash = page_request_settings
 
-      if page_request_settings_hash.any?
-        page_request_hash[:requestSettings] = page_request_settings_hash
-      end
+      page_request_hash[:requestSettings] = page_request_settings_hash if page_request_settings_hash.any?
 
       request = page_request_hash.to_json
       log "Generated request: #{request}"
@@ -158,5 +158,7 @@ module Agents
       errors.add(:base, 'Url is required') unless options['url'].present?
       errors.add(:base, 'API key (credential) is required') unless options['api_key'].present?
     end
+
   end
+
 end

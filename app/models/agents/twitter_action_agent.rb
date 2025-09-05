@@ -1,5 +1,9 @@
+# frozen_string_literal: true
+
 module Agents
+
   class TwitterActionAgent < Agent
+
     include TwitterConcern
 
     cannot_be_scheduled!
@@ -21,14 +25,10 @@ module Agents
 
     def validate_options
       unless options['expected_receive_period_in_days'].present?
-        errors.add(:base, "expected_receive_period_in_days is required")
+        errors.add(:base, 'expected_receive_period_in_days is required')
       end
-      unless retweet? || favorite?
-        errors.add(:base, "at least one action must be true")
-      end
-      if emit_error_events?.nil?
-        errors.add(:base, "emit_error_events must be set to 'true' or 'false'")
-      end
+      errors.add(:base, 'at least one action must be true') unless retweet? || favorite?
+      errors.add(:base, "emit_error_events must be set to 'true' or 'false'") if emit_error_events?.nil?
     end
 
     def working?
@@ -40,7 +40,7 @@ module Agents
         'expected_receive_period_in_days' => '2',
         'favorite' => 'false',
         'retweet' => 'true',
-        'emit_error_events' => 'false'
+        'emit_error_events' => 'false',
       }
     end
 
@@ -73,9 +73,9 @@ module Agents
           create_event payload: {
             'success' => false,
             'error' => e.message,
-            'tweets' => Hash[tweets.map { |t| [t.id, t.text] }],
+            'tweets' => tweets.to_h { |t| [t.id, t.text] },
             'agent_ids' => incoming_events.map(&:agent_id),
-            'event_ids' => incoming_events.map(&:id)
+            'event_ids' => incoming_events.map(&:id),
           }
         end
       end
@@ -84,10 +84,12 @@ module Agents
     def tweets_from_events(events)
       events.map do |e|
         Twitter::Tweet.new(
-          id: e.payload["id"],
-          text: e.payload["expanded_text"] || e.payload["full_text"] || e.payload["text"]
+          id: e.payload['id'],
+          text: e.payload['expanded_text'] || e.payload['full_text'] || e.payload['text']
         )
       end
     end
+
   end
+
 end

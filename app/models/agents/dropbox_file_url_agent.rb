@@ -1,5 +1,9 @@
+# frozen_string_literal: true
+
 module Agents
+
   class DropboxFileUrlAgent < Agent
+
     include DropboxConcern
 
     cannot_be_scheduled!
@@ -38,35 +42,35 @@ module Agents
         Utils.pretty_print(
           if options['link_type'] == 'permanent'
             {
-              url: "https://www.dropbox.com/s/abcde3/example?dl=1",
-              ".tag": "file",
-              id: "id:abcde3",
-              name: "hi",
-              path_lower: "/huginn/hi",
+              url: 'https://www.dropbox.com/s/abcde3/example?dl=1',
+              '.tag': 'file',
+              id: 'id:abcde3',
+              name: 'hi',
+              path_lower: '/huginn/hi',
               link_permissions: {
-                resolved_visibility: { ".tag": "public" },
-                requested_visibility: { ".tag": "public" },
-                can_revoke: true
+                resolved_visibility: { '.tag': 'public' },
+                requested_visibility: { '.tag': 'public' },
+                can_revoke: true,
               },
-              client_modified: "2017-10-14T18:38:39Z",
-              server_modified: "2017-10-14T18:38:45Z",
-              rev: "31db0615354b",
-              size: 0
+              client_modified: '2017-10-14T18:38:39Z',
+              server_modified: '2017-10-14T18:38:45Z',
+              rev: '31db0615354b',
+              size: 0,
             }
           else
             {
-              url: "https://dl.dropboxusercontent.com/apitl/1/somelongurl",
+              url: 'https://dl.dropboxusercontent.com/apitl/1/somelongurl',
               metadata: {
-                name: "hi",
-                path_lower: "/huginn/hi",
-                path_display: "/huginn/hi",
-                id: "id:abcde3",
-                client_modified: "2017-10-14T18:38:39Z",
-                server_modified: "2017-10-14T18:38:45Z",
-                rev: "31db0615354b",
+                name: 'hi',
+                path_lower: '/huginn/hi',
+                path_display: '/huginn/hi',
+                id: 'id:abcde3',
+                client_modified: '2017-10-14T18:38:39Z',
+                server_modified: '2017-10-14T18:38:45Z',
+                rev: '31db0615354b',
                 size: 0,
-                content_hash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-              }
+                content_hash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+              },
             }
           end
         )
@@ -74,7 +78,7 @@ module Agents
 
     def default_options
       {
-        'link_type' => 'temporary'
+        'link_type' => 'temporary',
       }
     end
 
@@ -84,9 +88,9 @@ module Agents
 
     def receive(events)
       events.flat_map { |e| e.payload['paths'].split(',').map(&:strip) }
-        .each do |path|
+            .each do |path|
           create_event payload: (options['link_type'] == 'permanent' ? permanent_url_for(path) : temporary_url_for(path))
-        end
+      end
     end
 
     private
@@ -102,5 +106,7 @@ module Agents
         response['url'].gsub!('?dl=0', '?dl=1')
       end
     end
+
   end
+
 end

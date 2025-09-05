@@ -1,5 +1,9 @@
+# frozen_string_literal: true
+
 module Agents
+
   class WeiboUserAgent < Agent
+
     include WeiboConcern
 
     cannot_receive_events!
@@ -23,7 +27,7 @@ module Agents
             "created_at": "Tue May 31 17:46:55 +0800 2011",
             "id": 11488058246,
             "text": "求关注。",
-            "source": "<a href=\"http://weibo.com\" rel=\"nofollow\">新浪微博</a>",
+            "source": "<a href="http://weibo.com" rel="nofollow">新浪微博</a>",
             "favorited": false,
             "truncated": false,
             "in_reply_to_status_id": "",
@@ -66,12 +70,12 @@ module Agents
         }
     MD
 
-    default_schedule "every_1h"
+    default_schedule 'every_1h'
 
     def validate_options
       unless options['uid'].present? &&
-          options['expected_update_period_in_days'].present?
-        errors.add(:base, "expected_update_period_in_days and uid are required")
+             options['expected_update_period_in_days'].present?
+        errors.add(:base, 'expected_update_period_in_days and uid are required')
       end
     end
 
@@ -81,31 +85,30 @@ module Agents
 
     def default_options
       {
-        'uid' => "",
-        'access_token' => "---",
-        'app_key' => "---",
-        'app_secret' => "---",
-        'expected_update_period_in_days' => "2"
+        'uid' => '',
+        'access_token' => '---',
+        'app_key' => '---',
+        'app_secret' => '---',
+        'expected_update_period_in_days' => '2',
       }
     end
 
     def check
       since_id = memory['since_id'] || nil
       opts = { uid: interpolated['uid'].to_i }
-      opts.merge! since_id: since_id unless since_id.nil?
+      opts[:since_id] = since_id unless since_id.nil?
 
       # http://open.weibo.com/wiki/2/statuses/user_timeline/en
       resp = weibo_client.statuses.user_timeline opts
-      if resp[:statuses]
-
-        resp[:statuses].each do |status|
+      resp[:statuses]&.each do |status|
           memory['since_id'] = status.id if !memory['since_id'] || (status.id > memory['since_id'])
 
           create_event payload: status.as_json
-        end
       end
 
       save!
     end
+
   end
+
 end

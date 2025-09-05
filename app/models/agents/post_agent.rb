@@ -1,16 +1,20 @@
+# frozen_string_literal: true
+
 module Agents
+
   class PostAgent < Agent
+
     include EventHeadersConcern
     include WebRequestConcern
     include FileHandling
 
     consumes_file_pointer!
 
-    MIME_RE = /\A\w+\/.+\z/
+    MIME_RE = %r{\A\w+/.+\z}
 
     can_dry_run!
     no_bulk_receive!
-    default_schedule "never"
+    default_schedule 'never'
 
     description do
       <<~MD
@@ -72,27 +76,27 @@ module Agents
 
     def default_options
       {
-        'post_url' => "http://www.example.com",
+        'post_url' => 'http://www.example.com',
         'expected_receive_period_in_days' => '1',
         'content_type' => 'form',
         'method' => 'post',
         'payload' => {
           'key' => 'value',
-          'something' => 'the event contained {{ somekey }}'
+          'something' => 'the event contained {{ somekey }}',
         },
         'headers' => {},
         'emit_events' => 'false',
         'parse_body' => 'true',
         'no_merge' => 'true',
-        'output_mode' => 'clean'
+        'output_mode' => 'clean',
       }
     end
 
     def working?
       return false if recent_error_logs?
 
-      if interpolated['expected_receive_period_in_days'].present?
-        return false unless last_receive_at && last_receive_at > interpolated['expected_receive_period_in_days'].to_i.days.ago
+      if interpolated['expected_receive_period_in_days'].present? && !(last_receive_at && last_receive_at > interpolated['expected_receive_period_in_days'].to_i.days.ago)
+          return false
       end
 
       true
@@ -103,31 +107,28 @@ module Agents
     end
 
     def validate_options
-      unless options['post_url'].present?
-        errors.add(:base, "post_url is a required field")
-      end
+      errors.add(:base, 'post_url is a required field') unless options['post_url'].present?
 
       if options['payload'].present? && %w[get
                                            delete].include?(method) && !(options['payload'].is_a?(Hash) || options['payload'].is_a?(Array))
-        errors.add(:base, "if provided, payload must be a hash or an array")
+        errors.add(:base, 'if provided, payload must be a hash or an array')
       end
 
-      if options['payload'].present? && %w[post put patch].include?(method)
-        if !(options['payload'].is_a?(Hash) || options['payload'].is_a?(Array)) && options['content_type'] !~ MIME_RE
-          errors.add(:base, "if provided, payload must be a hash or an array")
-        end
+      if options['payload'].present? && %w[post put
+                                           patch].include?(method) && (!(options['payload'].is_a?(Hash) || options['payload'].is_a?(Array)) && options['content_type'] !~ MIME_RE)
+          errors.add(:base, 'if provided, payload must be a hash or an array')
       end
 
       if options['content_type'] =~ MIME_RE && options['payload'].is_a?(String) && boolify(options['no_merge']) != true
-        errors.add(:base, "when the payload is a string, `no_merge` has to be set to `true`")
+        errors.add(:base, 'when the payload is a string, `no_merge` has to be set to `true`')
       end
 
       if options['content_type'] == 'form' && options['payload'].present? && options['payload'].is_a?(Array)
-        errors.add(:base, "when content_type is a form, if provided, payload must be a hash")
+        errors.add(:base, 'when content_type is a form, if provided, payload must be a hash')
       end
 
-      if options.has_key?('emit_events') && boolify(options['emit_events']).nil?
-        errors.add(:base, "if provided, emit_events must be true or false")
+      if options.key?('emit_events') && boolify(options['emit_events']).nil?
+        errors.add(:base, 'if provided, emit_events must be true or false')
       end
 
       validate_event_headers_options!
@@ -148,9 +149,7 @@ module Agents
         errors.add(:base, "if provided, parse_body must be 'true' or 'false'")
       end
 
-      unless headers.is_a?(Hash)
-        errors.add(:base, "if provided, headers must be a hash")
-      end
+      errors.add(:base, 'if provided, headers must be a hash') unless headers.is_a?(Hash)
 
       validate_web_request_options!
     end
@@ -213,9 +212,9 @@ module Agents
         error "Invalid method '#{method}'"
       end
 
-      response = faraday.run_request(method.to_sym, url, body, headers) { |request|
+      response = faraday.run_request(method.to_sym, url, body, headers) do |request|
         request.params.update(params) if params
-      }
+      end
 
       if boolify(interpolated['emit_events'])
         new_event = interpolated['output_mode'].to_s == 'merge' ? event.payload.dup : {}
@@ -231,5 +230,7 @@ module Agents
     def event_headers_key
       super || 'headers'
     end
+
   end
+
 end

@@ -1,14 +1,18 @@
+# frozen_string_literal: true
+
 module Agents
+
   class RssAgent < Agent
+
     include WebRequestConcern
 
     cannot_receive_events!
     can_dry_run!
-    default_schedule "every_1d"
+    default_schedule 'every_1d'
 
     gem_dependency_check { defined?(Feedjira) }
 
-    DEFAULT_EVENTS_ORDER = [['{{date_published}}', 'time'], ['{{last_updated}}', 'time']]
+    DEFAULT_EVENTS_ORDER = [['{{date_published}}', 'time'], ['{{last_updated}}', 'time']].freeze
 
     description do
       <<~MD
@@ -43,9 +47,9 @@ module Agents
 
     def default_options
       {
-        'expected_update_period_in_days' => "5",
+        'expected_update_period_in_days' => '5',
         'clean' => 'false',
-        'url' => "https://github.com/huginn/huginn/commits/master.atom"
+        'url' => 'https://github.com/huginn/huginn/commits/master.atom',
       }
     end
 
@@ -128,9 +132,9 @@ module Agents
     end
 
     def validate_options
-      errors.add(:base, "url is required") unless options['url'].present?
+      errors.add(:base, 'url is required') unless options['url'].present?
 
-      unless options['expected_update_period_in_days'].present? && options['expected_update_period_in_days'].to_i > 0
+      unless options['expected_update_period_in_days'].present? && options['expected_update_period_in_days'].to_i.positive?
         errors.add(:base,
                    "Please provide 'expected_update_period_in_days' to indicate how many days can pass without an update before this Agent is considered to not be working")
       end
@@ -174,10 +178,10 @@ module Agents
         error "Failed to fetch #{url} with message '#{e.message}': #{e.backtrace}"
       end
 
-      events = sort_events(new_events).select.with_index { |event, index|
+      events = sort_events(new_events).select.with_index do |event, index|
         check_and_track(event.payload[:id]) &&
-          !(max_events && max_events > 0 && index >= max_events)
-      }
+          !(max_events && max_events.positive? && index >= max_events)
+      end
       create_events(events)
       log "Fetched #{urls.to_sentence} and created #{events.size} event(s)."
     end
@@ -192,14 +196,14 @@ module Agents
         false
       else
         memory['seen_ids'].unshift entry_id
-        memory['seen_ids'].pop(memory['seen_ids'].length - remembered_id_count) if memory['seen_ids'].length > remembered_id_count
+        if memory['seen_ids'].length > remembered_id_count
+          memory['seen_ids'].pop(memory['seen_ids'].length - remembered_id_count)
+        end
         true
       end
     end
 
-    unless dependencies_missing?
-      require 'feedjira_extension'
-    end
+    require 'feedjira_extension' unless dependencies_missing?
 
     def preprocessed_body(response)
       body = response.body
@@ -238,7 +242,7 @@ module Agents
         authors: feed.authors,
         date_published: feed.date_published,
         last_updated: feed.last_updated,
-        **itunes_feed_data(feed)
+        **itunes_feed_data(feed),
       }
     end
 
@@ -257,8 +261,8 @@ module Agents
           itunes_subtitle
           itunes_summary
           language
-        ].each { |attr|
-          next unless value = feed.try(attr).presence
+        ].each do |attr|
+          next unless (value = feed.try(attr).presence)
 
           data[attr] =
             case attr
@@ -267,7 +271,7 @@ module Agents
             else
               value
             end
-        }
+        end
       end
       data
     end
@@ -287,7 +291,7 @@ module Agents
         categories: Array(entry.try(:categories)),
         date_published: entry.date_published,
         last_updated: entry.last_updated,
-        **itunes_entry_data(entry)
+        **itunes_entry_data(entry),
       }
     end
 
@@ -304,11 +308,11 @@ module Agents
           itunes_order
           itunes_subtitle
           itunes_summary
-        ].each { |attr|
-          if value = entry.try(attr).presence
+        ].each do |attr|
+          if (value = entry.try(attr).presence)
             data[attr] = value
           end
-        }
+        end
       end
       data
     end
@@ -316,13 +320,11 @@ module Agents
     def feed_to_events(feed)
       payload_base = {}
 
-      if boolify(interpolated['include_feed_info'])
-        payload_base[:feed] = feed_data(feed)
-      end
+      payload_base[:feed] = feed_data(feed) if boolify(interpolated['include_feed_info'])
 
-      feed.entries.map { |entry|
+      feed.entries.map do |entry|
         Event.new(payload: payload_base.merge(entry_data(entry)))
-      }
+      end
     end
 
     def clean_fragment(fragment)
@@ -332,5 +334,7 @@ module Agents
         fragment
       end
     end
+
   end
+
 end

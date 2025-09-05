@@ -1,8 +1,12 @@
+# frozen_string_literal: true
+
 require 'date'
 require 'cgi'
 
 module Agents
+
   class WeatherAgent < Agent
+
     cannot_receive_events!
 
     gem_dependency_check { defined?(ForecastIO) }
@@ -48,14 +52,14 @@ module Agents
           }
     MD
 
-    default_schedule "8pm"
+    default_schedule '8pm'
 
     def working?
       event_created_within?((interpolated['expected_update_period_in_days'].presence || 2).to_i) && !recent_error_logs? && key_setup?
     end
 
     def key_setup?
-      interpolated['api_key'].present? && interpolated['api_key'] != "your-key" && interpolated['api_key'] != "put-your-key-here"
+      interpolated['api_key'].present? && interpolated['api_key'] != 'your-key' && interpolated['api_key'] != 'put-your-key-here'
     end
 
     def default_options
@@ -64,69 +68,72 @@ module Agents
         'location' => '37.779329,-122.41915',
         'which_day' => '1',
         'expected_update_period_in_days' => '2',
-        'language' => 'en'
+        'language' => 'en',
       }
     end
 
     def check
-      if key_setup?
-        create_event payload: model(which_day).merge('location' => location)
-      end
+      create_event payload: model(which_day).merge('location' => location) if key_setup?
     end
 
     private
 
     def which_day
-      (interpolated["which_day"].presence || 1).to_i
+      (interpolated['which_day'].presence || 1).to_i
     end
 
     def location
-      interpolated["location"].presence || interpolated["zipcode"]
+      interpolated['location'].presence || interpolated['zipcode']
     end
 
     def coordinates
-      location.split(',').map { |e| e.to_f }
+      location.split(',').map(&:to_f)
     end
 
     def language
-      interpolated["language"].presence || "en"
+      interpolated['language'].presence || 'en'
     end
 
     def wunderground?
-      interpolated["service"].presence && interpolated["service"].presence.downcase == "wunderground"
+      interpolated['service'].presence&.casecmp('wunderground')&.zero?
     end
 
     def darksky?
-      interpolated["service"].presence && interpolated["service"].presence.downcase == "darksky"
+      interpolated['service'].presence&.casecmp('darksky')&.zero?
     end
 
     VALID_COORDS_REGEX = /^\s*-?\d{1,3}\.\d+\s*,\s*-?\d{1,3}\.\d+\s*$/
 
     def validate_location
-      errors.add(:base, "location is required") unless location.present?
-      if location =~ VALID_COORDS_REGEX
+      errors.add(:base, 'location is required') unless location.present?
+      if VALID_COORDS_REGEX.match?(location)
         lat, lon = coordinates
-        errors.add :base, "too low of a latitude" unless lat > -90
-        errors.add :base, "too big of a latitude" unless lat < 90
-        errors.add :base, "too low of a longitude" unless lon > -180
-        errors.add :base, "too high of a longitude" unless lon < 180
+        errors.add :base, 'too low of a latitude' unless lat > -90
+        errors.add :base, 'too big of a latitude' unless lat < 90
+        errors.add :base, 'too low of a longitude' unless lon > -180
+        errors.add :base, 'too high of a longitude' unless lon < 180
       else
         errors.add(
           :base,
-          "Location #{location} is malformed. Location for " +
-          'Pirate Weather must be in the format "-00.000,-00.00000". The ' +
+          "Location #{location} is malformed. Location for " \
+          'Pirate Weather must be in the format "-00.000,-00.00000". The ' \
           "number of decimal places does not matter."
         )
       end
     end
 
     def validate_options
-      errors.add(:base,
-                 "The Weather Underground API has been disabled since Jan 1st 2018, please switch to Pirate Weather") if wunderground?
-      errors.add(:base, "The Dark Sky API has been disabled since March 31, 2023, please switch to Pirate Weather") if darksky?
+      if wunderground?
+        errors.add(:base,
+                   'The Weather Underground API has been disabled since Jan 1st 2018, please switch to Pirate Weather')
+      end
+      if darksky?
+        errors.add(:base,
+                   'The Dark Sky API has been disabled since March 31, 2023, please switch to Pirate Weather')
+      end
       validate_location
-      errors.add(:base, "api_key is required") unless interpolated['api_key'].present?
-      errors.add(:base, "which_day selection is required") unless which_day.present?
+      errors.add(:base, 'api_key is required') unless interpolated['api_key'].present?
+      errors.add(:base, 'which_day selection is required') unless which_day.present?
     end
 
     def pirate_weather
@@ -144,21 +151,21 @@ module Agents
         {
           'date' => {
             'epoch' => value.time.to_s,
-            'pretty' => timestamp.strftime("%l:%M %p %Z on %B %d, %Y"),
+            'pretty' => timestamp.strftime('%l:%M %p %Z on %B %d, %Y'),
             'day' => timestamp.day,
             'month' => timestamp.month,
             'year' => timestamp.year,
             'yday' => timestamp.yday,
             'hour' => timestamp.hour,
-            'min' => timestamp.strftime("%M"),
+            'min' => timestamp.strftime('%M'),
             'sec' => timestamp.sec,
             'isdst' => timestamp.isdst ? 1 : 0,
-            'monthname' => timestamp.strftime("%B"),
-            'monthname_short' => timestamp.strftime("%b"),
-            'weekday_short' => timestamp.strftime("%a"),
-            'weekday' => timestamp.strftime("%A"),
-            'ampm' => timestamp.strftime("%p"),
-            'tz_short' => timestamp.zone
+            'monthname' => timestamp.strftime('%B'),
+            'monthname_short' => timestamp.strftime('%b'),
+            'weekday_short' => timestamp.strftime('%a'),
+            'weekday' => timestamp.strftime('%A'),
+            'ampm' => timestamp.strftime('%p'),
+            'tz_short' => timestamp.zone,
           },
           'period' => which_day.to_i,
           'high' => {
@@ -166,14 +173,14 @@ module Agents
             'epoch' => value.temperatureMaxTime.to_s,
             'fahrenheit_apparent' => value.apparentTemperatureMax.round.to_s,
             'epoch_apparent' => value.apparentTemperatureMaxTime.to_s,
-            'celsius' => ((5 * (Float(value.temperatureMax) - 32)) / 9).round.to_s
+            'celsius' => ((5 * (Float(value.temperatureMax) - 32)) / 9).round.to_s,
           },
           'low' => {
             'fahrenheit' => value.temperatureMin.round.to_s,
             'epoch' => value.temperatureMinTime.to_s,
             'fahrenheit_apparent' => value.apparentTemperatureMin.round.to_s,
             'epoch_apparent' => value.apparentTemperatureMinTime.to_s,
-            'celsius' => ((5 * (Float(value.temperatureMin) - 32)) / 9).round.to_s
+            'celsius' => ((5 * (Float(value.temperatureMin) - 32)) / 9).round.to_s,
           },
           'conditions' => value.summary,
           'icon' => value.icon,
@@ -186,20 +193,22 @@ module Agents
             'intensity_max' => value.precipIntensityMax.to_s,
             'intensity_max_epoch' => value.precipIntensityMaxTime.to_s,
             'probability' => value.precipProbability.to_s,
-            'type' => value.precipType
+            'type' => value.precipType,
           },
           'dewPoint' => value.dewPoint.to_s,
           'avewind' => {
             'mph' => value.windSpeed.round.to_s,
             'kph' => (Float(value.windSpeed) * 1.609344).round.to_s,
-            'degrees' => value.windBearing.to_s
+            'degrees' => value.windBearing.to_s,
           },
           'visibility' => value.visibility.to_s,
           'cloudCover' => value.cloudCover.to_s,
           'pressure' => value.pressure.to_s,
-          'ozone' => value.ozone.to_s
+          'ozone' => value.ozone.to_s,
         }
       end
     end
+
   end
+
 end

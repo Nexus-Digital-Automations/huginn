@@ -1,5 +1,9 @@
+# frozen_string_literal: true
+
 module Agents
+
   class JabberAgent < Agent
+
     include LongRunnable
     include FormConfigurable
 
@@ -42,7 +46,7 @@ module Agents
         'jabber_receiver' => 'muninn@localhost',
         'jabber_password' => '',
         'message' => 'It will be {{temp}} out tomorrow',
-        'expected_receive_period_in_days' => "2"
+        'expected_receive_period_in_days' => '2',
       }
     end
 
@@ -67,7 +71,7 @@ module Agents
     end
 
     def validate_options
-      errors.add(:base, "server and username is required") unless credentials_present?
+      errors.add(:base, 'server and username is required') unless credentials_present?
     end
 
     def deliver(text)
@@ -96,6 +100,7 @@ module Agents
     end
 
     class Worker < LongRunnable::Worker
+
       IGNORE_MESSAGES_FOR = 5
 
       def setup
@@ -150,6 +155,9 @@ module Agents
           [args[0], nil, args[1]]
         end
       end
+
     end
+
   end
+
 end

@@ -1,5 +1,9 @@
+# frozen_string_literal: true
+
 module Agents
+
   class EventFormattingAgent < Agent
+
     cannot_be_scheduled!
     can_dry_run!
 
@@ -84,22 +88,21 @@ module Agents
     MD
 
     event_description do
-      "Events will have the following fields%s:\n\n    %s" % [
-        case options['mode'].to_s
-        when 'merge'
-          ', merged with the original contents'
-        when /\{/
-          ', conditionally merged with the original contents'
-        end,
-        Utils.pretty_print(Hash[options['instructions'].keys.map { |key|
-          [key, "..."]
-        }])
-      ]
+      format("Events will have the following fields%s:\n\n    %s", case options['mode'].to_s
+                                                                   when 'merge'
+                                                                     ', merged with the original contents'
+                                                                   when /\{/
+                                                                     ', conditionally merged with the original contents'
+                                                                   end, Utils.pretty_print(options['instructions'].keys.to_h do |key|
+                                                                                             [key, '...']
+                                                                                           end))
     end
 
     def validate_options
-      errors.add(:base,
-                 "instructions and mode need to be present.") unless options['instructions'].present? && options['mode'].present?
+      unless options['instructions'].present? && options['mode'].present?
+        errors.add(:base,
+                   'instructions and mode need to be present.')
+      end
 
       if options['mode'].present? && !options['mode'].to_s.include?('{{') && !%(clean merge).include?(options['mode'].to_s)
         errors.add(:base, "mode must be 'clean' or 'merge'")
@@ -111,11 +114,11 @@ module Agents
     def default_options
       {
         'instructions' => {
-          'message' => "You received a text {{text}} from {{fields.from}}",
-          'agent' => "{{agent.type}}",
-          'some_other_field' => "Looks like the weather is going to be {{fields.weather}}"
+          'message' => 'You received a text {{text}} from {{fields.from}}',
+          'agent' => '{{agent.type}}',
+          'some_other_field' => 'Looks like the weather is going to be {{fields.weather}}',
         },
-        'mode' => "clean",
+        'mode' => 'clean',
       }
     end
 
@@ -129,7 +132,7 @@ module Agents
       incoming_events.each do |event|
         interpolate_with(event) do
           apply_compiled_matchers(matchers, event) do
-            formatted_event = interpolated['mode'].to_s == "merge" ? event.payload.dup : {}
+            formatted_event = interpolated['mode'].to_s == 'merge' ? event.payload.dup : {}
             formatted_event.merge! interpolated['instructions']
             create_event payload: formatted_event
           end
@@ -143,13 +146,13 @@ module Agents
       matchers = options['matchers'] or return
 
       unless matchers.is_a?(Array)
-        errors.add(:base, "matchers must be an array if present")
+        errors.add(:base, 'matchers must be an array if present')
         return
       end
 
       matchers.each do |matcher|
         unless matcher.is_a?(Hash)
-          errors.add(:base, "each matcher must be a hash")
+          errors.add(:base, 'each matcher must be a hash')
           next
         end
 
@@ -162,25 +165,25 @@ module Agents
             errors.add(:base, "bad regexp found in matchers: #{regexp}")
           end
         else
-          errors.add(:base, "regexp is mandatory for a matcher and must be a string")
+          errors.add(:base, 'regexp is mandatory for a matcher and must be a string')
         end
 
-        errors.add(:base, "path is mandatory for a matcher and must be a string") if !path.present?
+        errors.add(:base, 'path is mandatory for a matcher and must be a string') unless path.present?
 
-        errors.add(:base, "to must be a string if present in a matcher") if to.present? && !to.is_a?(String)
+        errors.add(:base, 'to must be a string if present in a matcher') if to.present? && !to.is_a?(String)
       end
     end
 
     def compiled_matchers
-      if matchers = options['matchers']
-        matchers.map { |matcher|
+      if (matchers = options['matchers'])
+        matchers.map do |matcher|
           regexp, path, to = matcher.values_at(*%w[regexp path to])
           [Regexp.new(regexp), path, to]
-        }
+        end
       end
     end
 
-    def apply_compiled_matchers(matchers, event, &block)
+    def apply_compiled_matchers(matchers, event, &)
       return yield if matchers.nil?
 
       # event.payload.dup does not work; HashWithIndifferentAccess is
@@ -211,7 +214,9 @@ module Agents
         end
       end
 
-      interpolate_with(hash, &block)
+      interpolate_with(hash, &)
     end
+
   end
+
 end

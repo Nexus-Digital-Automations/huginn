@@ -350,23 +350,6 @@
       "auto_research_created": false
     },
     {
-      "id": "task_1757042622077_sxnig96n4",
-      "title": "Research deployment strategies and DevOps integration patterns for performance dashboards",
-      "mode": "DEVELOPMENT",
-      "category": "research",
-      "priority": "medium",
-      "status": "pending",
-      "dependencies": [],
-      "important_files": [],
-      "success_criteria": [],
-      "estimate": "",
-      "requires_research": false,
-      "subtasks": [],
-      "created_at": "2025-09-05T03:23:42.077Z",
-      "auto_research_created": false,
-      "description": "No description provided"
-    },
-    {
       "id": "task_1756879543784_lex384agq",
       "title": "Implement comprehensive Ruby test coverage enforcement system",
       "description": "Based on development/modes/testing.md requirements, implement a test coverage enforcement system that meets the strict coverage requirements: 100% minimum for Data Layer Components, 95% minimum for API/Service Components, 85% minimum for Frontend Components. Setup SimpleCov with proper thresholds and reporting.",

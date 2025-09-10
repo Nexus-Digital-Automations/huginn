@@ -760,4 +760,5 @@ module QualityGates
         '$200'  # Placeholder
       end
     end
-    
+  end
+end

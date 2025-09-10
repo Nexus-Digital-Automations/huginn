@@ -93,7 +93,6 @@ if defined?(Rails) && Rails.application
         
         config.performance_degradation_threshold = benchmark_config['performance_degradation_threshold'] || 0.08
         config.critical_degradation_threshold = benchmark_config['critical_degradation_threshold'] || 0.20
-        config.improvement_threshold = benchmark_config['improvement_threshold'] || 0.05
         
         # Set file paths
         config.baseline_file = Rails.root.join(benchmark_config['baseline_file'] || 'config/performance_baseline.json')

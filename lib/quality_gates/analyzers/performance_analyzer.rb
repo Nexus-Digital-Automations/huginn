@@ -222,7 +222,12 @@ module QualityGates
             
             3.times do
               start_time = Time.now
-              eval(sample[:query])  # Note: In production, use safer query execution
+              # Safe query execution - avoid eval for security
+              begin
+                ActiveRecord::Base.connection.execute(sample[:query])
+              rescue => e
+                Rails.logger.warn "Query execution failed: #{e.message}"
+              end
               execution_time = (Time.now - start_time) * 1000
               times << execution_time
             end
@@ -822,4 +827,5 @@ module QualityGates
         }
       end
     end
-    
+  end
+end

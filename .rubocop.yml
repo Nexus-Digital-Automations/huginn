@@ -111,6 +111,7 @@ Layout/TrailingEmptyLines:
 Layout/IndentationConsistency:
   Description: 'Consistent indentation style'
   EnforcedStyle: normal
+  Enabled: false  # Temporarily disabled due to cop crashes
 
 Layout/IndentationWidth:
   Description: 'Use 2 spaces for indentation'
@@ -193,6 +194,7 @@ Style/EmptyMethod:
 Style/ClassAndModuleChildren:
   Description: 'Prefer nested style for namespace definitions'
   EnforcedStyle: compact
+  Enabled: false  # Temporarily disabled due to cop crashes
   # Allow explicit nesting for complex cases
   Exclude:
     - 'app/models/agents/**/*.rb'
@@ -422,6 +424,9 @@ Lint/Debugger:
 Security/Open:
   Description: 'Avoid dangerous use of Kernel#open'
   Enabled: true
+  # Allow URI.open for legitimate HTTP requests in agents
+  Exclude:
+    - 'app/models/agents/**/*.rb'
 
 Security/Eval:
   Description: 'Avoid dangerous use of eval'

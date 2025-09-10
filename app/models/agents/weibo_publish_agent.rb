@@ -87,7 +87,7 @@ module Agents
     end
 
     def publish_tweet_with_pic(text, pic)
-      weibo_client.statuses.upload text, open(pic)
+      weibo_client.statuses.upload text, URI.open(pic)
     end
 
     def valid_image?(url)

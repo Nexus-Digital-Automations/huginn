@@ -329,8 +329,8 @@ module QualityGates
         apis << 'net_http' if content.include?('Net::HTTP')
         
         # Specific service patterns
-        apis << 'twitter' if content.match?/(twitter|oauth)/i)
-        apis << 'email' if content.match?/(smtp|imap|pop3)/i)
+        apis << 'twitter' if content.match?(/(twitter|oauth)/i)
+        apis << 'email' if content.match?(/(smtp|imap|pop3)/i)
         apis << 'webhook' if content.include?('webhook')
         
         apis.uniq
@@ -646,4 +646,5 @@ module QualityGates
       def calculate_performance_severity(impact); 35; end
       def identify_monitoring_requirements(impact); []; end
     end
-    
+  end
+end

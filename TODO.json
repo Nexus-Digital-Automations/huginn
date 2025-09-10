@@ -26,9 +26,9 @@
       "created_at": "2025-09-05T02:07:17.184Z",
       "created_by": "auto-research-system",
       "auto_created_for": "task_1757038037184_vt8n8e8gw",
-      "assigned_agent": "development_session_1757041885494_1_general_aa7cf1f1",
-      "started_at": "2025-09-05T03:17:39.162Z",
-      "claimed_by": "development_session_1757041885494_1_general_aa7cf1f1",
+      "assigned_agent": "development_session_1757044620791_1_general_1e161845",
+      "started_at": "2025-09-05T03:57:41.235Z",
+      "claimed_by": "development_session_1757044620791_1_general_1e161845",
       "agent_assignment_history": [
         {
           "agentId": "development_session_1757040439367_1_general_3b548f6a",
@@ -47,6 +47,19 @@
           "agentId": "development_session_1757041885494_1_general_aa7cf1f1",
           "role": "primary",
           "assignedAt": "2025-09-05T03:17:39.162Z",
+          "reassignReason": null,
+          "claimPriority": "normal"
+        },
+        {
+          "agent": "system",
+          "action": "auto_reset_stale",
+          "timestamp": "2025-09-05T03:51:30.365Z",
+          "reason": "Task stale for 34 minutes"
+        },
+        {
+          "agentId": "development_session_1757044620791_1_general_1e161845",
+          "role": "primary",
+          "assignedAt": "2025-09-05T03:57:41.235Z",
           "reassignReason": null,
           "claimPriority": "normal"
         }
@@ -77,14 +90,27 @@
       "created_at": "2025-09-05T02:07:10.144Z",
       "created_by": "auto-research-system",
       "auto_created_for": "task_1757038030144_9c8g84r36",
-      "assigned_agent": "development_session_1757040439367_1_general_3b548f6a",
-      "started_at": "2025-09-05T03:02:03.363Z",
-      "claimed_by": "development_session_1757040439367_1_general_3b548f6a",
+      "assigned_agent": "development_session_1757044620791_1_general_1e161845",
+      "started_at": "2025-09-05T03:57:57.534Z",
+      "claimed_by": "development_session_1757044620791_1_general_1e161845",
       "agent_assignment_history": [
         {
           "agentId": "development_session_1757040439367_1_general_3b548f6a",
           "role": "primary",
           "assignedAt": "2025-09-05T03:02:03.363Z",
+          "reassignReason": null,
+          "claimPriority": "normal"
+        },
+        {
+          "agent": "system",
+          "action": "auto_reset_stale",
+          "timestamp": "2025-09-05T03:51:30.365Z",
+          "reason": "Task stale for 49 minutes"
+        },
+        {
+          "agentId": "development_session_1757044620791_1_general_1e161845",
+          "role": "primary",
+          "assignedAt": "2025-09-05T03:57:57.534Z",
           "reassignReason": null,
           "claimPriority": "normal"
         }
@@ -115,14 +141,27 @@
       "created_at": "2025-09-05T02:07:00.068Z",
       "created_by": "auto-research-system",
       "auto_created_for": "task_1757038020068_tj2lfk2wj",
-      "assigned_agent": "development_session_1757040439367_1_general_3b548f6a",
-      "started_at": "2025-09-05T03:05:10.621Z",
-      "claimed_by": "development_session_1757040439367_1_general_3b548f6a",
+      "assigned_agent": "development_session_1757044620791_1_general_1e161845",
+      "started_at": "2025-09-05T03:58:39.484Z",
+      "claimed_by": "development_session_1757044620791_1_general_1e161845",
       "agent_assignment_history": [
         {
           "agentId": "development_session_1757040439367_1_general_3b548f6a",
           "role": "primary",
           "assignedAt": "2025-09-05T03:05:10.621Z",
+          "reassignReason": null,
+          "claimPriority": "normal"
+        },
+        {
+          "agent": "system",
+          "action": "auto_reset_stale",
+          "timestamp": "2025-09-05T03:51:30.365Z",
+          "reason": "Task stale for 46 minutes"
+        },
+        {
+          "agentId": "development_session_1757044620791_1_general_1e161845",
+          "role": "primary",
+          "assignedAt": "2025-09-05T03:58:39.484Z",
           "reassignReason": null,
           "claimPriority": "normal"
         }
@@ -135,7 +174,7 @@
       "mode": "RESEARCH",
       "category": "research",
       "priority": "high",
-      "status": "in_progress",
+      "status": "pending",
       "dependencies": [],
       "important_files": [
         "./development/research-reports/research-report-task_1757038012760_91u0yr2a6.md"
@@ -153,14 +192,53 @@
       "created_at": "2025-09-05T02:06:52.760Z",
       "created_by": "auto-research-system",
       "auto_created_for": "task_1757038012760_uiyxgne0l",
-      "assigned_agent": "development_session_1757040439367_1_general_3b548f6a",
-      "started_at": "2025-09-05T03:08:27.496Z",
-      "claimed_by": "development_session_1757040439367_1_general_3b548f6a",
+      "assigned_agent": null,
+      "started_at": null,
+      "claimed_by": null,
       "agent_assignment_history": [
         {
           "agentId": "development_session_1757040439367_1_general_3b548f6a",
           "role": "primary",
           "assignedAt": "2025-09-05T03:08:27.496Z",
+          "reassignReason": null,
+          "claimPriority": "normal"
+        },
+        {
+          "agent": "system",
+          "action": "auto_reset_stale",
+          "timestamp": "2025-09-05T03:51:30.365Z",
+          "reason": "Task stale for 43 minutes"
+        }
+      ]
+    },
+    {
+      "id": "error_1757384462150_954i8gdmu",
+      "title": "CRITICAL: Fix Browser-Use ESLint Violations and TypeScript Errors",
+      "description": "Fix critical ESLint violations and TypeScript errors in browser-use integration that are blocking clean builds. Found 526 problems (521 errors, 5 warnings) including: 1) Unsafe assignments and member access on any values, 2) Unused variables and parameters, 3) Missing await expressions in async methods, 4) Unsafe require() imports, 5) Floating promises without proper handling, 6) Type safety issues in controllers and services. All issues need to be resolved to achieve production-ready browser automation API integration.",
+      "priority": "medium",
+      "category": "error",
+      "status": "in_progress",
+      "dependencies": [],
+      "important_files": [
+        "bytebot/packages/bytebot-agent/src/browser-use/",
+        "bytebot/packages/bytebot-agent/src/browser-use/browser-use.controller.ts",
+        "bytebot/packages/bytebot-agent/src/browser-use/browser-use.service.ts",
+        "bytebot/packages/bytebot-agent/src/browser-use/services/"
+      ],
+      "success_criteria": [],
+      "estimate": "",
+      "requires_research": false,
+      "subtasks": [],
+      "created_at": "2025-09-09T02:21:02.150Z",
+      "auto_research_created": false,
+      "assigned_agent": "development_session_1757387179776_1_general_357612fc",
+      "started_at": "2025-09-09T03:13:27.923Z",
+      "claimed_by": "development_session_1757387179776_1_general_357612fc",
+      "agent_assignment_history": [
+        {
+          "agentId": "development_session_1757387179776_1_general_357612fc",
+          "role": "primary",
+          "assignedAt": "2025-09-09T03:13:27.923Z",
           "reassignReason": null,
           "claimPriority": "normal"
         }
@@ -172,7 +250,7 @@
       "mode": "DEVELOPMENT",
       "category": "missing-feature",
       "priority": "critical",
-      "status": "in_progress",
+      "status": "pending",
       "dependencies": [],
       "important_files": [],
       "success_criteria": [],
@@ -182,9 +260,9 @@
       "created_at": "2025-09-05T02:07:31.536Z",
       "auto_research_created": true,
       "description": "No description provided",
-      "assigned_agent": "development_session_1757041885494_1_general_aa7cf1f1",
-      "started_at": "2025-09-05T03:19:21.021Z",
-      "claimed_by": "development_session_1757041885494_1_general_aa7cf1f1",
+      "assigned_agent": null,
+      "started_at": null,
+      "claimed_by": null,
       "agent_assignment_history": [
         {
           "agentId": "development_session_1757041885494_1_general_aa7cf1f1",
@@ -192,6 +270,12 @@
           "assignedAt": "2025-09-05T03:19:21.021Z",
           "reassignReason": null,
           "claimPriority": "normal"
+        },
+        {
+          "agent": "system",
+          "action": "auto_reset_stale",
+          "timestamp": "2025-09-05T03:51:30.365Z",
+          "reason": "Task stale for 32 minutes"
         }
       ]
     },
@@ -336,6 +420,52 @@
       "auto_research_created": false
     },
     {
+      "id": "feature_1757370494876_pxf4qj2zo",
+      "title": "Comprehensive Security Validation for Huginn AIgent Trigger Agent",
+      "description": "Create comprehensive security validation framework for the newly implemented Huginn AIgent Trigger Agent including input validation, authentication security, SSL/TLS verification, request/response sanitization, and integration security testing. This is critical to ensure the agent meets enterprise security standards before production deployment.",
+      "priority": "high",
+      "category": "feature",
+      "status": "pending",
+      "dependencies": [],
+      "important_files": [
+        "/Users/jeremyparker/Desktop/Claude Coding Projects/AIgent/huginn/app/models/agents/aigent_trigger_agent.rb",
+        "/Users/jeremyparker/Desktop/Claude Coding Projects/AIgent/huginn/spec/models/agents/aigent_trigger_agent_spec.rb",
+        "/Users/jeremyparker/Desktop/Claude Coding Projects/AIgent/orchestrator/security/"
+      ],
+      "success_criteria": [],
+      "estimate": "",
+      "requires_research": false,
+      "subtasks": [],
+      "created_at": "2025-09-08T22:28:14.876Z",
+      "auto_research_created": false
+    },
+    {
+      "id": "test_1757384308082_mzwy5s19y",
+      "title": "Transform bytebotd desktop package from low coverage to 100% comprehensive test coverage",
+      "description": "CRITICAL MISSION: Create comprehensive test coverage for the bytebotd package - the desktop automation daemon that provides computer-use, input tracking, and desktop integration functionality.\n\nCURRENT STATE:\n- Package: bytebotd (Bytebot desktop daemon)\n- Test coverage: Partial coverage with significant gaps\n- Key desktop modules: computer-use, cua-integration, input-tracking, mcp\n- Desktop technologies: @nut-tree-fork/nut-js, uiohook-napi, sharp (image processing)\n- Architecture: NestJS-based desktop automation service\n\nCOMPREHENSIVE REQUIREMENTS:\n\n1. **COMPUTER-USE MODULE TESTING** (Desktop Automation Core):\n   - computer-use.service.ts (screen capture, mouse/keyboard automation)\n   - computer-use.controller.ts (API endpoints for desktop actions)\n   - async-job.service.ts (async task management)\n   - job-management.service.ts (job orchestration)\n   - DTO validation and computer action processing\n\n2. **CUA-INTEGRATION MODULE TESTING** (Computer Use API Integration):\n   - cua-bridge.service.ts (bridge to computer use APIs)\n   - cua-integration.service.ts (integration orchestration)\n   - cua-performance.service.ts (performance monitoring)\n   - cua-vision.service.ts (computer vision capabilities)\n   - native-macos.service.ts (macOS-specific integrations)\n\n3. **INPUT-TRACKING MODULE TESTING** (Input Monitoring):\n   - input-tracking.service.ts (keyboard/mouse event tracking)\n   - input-tracking.controller.ts (input API endpoints)\n   - input-tracking.gateway.ts (WebSocket real-time input events)\n   - input-tracking.helpers.ts (input processing utilities)\n\n4. **MCP MODULE TESTING** (Model Context Protocol):\n   - bytebot-mcp.module.ts (MCP integration)\n   - computer-use.tools.ts (MCP tool definitions)\n   - compressor.ts (data compression utilities)\n   - MCP protocol compliance and tool orchestration\n\n5. **DESKTOP INTEGRATION TESTING**:\n   - Screen capture and image processing (sharp integration)\n   - Keyboard and mouse automation (@nut-tree-fork/nut-js)\n   - System input monitoring (uiohook-napi)\n   - Native OS integrations (macOS, Windows, Linux)\n   - File system operations and desktop environment interactions\n\n6. **CORE INFRASTRUCTURE TESTING**:\n   - NestJS module integration (app.module.ts, main.ts)\n   - Authentication and security (auth/, security/)\n   - Health monitoring (health/)\n   - Metrics and performance monitoring (metrics/)\n   - Caching and Redis integration (cache/)\n\n7. **ADVANCED TESTING SCENARIOS**:\n   - Concurrent desktop operations\n   - Cross-platform compatibility testing\n   - Performance testing under load\n   - Error handling and recovery\n   - Integration with external desktop applications\n   - Security testing for desktop access permissions\n\n8. **E2E DESKTOP TESTING**:\n   - Complete desktop automation workflows\n   - Screenshot capture and OCR processing\n   - Multi-monitor support testing\n   - Input device simulation and validation\n   - Application window management\n   - System resource monitoring\n\n9. **COVERAGE TARGETS**:\n   - Global: 95%+ statements/branches/functions/lines\n   - Computer-use: 100% coverage (core desktop functionality)\n   - CUA-integration: 95%+ coverage\n   - Input-tracking: 95%+ coverage\n   - MCP: 90%+ coverage\n   - Critical paths: 100% coverage\n\n10. **PRODUCTION-READY STANDARDS**:\n    - NestJS testing best practices\n    - Mock desktop environments for CI/CD\n    - Cross-platform test compatibility\n    - TypeScript strict mode compliance\n    - Comprehensive logging and monitoring\n    - Security testing for desktop permissions\n\nSUCCESS CRITERIA:\n- 95%+ overall test coverage across all modules\n- 100% coverage for critical desktop automation paths\n- All tests passing with zero failures\n- Production-ready desktop test infrastructure\n- Cross-platform test compatibility\n- Comprehensive documentation for desktop testing patterns\n\nIMPORTANT FILES:\n- src/computer-use/ (desktop automation core)\n- src/cua-integration/ (computer use API integration)\n- src/input-tracking/ (input monitoring)\n- src/mcp/ (model context protocol)\n- src/auth/, src/health/, src/metrics/ (infrastructure)\n- package.json, jest.config.js (test configuration)\n\nThis is the critical desktop testing infrastructure that enables reliable computer automation and desktop integration for the entire bytebot ecosystem.",
+      "priority": "medium",
+      "category": "test",
+      "status": "pending",
+      "dependencies": [],
+      "important_files": [
+        "/Users/jeremyparker/Desktop/Claude Coding Projects/AIgent/bytebot/packages/bytebotd/src/computer-use/",
+        "/Users/jeremyparker/Desktop/Claude Coding Projects/AIgent/bytebot/packages/bytebotd/src/cua-integration/",
+        "/Users/jeremyparker/Desktop/Claude Coding Projects/AIgent/bytebot/packages/bytebotd/src/input-tracking/",
+        "/Users/jeremyparker/Desktop/Claude Coding Projects/AIgent/bytebot/packages/bytebotd/src/mcp/",
+        "/Users/jeremyparker/Desktop/Claude Coding Projects/AIgent/bytebot/packages/bytebotd/src/auth/",
+        "/Users/jeremyparker/Desktop/Claude Coding Projects/AIgent/bytebot/packages/bytebotd/src/health/",
+        "/Users/jeremyparker/Desktop/Claude Coding Projects/AIgent/bytebot/packages/bytebotd/src/metrics/",
+        "/Users/jeremyparker/Desktop/Claude Coding Projects/AIgent/bytebot/packages/bytebotd/package.json",
+        "/Users/jeremyparker/Desktop/Claude Coding Projects/AIgent/bytebot/packages/bytebotd/jest.config.js"
+      ],
+      "success_criteria": [],
+      "estimate": "",
+      "requires_research": false,
+      "subtasks": [],
+      "created_at": "2025-09-09T02:18:28.082Z",
+      "auto_research_created": false
+    },
+    {
       "id": "task_1757038037184_vt8n8e8gw",
       "title": "Create performance regression detection system with automated CI/CD integration",
       "mode": "DEVELOPMENT",
@@ -419,13 +549,13 @@
   "strikes_completed_last_run": false,
   "last_hook_activation": 1756874454344,
   "agents": {
-    "development_session_1757041885494_1_general_aa7cf1f1": {
+    "development_session_1757044620791_1_general_1e161845": {
       "name": "development Agent",
       "role": "development",
       "specialization": [],
       "status": "active",
       "assignedTasks": [],
-      "lastHeartbeat": "2025-09-05T03:11:25.495Z",
+      "lastHeartbeat": "2025-09-05T03:57:00.792Z",
       "parentAgentId": null,
       "capabilities": [
         "file-operations",
@@ -436,71 +566,17 @@
       ],
       "workload": 0,
       "maxConcurrentTasks": 5,
-      "createdAt": "2025-09-05T03:11:25.495Z",
-      "sessionId": "session_1757041885494",
-      "metadata": {
-        "renewedAt": "2025-09-05T03:16:41.883Z",
-        "renewalReason": "Agent reinitialization requested"
-      },
-      "lastRenewal": "2025-09-05T03:15:50.841Z",
-      "renewalCount": 1,
-      "agentId": "development_session_1757041885494_1_general_aa7cf1f1"
-    },
-    "development_session_1757042569459_1_general_6a89c6cc": {
-      "name": "development Agent",
-      "role": "development",
-      "specialization": [],
-      "status": "active",
-      "assignedTasks": [],
-      "lastHeartbeat": "2025-09-05T03:22:49.460Z",
-      "parentAgentId": null,
-      "capabilities": [
-        "file-operations",
-        "linting",
-        "testing",
-        "build-fixes",
-        "refactoring"
-      ],
-      "workload": 0,
-      "maxConcurrentTasks": 5,
-      "createdAt": "2025-09-05T03:22:49.460Z",
-      "sessionId": "session_1757042569459",
-      "metadata": {
-        "renewedAt": "2025-09-05T03:23:15.971Z",
-        "renewalReason": "Agent reinitialization requested"
-      },
-      "lastRenewal": "2025-09-05T03:23:15.971Z",
-      "renewalCount": 1,
-      "agentId": "development_session_1757042569459_1_general_6a89c6cc"
-    },
-    "development_session_1757042572639_1_general_4d6cc9d9": {
-      "name": "development Agent",
-      "role": "development",
-      "specialization": [],
-      "status": "active",
-      "assignedTasks": [],
-      "lastHeartbeat": "2025-09-05T03:22:52.640Z",
-      "parentAgentId": null,
-      "capabilities": [
-        "file-operations",
-        "linting",
-        "testing",
-        "build-fixes",
-        "refactoring"
-      ],
-      "workload": 0,
-      "maxConcurrentTasks": 5,
-      "createdAt": "2025-09-05T03:22:52.640Z",
-      "sessionId": "session_1757042572639",
+      "createdAt": "2025-09-05T03:57:00.792Z",
+      "sessionId": "session_1757044620791",
       "metadata": {}
     },
-    "development_session_1757042575325_1_general_1a388467": {
+    "development_session_1757045129961_1_general_ccc5c3c2": {
       "name": "development Agent",
       "role": "development",
       "specialization": [],
       "status": "active",
       "assignedTasks": [],
-      "lastHeartbeat": "2025-09-05T03:22:55.325Z",
+      "lastHeartbeat": "2025-09-05T04:05:29.962Z",
       "parentAgentId": null,
       "capabilities": [
         "file-operations",
@@ -511,44 +587,17 @@
       ],
       "workload": 0,
       "maxConcurrentTasks": 5,
-      "createdAt": "2025-09-05T03:22:55.325Z",
-      "sessionId": "session_1757042575325",
-      "metadata": {
-        "renewedAt": "2025-09-05T03:23:23.414Z",
-        "renewalReason": "Agent reinitialization requested"
-      },
-      "lastRenewal": "2025-09-05T03:23:23.414Z",
-      "renewalCount": 1,
-      "agentId": "development_session_1757042575325_1_general_1a388467"
-    },
-    "development_session_1757042604321_1_general_28e67ff1": {
-      "name": "development Agent",
-      "role": "development",
-      "specialization": [],
-      "status": "active",
-      "assignedTasks": [],
-      "lastHeartbeat": "2025-09-05T03:23:24.322Z",
-      "parentAgentId": null,
-      "capabilities": [
-        "file-operations",
-        "linting",
-        "testing",
-        "build-fixes",
-        "refactoring"
-      ],
-      "workload": 0,
-      "maxConcurrentTasks": 5,
-      "createdAt": "2025-09-05T03:23:24.322Z",
-      "sessionId": "session_1757042604321",
+      "createdAt": "2025-09-05T04:05:29.962Z",
+      "sessionId": "session_1757045129961",
       "metadata": {}
     },
-    "development_session_1757042635535_1_general_4a16295f": {
+    "development_session_1757045134492_1_general_8d6b5c80": {
       "name": "development Agent",
       "role": "development",
       "specialization": [],
       "status": "active",
       "assignedTasks": [],
-      "lastHeartbeat": "2025-09-05T03:23:55.536Z",
+      "lastHeartbeat": "2025-09-05T04:05:34.492Z",
       "parentAgentId": null,
       "capabilities": [
         "file-operations",
@@ -559,15 +608,120 @@
       ],
       "workload": 0,
       "maxConcurrentTasks": 5,
-      "createdAt": "2025-09-05T03:23:55.536Z",
-      "sessionId": "session_1757042635535",
+      "createdAt": "2025-09-05T04:05:34.492Z",
+      "sessionId": "session_1757045134492",
+      "metadata": {}
+    },
+    "development_session_1757045135156_1_general_7dfcbea1": {
+      "name": "development Agent",
+      "role": "development",
+      "specialization": [],
+      "status": "active",
+      "assignedTasks": [],
+      "lastHeartbeat": "2025-09-05T04:05:35.157Z",
+      "parentAgentId": null,
+      "capabilities": [
+        "file-operations",
+        "linting",
+        "testing",
+        "build-fixes",
+        "refactoring"
+      ],
+      "workload": 0,
+      "maxConcurrentTasks": 5,
+      "createdAt": "2025-09-05T04:05:35.157Z",
+      "sessionId": "session_1757045135156",
+      "metadata": {}
+    },
+    "development_session_1757369371955_1_general_667d9c06": {
+      "name": "development Agent",
+      "role": "development",
+      "specialization": [],
+      "status": "active",
+      "assignedTasks": [],
+      "lastHeartbeat": "2025-09-08T22:09:31.958Z",
+      "parentAgentId": null,
+      "capabilities": [
+        "file-operations",
+        "linting",
+        "testing",
+        "build-fixes",
+        "refactoring"
+      ],
+      "workload": 0,
+      "maxConcurrentTasks": 5,
+      "createdAt": "2025-09-08T22:09:31.958Z",
+      "sessionId": "session_1757369371955",
       "metadata": {
-        "renewedAt": "2025-09-05T03:24:47.778Z",
+        "renewedAt": "2025-09-08T22:25:15.231Z",
         "renewalReason": "Agent reinitialization requested"
       },
-      "lastRenewal": "2025-09-05T03:24:47.778Z",
+      "lastRenewal": "2025-09-08T22:25:15.231Z",
       "renewalCount": 1,
-      "agentId": "development_session_1757042635535_1_general_4a16295f"
+      "agentId": "development_session_1757369371955_1_general_667d9c06"
+    },
+    "development_session_1757370468860_1_general_1504a3fc": {
+      "name": "development Agent",
+      "role": "development",
+      "specialization": [],
+      "status": "active",
+      "assignedTasks": [],
+      "lastHeartbeat": "2025-09-08T22:27:48.876Z",
+      "parentAgentId": null,
+      "capabilities": [
+        "file-operations",
+        "linting",
+        "testing",
+        "build-fixes",
+        "refactoring"
+      ],
+      "workload": 0,
+      "maxConcurrentTasks": 5,
+      "createdAt": "2025-09-08T22:27:48.876Z",
+      "sessionId": "session_1757370468860",
+      "metadata": {}
+    },
+    "development_session_1757384423876_1_general_aca066f5": {
+      "name": "development Agent",
+      "role": "development",
+      "specialization": [],
+      "status": "active",
+      "assignedTasks": [],
+      "lastHeartbeat": "2025-09-09T02:20:23.879Z",
+      "parentAgentId": null,
+      "capabilities": [
+        "file-operations",
+        "linting",
+        "testing",
+        "build-fixes",
+        "refactoring"
+      ],
+      "workload": 0,
+      "maxConcurrentTasks": 5,
+      "createdAt": "2025-09-09T02:20:23.879Z",
+      "sessionId": "session_1757384423876",
+      "metadata": {}
+    },
+    "development_session_1757386495143_1_general_8d15bfc6": {
+      "name": "development Agent",
+      "role": "development",
+      "specialization": [],
+      "status": "active",
+      "assignedTasks": [],
+      "lastHeartbeat": "2025-09-09T02:54:55.147Z",
+      "parentAgentId": null,
+      "capabilities": [
+        "file-operations",
+        "linting",
+        "testing",
+        "build-fixes",
+        "refactoring"
+      ],
+      "workload": 0,
+      "maxConcurrentTasks": 5,
+      "createdAt": "2025-09-09T02:54:55.147Z",
+      "sessionId": "session_1757386495143",
+      "metadata": {}
     }
   },
   "current_task_index": 0,

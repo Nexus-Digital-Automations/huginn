@@ -879,4 +879,5 @@ module QualityGates
         ]
       end
     end
-    
+  end
+end

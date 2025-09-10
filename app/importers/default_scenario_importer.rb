@@ -14,7 +14,7 @@ class DefaultScenarioImporter
     scenario_import.set_user(user)
     scenario_file = ENV['DEFAULT_SCENARIO_FILE'].presence || File.join(Rails.root, 'data', 'default_scenario.json')
     begin
-      scenario_import.file = open(scenario_file)
+      scenario_import.file = File.open(scenario_file)
       raise 'Import failed' unless scenario_import.valid? && scenario_import.import
     ensure
       scenario_import.file.close

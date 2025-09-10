@@ -32,6 +32,7 @@ module AgentControllerConcern
                    "A non-empty hash must be specified in the 'configure_options' option when using the 'configure' action.")
       end
     when 'enable', 'disable'
+      # Valid actions - no validation needed
     when nil
       errors.add(:base, 'action must be specified')
     when /\{[%{]/

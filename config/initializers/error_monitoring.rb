@@ -15,7 +15,11 @@ Rails.application.configure do
   config_path = Rails.root.join('config', 'error_monitoring.yml')
   
   if File.exist?(config_path)
-    error_monitoring_config = YAML.load_file(config_path)[Rails.env] || {}
+    error_monitoring_config = YAML.safe_load(
+      File.read(config_path), 
+      permitted_classes: [Symbol], 
+      aliases: true
+    )[Rails.env] || {}
     Rails.application.config.error_monitoring = error_monitoring_config
     
     Rails.logger.info "[ErrorMonitoring] Configuration loaded from #{config_path}"
@@ -121,6 +125,11 @@ Rails.application.configure do
     
     # Hook into Delayed Job error handling
     Delayed::Job.class_eval do
+      # Store original method if it exists
+      if respond_to?(:handle_failed_job)
+        alias_method :original_handle_failed_job, :handle_failed_job
+      end
+      
       def self.handle_failed_job(job, error)
         # Track job errors with error monitoring system
         if Rails.application.config.error_monitoring&.dig('enabled') && 
@@ -143,11 +152,6 @@ Rails.application.configure do
         
         # Call original error handling
         original_handle_failed_job(job, error) if respond_to?(:original_handle_failed_job)
-      end
-      
-      # Store original method if it exists
-      if respond_to?(:handle_failed_job)
-        alias_method :original_handle_failed_job, :handle_failed_job
       end
     end
     

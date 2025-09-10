@@ -26,11 +26,10 @@ Rails.application.configure do
     }
     
     # Real-time validation configuration (disabled by default for performance)
-    config.quality_gates.real_time = {
-      enabled: false,
-      file_patterns: %w[app/**/*.rb lib/**/*.rb],
-      validation_delay: 2.seconds
-    }
+    config.quality_gates.real_time = ActiveSupport::OrderedOptions.new
+    config.quality_gates.real_time.enabled = false
+    config.quality_gates.real_time.file_patterns = %w[app/**/*.rb lib/**/*.rb]
+    config.quality_gates.real_time.validation_delay = 2.seconds
     
     # Development helpers
     config.quality_gates.development = {

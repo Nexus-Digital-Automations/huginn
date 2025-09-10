@@ -647,10 +647,10 @@ module QualityGates
           checks: health_result.checks
         })
       when :yaml
-        puts {
+        puts({
           healthy: health_result.healthy?,
           checks: health_result.checks
-        }.to_yaml
+        }.to_yaml)
       else
         output_health_check_text(health_result)
       end

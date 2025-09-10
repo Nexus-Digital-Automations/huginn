@@ -392,7 +392,7 @@ module ErrorMonitoring
     ##
     # Calculate error rates for all time windows
     def self.calculate_error_rates_for_windows
-      TIME_WINDOWS.transform_values { |_| current_error_rate(_1) }
+      TIME_WINDOWS.transform_values { |window| current_error_rate(window) }
     end
 
     ##

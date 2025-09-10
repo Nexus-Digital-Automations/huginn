@@ -11,9 +11,11 @@ module DryRunnable
     @dry_run_started_at = Time.zone.now
     @dry_run_logger = Logger.new(log).tap do |logger|
       logger.formatter = proc { |severity, datetime, progname, message|
-        elapsed_time = format('%02d:%02d:%02d', 2.times.inject([datetime - @dry_run_started_at]) do |(x, *xs)|
-          [*x.divmod(60), *xs]
-        end)
+        elapsed_seconds = (datetime - @dry_run_started_at).to_i
+        hours = elapsed_seconds / 3600
+        minutes = (elapsed_seconds % 3600) / 60
+        seconds = elapsed_seconds % 60
+        elapsed_time = format('%02d:%02d:%02d', hours, minutes, seconds)
 
         "[#{elapsed_time}] #{severity} -- #{progname}: #{message}\n"
       }

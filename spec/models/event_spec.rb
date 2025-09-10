@@ -123,7 +123,7 @@ describe Event do
 
     it "always keeps the latest Event regardless of its expires_at value only if the database is MySQL" do
       Event.delete_all
-      event1 = agents(:jane_weather_agent).create_event expires_at: 1.minute.ago
+      agents(:jane_weather_agent).create_event expires_at: 1.minute.ago
       event2 = agents(:bob_weather_agent).create_event expires_at: 1.minute.ago
 
       Event.cleanup_expired!

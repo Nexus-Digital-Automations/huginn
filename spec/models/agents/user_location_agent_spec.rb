@@ -28,16 +28,16 @@ describe Agents::UserLocationAgent do
 
   it 'does not accept a web request that is not POST' do
     %w[get put delete patch].each { |method|
-      content, status, content_type = @agent.receive_web_request({ 'secret' => 'my_secret' }, method, 'application/json')
+      _, status, _ = @agent.receive_web_request({ 'secret' => 'my_secret' }, method, 'application/json')
       expect(status).to eq(404)
     }
   end
 
   it 'requires a valid secret for a web request' do
-    content, status, content_type = @agent.receive_web_request({ 'secret' => 'fake' }, 'post', 'application/json')
+    _, status, _ = @agent.receive_web_request({ 'secret' => 'fake' }, 'post', 'application/json')
     expect(status).to eq(401)
 
-    content, status, content_type = @agent.receive_web_request({ 'secret' => 'my_secret' }, 'post', 'application/json')
+    _, status, _ = @agent.receive_web_request({ 'secret' => 'my_secret' }, 'post', 'application/json')
     expect(status).to eq(200)
   end
 

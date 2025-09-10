@@ -334,7 +334,7 @@ module Agents
         def filtered_metadata
           filter = create_filter
           spec = create_spec
-          metadata = note_store.findNotesMetadata(filter, 0, 100, spec).notes
+          note_store.findNotesMetadata(filter, 0, 100, spec).notes
         end
 
         def create_spec

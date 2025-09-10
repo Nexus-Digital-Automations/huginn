@@ -178,7 +178,7 @@ describe Agents::PostAgent do
         /\A--#{qboundary}\r\nContent-Disposition: form-data; name="default"\r\n\r\nvalue\r\n--#{qboundary}\r\nContent-Disposition: form-data; name="file"; filename="local.path"\r\nContent-Length: 8\r\nContent-Type: \r\nContent-Transfer-Encoding: binary\r\n\r\ntestdata\r\n--#{qboundary}--\r\n\z/ === request.body
       }.to_return(status: 200, body: "", headers: {})
       event = Event.new(payload: { file_pointer: { agent_id: 111, file: 'test' } })
-      io_mock = double
+      double
       expect(@checker).to receive(:get_io).with(event) { StringIO.new("testdata") }
       @checker.options['no_merge'] = true
       @checker.receive([event])

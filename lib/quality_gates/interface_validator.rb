@@ -155,7 +155,7 @@ module QualityGates
       private_methods = []
 
       # Extract method definitions
-      method_matches = content.scan(/^\s*def\s+(self\.)?(\w+)(\(.*?\))?\s*$/)
+      content.scan(/^\s*def\s+(self\.)?(\w+)(\(.*?\))?\s*$/)
       
       # Categorize methods based on visibility
       in_private_section = false

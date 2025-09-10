@@ -7,9 +7,9 @@ require 'active_support/core_ext/object/blank'
 module SetupTools
   def capture(cmd, opts = {})
     if opts.delete(:no_stderr)
-      o, s = Open3.capture2(cmd, opts)
+      o, _ = Open3.capture2(cmd, opts)
     else
-      o, s = Open3.capture2e(cmd, opts)
+      o, _ = Open3.capture2e(cmd, opts)
     end
     o.strip
   end

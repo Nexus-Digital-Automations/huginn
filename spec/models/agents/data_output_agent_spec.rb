@@ -105,15 +105,15 @@ describe Agents::DataOutputAgent do
     end
 
     it "requires a valid secret" do
-      content, status, content_type = agent.receive_web_request({ 'secret' => 'fake' }, 'get', 'text/xml')
+      content, status, _ = agent.receive_web_request({ 'secret' => 'fake' }, 'get', 'text/xml')
       expect(status).to eq(401)
       expect(content).to eq("Not Authorized")
 
-      content, status, content_type = agent.receive_web_request({ 'secret' => 'fake' }, 'get', 'application/json')
+      content, status, _ = agent.receive_web_request({ 'secret' => 'fake' }, 'get', 'application/json')
       expect(status).to eq(401)
       expect(content).to eq({ :error => "Not Authorized" })
 
-      content, status, content_type = agent.receive_web_request({ 'secret' => 'secret1' }, 'get', 'application/json')
+      _, status, _ = agent.receive_web_request({ 'secret' => 'secret1' }, 'get', 'application/json')
       expect(status).to eq(200)
     end
 
@@ -207,7 +207,7 @@ describe Agents::DataOutputAgent do
         end
 
         it "can output RSS with the Content-Type" do
-          content, status, content_type = agent.receive_web_request({ 'secret' => 'secret1' }, 'get', 'text/xml')
+          _, status, content_type = agent.receive_web_request({ 'secret' => 'secret1' }, 'get', 'text/xml')
           expect(status).to eq(200)
           expect(content_type).to eq('text/xml')
         end
@@ -226,7 +226,7 @@ describe Agents::DataOutputAgent do
       it "can output JSON" do
         agent.options['template']['item']['foo'] = "hi"
 
-        content, status, content_type = agent.receive_web_request({ 'secret' => 'secret2' }, 'get', 'application/json')
+        content, status, _ = agent.receive_web_request({ 'secret' => 'secret2' }, 'get', 'application/json')
         expect(status).to eq(200)
 
         expect(content).to eq({
@@ -272,7 +272,7 @@ describe Agents::DataOutputAgent do
         end
 
         it "can respond with custom headers" do
-          content, status, content_type, response_headers = agent.receive_web_request({ 'secret' => 'secret1' }, 'get', 'text/xml')
+          _, status, _, response_headers = agent.receive_web_request({ 'secret' => 'secret1' }, 'get', 'text/xml')
           expect(status).to eq(200)
           expect(response_headers).to eq({"Access-Control-Allow-Origin" => "*", "X-My-Custom-Header" => "hello"})
         end
@@ -355,7 +355,7 @@ describe Agents::DataOutputAgent do
         end
 
         it "can output JSON" do
-          content, status, content_type = agent.receive_web_request({ 'secret' => 'secret2' }, 'get', 'application/json')
+          content, status, _ = agent.receive_web_request({ 'secret' => 'secret2' }, 'get', 'application/json')
           expect(status).to eq(200)
 
           expect(content['title']).to eq('XKCD comics as a feed (XKCD)')
@@ -376,7 +376,7 @@ describe Agents::DataOutputAgent do
           end
 
           it "can access the value without being overridden" do
-            content, status, content_type = agent.receive_web_request({ 'secret' => 'secret2' }, 'get', 'application/json')
+            content, status, _ = agent.receive_web_request({ 'secret' => 'secret2' }, 'get', 'application/json')
             expect(status).to eq(200)
 
             expect(content['items'].first['events_data']).to eq('Events!')
@@ -569,7 +569,7 @@ describe Agents::DataOutputAgent do
       end
 
       it "can output JSON" do
-        content, status, content_type = agent.receive_web_request({ 'secret' => 'secret2' }, 'get', 'application/json')
+        content, status, _ = agent.receive_web_request({ 'secret' => 'secret2' }, 'get', 'application/json')
         expect(status).to eq(200)
         expect(content['items'].first).to eq(
           {

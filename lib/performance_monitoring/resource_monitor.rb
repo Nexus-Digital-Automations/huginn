@@ -665,7 +665,7 @@ module PerformanceMonitoring
       
       gc_frequencies = snapshots.map(&:gc_frequency_per_minute)
       avg_gc_frequency = gc_frequencies.sum / gc_frequencies.length.to_f
-      high_gc_count = snapshots.count(&:excessive_gc_frequency?)
+      snapshots.count(&:excessive_gc_frequency?)
 
       # Excessive GC frequency
       if avg_gc_frequency > configuration.gc_frequency_threshold

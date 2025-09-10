@@ -76,7 +76,7 @@ describe Agents::JiraAgent do
 
     it "should provide set the 'since' time after the first run" do
       expected_url_1 = "https://jira.atlassian.com/rest/api/2/search?jql=resolution+%3D+unresolved&fields=*all&startAt=0"
-      expected_url_2 = "https://jira.atlassian.com/rest/api/2/search?jql=resolution+%3D+unresolved&fields=*all&startAt=0"
+      "https://jira.atlassian.com/rest/api/2/search?jql=resolution+%3D+unresolved&fields=*all&startAt=0"
 
       expected_headers = {headers: {"User-Agent"=>"Huginn - https://github.com/huginn/huginn"}, basic_auth: {username: "user", password: "pass"}}
       reply = JSON.parse(File.read(Rails.root.join("spec/data_fixtures/jira.json")))

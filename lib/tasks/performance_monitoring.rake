@@ -359,7 +359,7 @@ namespace :performance do
         puts "Triggering #{alert[:level]} #{alert[:type]} alert..."
         
         # Create mock snapshot for alert context
-        mock_snapshot = OpenStruct.new(
+        OpenStruct.new(
           timestamp: Time.current,
           memory_usage_percentage: alert[:type] == :memory ? alert[:value] : 50.0,
           cpu_percentage: alert[:type] == :cpu ? alert[:value] : 25.0

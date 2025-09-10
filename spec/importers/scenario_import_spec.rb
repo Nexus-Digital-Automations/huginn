@@ -487,7 +487,7 @@ describe ScenarioImport do
 
           agent_diffs = scenario_import.agent_diffs
           weather_agent_diff = agent_diffs[0]
-          trigger_agent_diff = agent_diffs[1]
+          agent_diffs[1]
 
           expect(weather_agent_diff.name.current).to eq(agents(:bob_weather_agent).name)
           expect(weather_agent_diff.name.incoming).to eq(valid_parsed_weather_agent_data[:name])

@@ -20,7 +20,7 @@ namespace :error_monitoring do
       config_path = Rails.root.join('config', 'error_monitoring.yml')
       if File.exist?(config_path)
         puts "✓ Configuration file found: #{config_path}"
-        config = YAML.load_file(config_path)[Rails.env]
+        YAML.load_file(config_path)[Rails.env]
         puts "✓ Configuration loaded for environment: #{Rails.env}"
       else
         puts "✗ Configuration file missing: #{config_path}"
@@ -800,7 +800,7 @@ namespace :error_monitoring do
   end
 
   def create_default_configuration
-    config_content = File.read(Rails.root.join('config', 'error_monitoring.yml'))
+    File.read(Rails.root.join('config', 'error_monitoring.yml'))
     puts "✓ Default configuration created"
   rescue
     puts "✗ Failed to create default configuration"

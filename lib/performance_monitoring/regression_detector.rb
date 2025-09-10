@@ -339,7 +339,7 @@ module PerformanceMonitoring
         return 0.0 if pooled_variance == 0
         
         t_stat = (mean2 - mean1) / Math.sqrt(pooled_variance)
-        degrees_of_freedom = pooled_variance ** 2 / ((var1/n1)**2/(n1-1) + (var2/n2)**2/(n2-1))
+        pooled_variance ** 2 / ((var1/n1)**2/(n1-1) + (var2/n2)**2/(n2-1))
         
         # Simplified confidence calculation (for production, use proper statistical library)
         # This is a rough approximation

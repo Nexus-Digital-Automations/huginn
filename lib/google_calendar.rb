@@ -63,7 +63,7 @@ class GoogleCalendar
   def events_as(who, date)
     auth_as
 
-    date ||= Date.today
+    date || Date.today
 
     @logger.info("Attempting to receive events for "+who)
     @logger.debug details.to_yaml

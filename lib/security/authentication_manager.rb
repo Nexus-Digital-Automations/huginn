@@ -304,7 +304,7 @@ module Security
         })
         
         payload = decoded_token[0]
-        header = decoded_token[1]
+        decoded_token[1]
         
         # Validate token type
         unless payload['type'] == TOKEN_TYPES[:access]
@@ -1166,7 +1166,7 @@ module Security
 
     def remove_session(session_id)
       @mutex.synchronize do
-        if data = @sessions.delete(session_id)
+        if @sessions.delete(session_id)
           # Find and remove token mapping
           @session_tokens.delete_if { |token, sid| sid == session_id }
         end

@@ -201,7 +201,7 @@ module Agents
     MD
 
     event_description do
-      if keys = event_keys
+      if event_keys
         "Events will have the following fields:\n\n    %s" % [
           Utils.pretty_print(Hash[event_keys.map { |key|
                                     [key, "..."]

@@ -616,7 +616,7 @@ module Security
 
     def validate_ssl_context(preverify_ok, store_context, hostname)
       certificate = store_context.current_cert
-      error = store_context.error
+      store_context.error
       error_string = store_context.error_string
       
       unless preverify_ok

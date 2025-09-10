@@ -98,7 +98,7 @@ module Agents
         # images supported #http://open.weibo.com/wiki/2/statuses/upload
         return ['image/gif', 'image/jpeg', 'image/png'].include? http.head(url.request_uri)['Content-Type']
       end
-    rescue StandardError => e
+    rescue StandardError
       false
     end
 

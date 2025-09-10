@@ -105,7 +105,7 @@ module Security
         security_context[:network_validation] = network_result
         
         # 2. Authentication Validation (if auth header present)
-        auth_result = nil
+        nil
         if request_info[:authorization]
           auth_result = @auth_manager.authenticate_request(
             auth_header: request_info[:authorization],

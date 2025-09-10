@@ -421,7 +421,7 @@ module QualityGates
         end
         
         # Test configuration
-        configuration = QualityGates::Configuration.new
+        QualityGates::Configuration.new
         success "Configuration validated"
         
         # Test system health

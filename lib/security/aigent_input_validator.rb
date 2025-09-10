@@ -556,7 +556,7 @@ module Security
               end
             end
             
-          rescue IPAddr::InvalidAddressError => e
+          rescue IPAddr::InvalidAddressError
             add_warning(result, "Invalid IP address returned by DNS: #{addr}")
           end
         end

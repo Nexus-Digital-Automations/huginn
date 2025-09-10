@@ -7,7 +7,7 @@ listen '/home/you/app/shared/pids/unicorn.socket'
 
 working_directory app_path
 
-rails_env = ENV['RAILS_ENV'] || 'production'
+ENV['RAILS_ENV'] || 'production'
 
 # Log everything to one file
 stderr_path "log/unicorn.log"

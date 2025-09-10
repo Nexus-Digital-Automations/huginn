@@ -659,7 +659,7 @@ module SecurityValidation
               break  # One issue per file to avoid spam
             end
           end
-        rescue StandardError => e
+        rescue StandardError
           # Skip files that can't be read
           next
         end

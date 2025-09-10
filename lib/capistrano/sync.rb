@@ -82,7 +82,7 @@ namespace :sync do
           Dir.mkdir "#{syncdir}"
         end
         logger.info "sync #{syncdir} from #{server}:#{port} to local"
-        destination, base = Pathname.new(syncdir).split
+        destination, _ = Pathname.new(syncdir).split
         system "rsync --verbose --archive --compress --copy-links --delete --stats --rsh='ssh -p #{port}' #{user}@#{server}:#{current_path}/#{syncdir} #{destination.to_s}"
       end
 

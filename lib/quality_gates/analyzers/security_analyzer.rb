@@ -460,7 +460,7 @@ module QualityGates
           system('bundler-audit update', out: File::NULL, err: File::NULL)
           
           # Run vulnerability check
-          stdout, stderr, status = Open3.capture3('bundler-audit check', chdir: @rails_root)
+          stdout, _, status = Open3.capture3('bundler-audit check', chdir: @rails_root)
           
           vulnerabilities = []
           if status.exitstatus != 0 && stdout.include?('Name:')

@@ -559,7 +559,7 @@ module Security
     def update_security_metrics(security_event)
       event_type = security_event[:type]
       severity = security_event.dig(:analysis, :severity)
-      timestamp = Time.parse(security_event[:timestamp])
+      Time.parse(security_event[:timestamp])
       
       # Update event counts
       increment_metric("events_total")

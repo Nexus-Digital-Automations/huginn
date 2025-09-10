@@ -62,7 +62,7 @@ module Agents
 
     def receive_web_request(request)
       params = request.params.except(:action, :controller, :agent_id, :user_id, :format)
-      method = request.method_symbol.to_s
+      request.method_symbol.to_s
       headers = request.headers
 
       # check the last url param: 'secret'

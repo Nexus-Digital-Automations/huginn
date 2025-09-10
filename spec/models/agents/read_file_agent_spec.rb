@@ -38,7 +38,7 @@ describe Agents::ReadFileAgent do
   context '#receive' do
     it "emits an event with the contents of the receives files" do
       event = Event.new(payload: {file_pointer: {agent_id: 111, file: 'test'}})
-      io_mock = double()
+      double()
       expect(@checker).to receive(:get_io).with(event) { StringIO.new("testdata") }
       expect { @checker.receive([event]) }.to change(Event, :count).by(1)
       expect(Event.last.payload).to eq('data' => 'testdata')

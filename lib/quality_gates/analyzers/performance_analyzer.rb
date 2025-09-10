@@ -117,7 +117,7 @@ module QualityGates
                   'HTTP_HOST' => 'localhost:3000'
                 }
                 
-                status, headers, body = Rails.application.call(env)
+                status, _, _ = Rails.application.call(env)
                 response_time = (Time.now - start_time) * 1000  # Convert to milliseconds
                 
                 times << response_time if status.to_s.start_with?('2')

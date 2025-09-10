@@ -386,7 +386,7 @@ describe 'AIgent Security Testing Framework' do
       end
 
       it 'validates availability controls' do
-        availability_test_event = Event.new.tap do |e|
+        Event.new.tap do |e|
           e.agent = agents(:bob_rain_notifier_agent)
           e.payload = {
             'availability_test' => true,

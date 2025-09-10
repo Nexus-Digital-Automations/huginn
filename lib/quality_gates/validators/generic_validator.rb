@@ -138,7 +138,7 @@ module QualityGates
         return missing_command_result('bundle-audit') unless command_available?('bundle-audit')
 
         # Update advisory database first
-        update_result = execute_command('bundle-audit update')
+        execute_command('bundle-audit update')
         
         # Run audit
         command = 'bundle-audit check'

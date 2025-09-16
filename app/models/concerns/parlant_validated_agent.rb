@@ -25,8 +25,16 @@ module ParlantValidatedAgent
   ##
   # Module Configuration
   included do
-    # Add Parlant integration service as class attribute
-    class_attribute :parlant_service, default: -> { ParlantIntegrationService.new }
+    # Add Parlant integration service as class attribute with performance optimization
+    class_attribute :parlant_service, default: -> {
+      # Use performance-optimized service if available, fall back to standard service
+      if Rails.application.config.respond_to?(:parlant_performance_service) &&
+         Rails.application.config.parlant_performance_service.present?
+        Rails.application.config.parlant_performance_service
+      else
+        ParlantIntegrationService.new
+      end
+    }
     
     # Add validation context tracking
     attr_accessor :parlant_context, :parlant_bypass_validation
@@ -49,11 +57,48 @@ module ParlantValidatedAgent
     end
 
     ##
-    # Get Parlant service instance
+    # Get Parlant service instance (performance-optimized)
     #
-    # @return [ParlantIntegrationService] Service instance
+    # @return [ParlantPerformanceOptimizedService, ParlantIntegrationService] Service instance
     def parlant_integration_service
-      @parlant_integration_service ||= ParlantIntegrationService.new
+      @parlant_integration_service ||= begin
+        # Use performance-optimized service if available
+        if Rails.application.config.respond_to?(:parlant_performance_service) &&
+           Rails.application.config.parlant_performance_service.present?
+          Rails.application.config.parlant_performance_service
+        else
+          ParlantIntegrationService.new
+        end
+      end
+    end
+
+    ##
+    # Get performance-optimized validation with intelligent routing
+    #
+    # @param operation [String] Operation to validate
+    # @param context [Hash] Operation context
+    # @param user_intent [String] User intent description
+    # @param options [Hash] Additional options
+    # @return [Hash] Validation result with performance optimizations
+    def optimized_validate_operation(operation:, context: {}, user_intent: nil, **options)
+      service = parlant_integration_service
+      
+      # Use optimized validation if service supports it
+      if service.respond_to?(:optimized_validate_operation)
+        service.optimized_validate_operation(
+          operation: operation,
+          context: context,
+          user_intent: user_intent,
+          **options
+        )
+      else
+        # Fall back to standard validation
+        service.validate_operation(
+          operation: operation,
+          context: context,
+          user_intent: user_intent
+        )
+      end
     end
   end
 

@@ -44,7 +44,7 @@ class ParlantAuthBridgeService
   
   # Security Configuration
   GEOLOCATION_TRACKING = ENV.fetch('GEOLOCATION_TRACKING', 'true') == 'true'
-  DEVICE_FINGERPRINTING = ENV.fetch('DEVICE_FINGERPRINTING', 'true') == 'true
+  DEVICE_FINGERPRINTING = ENV.fetch('DEVICE_FINGERPRINTING', 'true') == 'true'
   MFA_REQUIRED_OPERATIONS = %w[user_deletion permission_escalation data_export system_shutdown].freeze
   
   # Redis Configuration

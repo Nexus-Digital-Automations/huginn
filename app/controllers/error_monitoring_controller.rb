@@ -2,12 +2,17 @@
 
 # Error Monitoring Dashboard Controller for Huginn
 # Provides web interface for error monitoring system management and visualization
+# Enhanced with Parlant conversational AI validation for monitoring operations
 class ErrorMonitoringController < ApplicationController
+  include ParlantValidatedController
 
   before_action :authenticate_user!
   before_action :require_admin_user!
   before_action :load_error_monitoring_components
   before_action :set_time_range, only: [:index, :statistics, :trends, :recovery]
+  
+  # Skip Parlant validation for read-only monitoring views
+  skip_parlant_validation_for :index, :statistics, :trends
 
   ##
   # Dashboard overview with key metrics and system health
@@ -177,14 +182,36 @@ class ErrorMonitoringController < ApplicationController
   def reset_circuit_breaker
       service_name = params.require(:service_name)
 
+      # Parlant validation for critical circuit breaker reset operation
+      validation_result = validate_administrative_action(
+        admin_action: 'reset_circuit_breaker',
+        action_context: {
+          service_name: service_name,
+          circuit_breaker_status: @circuit_breaker.status(service_name),
+          risk_level: 'high',
+          requires_admin: true
+        }
+      )
+
+      unless validation_result[:approved]
+        return render_parlant_error_response(
+          error_message: "Circuit breaker reset blocked: #{validation_result[:reasoning]}",
+          validation_result: validation_result,
+          status: :forbidden
+        )
+      end
+
       @circuit_breaker.reset(service_name)
 
       Rails.logger.info '[ErrorMonitoringController] Circuit breaker reset', {
         user_id: current_user.id,
         service_name: service_name,
+        parlant_operation_id: validation_result[:operation_id],
+        validation_confidence: validation_result[:confidence]
       }
 
-      render json: {
+      render_parlant_validated_json(
+        data: {
         success: true,
         service_name: service_name,
         reset_at: Time.current,

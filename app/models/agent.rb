@@ -16,6 +16,7 @@ class Agent < ActiveRecord::Base
   include HasGuid
   include DryRunnable
   include SortableEvents
+  include ParlantValidatedAgent
 
   markdown_class_attributes :description, :event_description
 
@@ -578,5 +579,33 @@ class Agent < ActiveRecord::Base
     def to_liquid
         Drop.new(self)
     end
+
+  # Parlant Integration - Method Aliases for Function-Level Validation
+  # Redirect core Agent methods to their Parlant-validated versions
+  # for conversational AI validation and safety guardrails
+  
+  alias_method :original_check, :check
+  alias_method :check, :parlant_validated_check
+
+  alias_method :original_receive, :receive
+  alias_method :receive, :parlant_validated_receive
+
+  alias_method :original_create_event, :create_event
+  alias_method :create_event, :parlant_validated_create_event
+
+  alias_method :original_build_event, :build_event
+  alias_method :build_event, :parlant_validated_build_event
+
+  alias_method :original_log, :log
+  alias_method :log, :parlant_validated_log
+
+  alias_method :original_error, :error
+  alias_method :error, :parlant_validated_error
+
+  alias_method :original_handle_web_request, :handle_web_request
+  alias_method :handle_web_request, :parlant_validated_handle_web_request
+
+  alias_method :original_working?, :working?
+  alias_method :working?, :parlant_validated_working?
 
 end

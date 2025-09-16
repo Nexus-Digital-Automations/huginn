@@ -1,8 +1,10 @@
 require 'net/smtp'
+require_relative '../../../lib/parlant_integration'
 
 module Agents
   class EmailAgent < Agent
     include EmailConcern
+    include ParlantIntegration::AgentIntegration
 
     can_dry_run!
     default_schedule "never"

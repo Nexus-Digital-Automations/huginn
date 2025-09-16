@@ -7,7 +7,7 @@
 #
 # * Agent-specific log viewing and filtering
 # * Error message display and troubleshooting
-# * Execution history and performance monitoring  
+# * Execution history and performance monitoring
 # * Log level filtering and search capabilities
 #
 # All log access is scoped to the current user's agents to ensure proper

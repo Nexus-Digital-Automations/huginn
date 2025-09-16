@@ -17,7 +17,7 @@ require 'agents_exporter'
 # * Scenario CRUD operations with agent membership management
 # * JSON and ZIP export formats for portability
 # * Public scenario sharing via export links
-# * Agent dependency management within scenarios  
+# * Agent dependency management within scenarios
 # * Bulk operations across all agents in a scenario
 #
 # Export functionality allows scenarios to be shared without authentication

@@ -2,7 +2,7 @@
 
 ##
 # PerformanceMonitoringController provides web-based dashboard access to performance monitoring data.
-# 
+#
 # This controller serves performance metrics, monitoring status, and historical data
 # through JSON API endpoints that can be consumed by dashboard frontend components
 # or integrated with existing admin interfaces.
@@ -15,13 +15,13 @@
 # @author Performance Monitoring Specialist
 # @since 2025-09-05
 class PerformanceMonitoringController < ApplicationController
-  
+
   # Require admin access for performance monitoring endpoints
   before_action :authenticate_admin!
-  
+
   # Skip CSRF for API endpoints (if needed for dashboard integrations)
   skip_before_action :verify_authenticity_token, only: [:metrics, :status, :alerts]
-  
+
   ##
   # Performance monitoring dashboard view
   def dashboard
@@ -40,9 +40,9 @@ class PerformanceMonitoringController < ApplicationController
       response_monitoring: gather_response_metrics,
       resource_usage: gather_resource_metrics,
       benchmark_status: gather_benchmark_metrics,
-      system_info: gather_system_info
+      system_info: gather_system_info,
     }
-    
+
     render json: metrics_data
   end
 
@@ -58,11 +58,11 @@ class PerformanceMonitoringController < ApplicationController
         resource_monitor: component_status(:resource_monitor),
         benchmark_system: component_status(:benchmark_system),
         regression_detector: component_status(:regression_detector),
-        middleware: component_status(:middleware)
+        middleware: component_status(:middleware),
       },
-      configuration: gather_configuration_summary
+      configuration: gather_configuration_summary,
     }
-    
+
     render json: status_data
   end
 
@@ -74,9 +74,9 @@ class PerformanceMonitoringController < ApplicationController
       timestamp: Time.current.iso8601,
       active_alerts: gather_active_alerts,
       recent_alerts: gather_recent_alerts,
-      alert_summary: generate_alert_summary
+      alert_summary: generate_alert_summary,
     }
-    
+
     render json: alerts_data
   end
 
@@ -85,29 +85,29 @@ class PerformanceMonitoringController < ApplicationController
   # @return [JSON] historical performance metrics
   def history
     hours = params[:hours]&.to_i || 24
-    
+
     history_data = {
       timestamp: Time.current.iso8601,
       period_hours: hours,
       response_time_history: gather_response_time_history(hours),
       resource_usage_history: gather_resource_usage_history(hours),
-      benchmark_history: gather_benchmark_history(hours)
+      benchmark_history: gather_benchmark_history(hours),
     }
-    
+
     render json: history_data
   end
 
   ##
   # Get optimization recommendations
-  # @return [JSON] performance optimization recommendations  
+  # @return [JSON] performance optimization recommendations
   def recommendations
     recommendations_data = {
       timestamp: Time.current.iso8601,
       recommendations: gather_optimization_recommendations,
       priority_summary: generate_priority_summary,
-      implementation_guide: generate_implementation_guide
+      implementation_guide: generate_implementation_guide,
     }
-    
+
     render json: recommendations_data
   end
 
@@ -122,15 +122,15 @@ class PerformanceMonitoringController < ApplicationController
       detailed_metrics: gather_detailed_metrics,
       trend_analysis: perform_trend_analysis,
       recommendations: gather_optimization_recommendations,
-      system_health: assess_system_health
+      system_health: assess_system_health,
     }
-    
+
     respond_to do |format|
       format.json { render json: report_data }
-      format.html { 
+      format.html do
         @report_data = report_data
         render 'report'
-      }
+      end
     end
   end
 
@@ -139,16 +139,16 @@ class PerformanceMonitoringController < ApplicationController
   # @return [JSON] performance test results
   def run_tests
     return render json: { error: 'Unauthorized' }, status: :forbidden unless current_user.admin?
-    
+
     begin
       # Initialize benchmark system
       require 'performance_monitoring/benchmark_system'
       benchmark_system = PerformanceMonitoring::BenchmarkSystem.new
-      
+
       # Register and run basic benchmarks
       register_dashboard_benchmarks(benchmark_system)
       results = benchmark_system.run_all_benchmarks
-      
+
       test_results = {
         timestamp: Time.current.iso8601,
         test_run_id: SecureRandom.uuid,
@@ -163,11 +163,11 @@ class PerformanceMonitoringController < ApplicationController
             baseline_time: result.baseline_time,
             performance_change: result.degradation_percentage,
             status: determine_test_status(result),
-            description: result.performance_change_description
+            description: result.performance_change_description,
           }
-        end
+        end,
       }
-      
+
       render json: test_results
     rescue StandardError => e
       Rails.logger.error "[PERFORMANCE DASHBOARD] Failed to run performance tests: #{e.message}"
@@ -187,7 +187,7 @@ class PerformanceMonitoringController < ApplicationController
       resource_usage_ok: resource_usage_within_limits?,
       recent_alerts_count: gather_active_alerts.length,
       last_benchmark_run: get_last_benchmark_time,
-      system_health: assess_system_health_score
+      system_health: assess_system_health_score,
     }
   end
 
@@ -200,7 +200,7 @@ class PerformanceMonitoringController < ApplicationController
       memory_usage: get_current_memory_usage,
       cpu_usage: get_current_cpu_usage,
       active_connections: get_database_connections,
-      requests_per_minute: calculate_requests_per_minute
+      requests_per_minute: calculate_requests_per_minute,
     }
   end
 
@@ -211,13 +211,13 @@ class PerformanceMonitoringController < ApplicationController
     if defined?(PerformanceMonitoring::ResponseMonitor)
       monitor = PerformanceMonitoring::ResponseMonitor.new
       summary = monitor.metrics_summary
-      
+
       {
         total_requests: summary[:total_requests] || 0,
         threshold_violations: summary[:threshold_violations] || 0,
         average_response_time: summary[:average_response_time] || 0.0,
         critical_paths_count: summary[:critical_paths_status]&.length || 0,
-        monitoring_active: true
+        monitoring_active: true,
       }
     else
       { monitoring_active: false, error: 'ResponseMonitor not available' }
@@ -233,7 +233,7 @@ class PerformanceMonitoringController < ApplicationController
     if defined?(PerformanceMonitoring::ResourceMonitor)
       monitor = PerformanceMonitoring::ResourceMonitor.new
       snapshot = monitor.take_snapshot
-      
+
       {
         memory_usage_mb: snapshot.memory_usage_mb,
         memory_usage_percentage: snapshot.memory_usage_percentage,
@@ -246,8 +246,8 @@ class PerformanceMonitoringController < ApplicationController
           memory_critical: snapshot.memory_critical?,
           cpu_warning: snapshot.cpu_warning?,
           cpu_critical: snapshot.cpu_critical?,
-          excessive_gc: snapshot.excessive_gc_frequency?
-        }
+          excessive_gc: snapshot.excessive_gc_frequency?,
+        },
       }
     else
       { monitoring_active: false, error: 'ResourceMonitor not available' }
@@ -261,7 +261,7 @@ class PerformanceMonitoringController < ApplicationController
   # @return [Hash] benchmark system data
   def gather_benchmark_metrics
     baseline_file = Rails.root.join('config/performance_baseline.json')
-    
+
     if baseline_file.exist?
       begin
         baseline_data = JSON.parse(File.read(baseline_file))
@@ -269,7 +269,7 @@ class PerformanceMonitoringController < ApplicationController
           baseline_established: true,
           baseline_date: baseline_data['created_at'],
           benchmark_count: baseline_data['baselines']&.length || 0,
-          last_update: File.mtime(baseline_file).iso8601
+          last_update: File.mtime(baseline_file).iso8601,
         }
       rescue JSON::ParserError
         { baseline_established: false, error: 'Invalid baseline file' }
@@ -291,7 +291,7 @@ class PerformanceMonitoringController < ApplicationController
       pid: Process.pid,
       uptime: get_process_uptime,
       memory_total: get_total_system_memory,
-      cpu_count: get_cpu_count
+      cpu_count: get_cpu_count,
     }
   rescue StandardError => e
     { error: e.message }
@@ -314,33 +314,33 @@ class PerformanceMonitoringController < ApplicationController
   def component_status(component)
     case component
     when :response_monitor
-      { 
+      {
         loaded: defined?(PerformanceMonitoring::ResponseMonitor),
-        configured: defined?(PerformanceMonitoring::ResponseMonitor) && 
-                   PerformanceMonitoring::ResponseMonitor.configuration.present?
+        configured: defined?(PerformanceMonitoring::ResponseMonitor) &&
+                   PerformanceMonitoring::ResponseMonitor.configuration.present?,
       }
     when :resource_monitor
-      { 
+      {
         loaded: defined?(PerformanceMonitoring::ResourceMonitor),
-        configured: defined?(PerformanceMonitoring::ResourceMonitor) && 
-                   PerformanceMonitoring::ResourceMonitor.configuration.present?
+        configured: defined?(PerformanceMonitoring::ResourceMonitor) &&
+                   PerformanceMonitoring::ResourceMonitor.configuration.present?,
       }
     when :benchmark_system
-      { 
+      {
         loaded: defined?(PerformanceMonitoring::BenchmarkSystem),
-        configured: defined?(PerformanceMonitoring::BenchmarkSystem) && 
-                   PerformanceMonitoring::BenchmarkSystem.configuration.present?
+        configured: defined?(PerformanceMonitoring::BenchmarkSystem) &&
+                   PerformanceMonitoring::BenchmarkSystem.configuration.present?,
       }
     when :regression_detector
-      { 
+      {
         loaded: defined?(PerformanceMonitoring::RegressionDetector),
-        configured: defined?(PerformanceMonitoring::RegressionDetector) && 
-                   PerformanceMonitoring::RegressionDetector.configuration.present?
+        configured: defined?(PerformanceMonitoring::RegressionDetector) &&
+                   PerformanceMonitoring::RegressionDetector.configuration.present?,
       }
     when :middleware
-      { 
+      {
         loaded: defined?(PerformanceMonitoring::Middleware),
-        active: Rails.application.middleware.any? { |m| m.klass == PerformanceMonitoring::Middleware }
+        active: Rails.application.middleware.any? { |m| m.klass == PerformanceMonitoring::Middleware },
       }
     else
       { error: 'Unknown component' }
@@ -354,25 +354,25 @@ class PerformanceMonitoringController < ApplicationController
   # @return [Hash] configuration summary
   def gather_configuration_summary
     summary = {}
-    
+
     if defined?(PerformanceMonitoring::ResponseMonitor)
       config = PerformanceMonitoring::ResponseMonitor.configuration
       summary[:response_monitor] = {
         default_threshold: config.default_threshold,
         sampling_rate: config.sampling_rate,
-        critical_paths_count: config.critical_paths&.length || 0
+        critical_paths_count: config.critical_paths&.length || 0,
       }
     end
-    
+
     if defined?(PerformanceMonitoring::ResourceMonitor)
       config = PerformanceMonitoring::ResourceMonitor.configuration
       summary[:resource_monitor] = {
         memory_warning_threshold: config.memory_warning_threshold,
         cpu_warning_threshold: config.cpu_warning_threshold,
-        monitoring_interval: config.monitoring_interval
+        monitoring_interval: config.monitoring_interval,
       }
     end
-    
+
     summary
   rescue StandardError => e
     { error: e.message }
@@ -383,23 +383,32 @@ class PerformanceMonitoringController < ApplicationController
   # @return [Array] active alerts
   def gather_active_alerts
     alerts = []
-    
+
     # Check current resource status for alerts
     if defined?(PerformanceMonitoring::ResourceMonitor)
       begin
         monitor = PerformanceMonitoring::ResourceMonitor.new
         snapshot = monitor.take_snapshot
-        
-        alerts << create_alert(:memory_critical, 'Critical memory usage', snapshot.memory_usage_percentage) if snapshot.memory_critical?
-        alerts << create_alert(:memory_warning, 'High memory usage', snapshot.memory_usage_percentage) if snapshot.memory_warning?
+
+        if snapshot.memory_critical?
+          alerts << create_alert(:memory_critical, 'Critical memory usage',
+                                 snapshot.memory_usage_percentage)
+        end
+        if snapshot.memory_warning?
+          alerts << create_alert(:memory_warning, 'High memory usage',
+                                 snapshot.memory_usage_percentage)
+        end
         alerts << create_alert(:cpu_critical, 'Critical CPU usage', snapshot.cpu_percentage) if snapshot.cpu_critical?
         alerts << create_alert(:cpu_warning, 'High CPU usage', snapshot.cpu_percentage) if snapshot.cpu_warning?
-        alerts << create_alert(:excessive_gc, 'Excessive garbage collection', snapshot.gc_frequency_per_minute) if snapshot.excessive_gc_frequency?
+        if snapshot.excessive_gc_frequency?
+          alerts << create_alert(:excessive_gc, 'Excessive garbage collection',
+                                 snapshot.gc_frequency_per_minute)
+        end
       rescue StandardError => e
         Rails.logger.warn "[PERFORMANCE DASHBOARD] Failed to check resource alerts: #{e.message}"
       end
     end
-    
+
     alerts
   end
 
@@ -417,12 +426,12 @@ class PerformanceMonitoringController < ApplicationController
   # @return [Hash] alert summary
   def generate_alert_summary
     active_alerts = gather_active_alerts
-    
+
     {
       total_active: active_alerts.length,
       critical_count: active_alerts.count { |a| a[:severity] == :critical },
       warning_count: active_alerts.count { |a| a[:severity] == :warning },
-      types: active_alerts.group_by { |a| a[:type] }.transform_values(&:length)
+      types: active_alerts.group_by { |a| a[:type] }.transform_values(&:length),
     }
   end
 
@@ -438,7 +447,7 @@ class PerformanceMonitoringController < ApplicationController
                when :memory_warning, :cpu_warning then :warning
                else :info
                end
-    
+
     {
       id: SecureRandom.uuid,
       type: type,
@@ -446,7 +455,7 @@ class PerformanceMonitoringController < ApplicationController
       message: message,
       value: value,
       timestamp: Time.current.iso8601,
-      acknowledged: false
+      acknowledged: false,
     }
   end
 
@@ -455,7 +464,7 @@ class PerformanceMonitoringController < ApplicationController
   # @return [Array] optimization recommendations
   def gather_optimization_recommendations
     recommendations = []
-    
+
     if defined?(PerformanceMonitoring::ResourceMonitor)
       begin
         monitor = PerformanceMonitoring::ResourceMonitor.new
@@ -465,10 +474,10 @@ class PerformanceMonitoringController < ApplicationController
         Rails.logger.warn "[PERFORMANCE DASHBOARD] Failed to gather resource recommendations: #{e.message}"
       end
     end
-    
+
     # Add general recommendations based on system status
     recommendations.concat(generate_general_recommendations)
-    
+
     recommendations.sort_by { |r| priority_score(r[:priority]) }
   end
 
@@ -477,7 +486,7 @@ class PerformanceMonitoringController < ApplicationController
   # @return [Array] general recommendations
   def generate_general_recommendations
     recommendations = []
-    
+
     # Check if baselines are established
     unless File.exist?(Rails.root.join('config/performance_baseline.json'))
       recommendations << {
@@ -487,10 +496,10 @@ class PerformanceMonitoringController < ApplicationController
         description: 'Create performance baselines to enable regression detection and performance monitoring.',
         action: "Run 'rake performance:benchmark:create_baseline' to establish baselines",
         impact: 'high',
-        effort: 'low'
+        effort: 'low',
       }
     end
-    
+
     # Check monitoring configuration
     config_file = Rails.root.join('config/performance_monitoring.yml')
     unless config_file.exist?
@@ -501,10 +510,10 @@ class PerformanceMonitoringController < ApplicationController
         description: 'Customize performance monitoring thresholds and settings for your environment.',
         action: 'Review and customize config/performance_monitoring.yml',
         impact: 'medium',
-        effort: 'low'
+        effort: 'low',
       }
     end
-    
+
     recommendations
   end
 
@@ -541,7 +550,7 @@ class PerformanceMonitoringController < ApplicationController
     else
       true
     end
-  rescue
+  rescue StandardError
     true
   end
 
@@ -550,12 +559,8 @@ class PerformanceMonitoringController < ApplicationController
   # @return [String, nil] last benchmark time
   def get_last_benchmark_time
     baseline_file = Rails.root.join('config/performance_baseline.json')
-    if baseline_file.exist?
-      File.mtime(baseline_file).iso8601
-    else
-      nil
-    end
-  rescue
+    File.mtime(baseline_file).iso8601 if baseline_file.exist?
+  rescue StandardError
     nil
   end
 
@@ -564,28 +569,28 @@ class PerformanceMonitoringController < ApplicationController
   # @return [Integer] health score
   def assess_system_health_score
     score = 100
-    
+
     # Deduct points for active alerts
     active_alerts = gather_active_alerts
     score -= active_alerts.count { |a| a[:severity] == :critical } * 20
     score -= active_alerts.count { |a| a[:severity] == :warning } * 10
-    
+
     # Deduct points for missing baselines
     score -= 15 unless File.exist?(Rails.root.join('config/performance_baseline.json'))
-    
+
     # Deduct points for high resource usage
     if defined?(PerformanceMonitoring::ResourceMonitor)
       begin
         monitor = PerformanceMonitoring::ResourceMonitor.new
         snapshot = monitor.take_snapshot
-        
+
         score -= 10 if snapshot.memory_usage_percentage > 85
         score -= 10 if snapshot.cpu_percentage > 85
-      rescue
-        score -= 5  # Deduct for monitoring unavailability
+      rescue StandardError
+        score -= 5 # Deduct for monitoring unavailability
       end
     end
-    
+
     [score, 0].max
   end
 
@@ -595,7 +600,7 @@ class PerformanceMonitoringController < ApplicationController
   def calculate_average_response_time
     # This is a simplified implementation
     # In production, you might calculate from stored metrics or logs
-    150.0  # Default placeholder value
+    150.0 # Default placeholder value
   end
 
   ##
@@ -603,7 +608,7 @@ class PerformanceMonitoringController < ApplicationController
   # @return [Float] memory usage in MB
   def get_current_memory_usage
     `ps -o rss= -p #{Process.pid}`.to_i / 1024.0
-  rescue
+  rescue StandardError
     0.0
   end
 
@@ -612,7 +617,7 @@ class PerformanceMonitoringController < ApplicationController
   # @return [Float] CPU usage percentage
   def get_current_cpu_usage
     `ps -o %cpu= -p #{Process.pid}`.to_f
-  rescue
+  rescue StandardError
     0.0
   end
 
@@ -625,7 +630,7 @@ class PerformanceMonitoringController < ApplicationController
     else
       0
     end
-  rescue
+  rescue StandardError
     0
   end
 
@@ -643,7 +648,7 @@ class PerformanceMonitoringController < ApplicationController
   # @return [Float] process uptime
   def get_process_uptime
     Process.clock_gettime(Process::CLOCK_MONOTONIC)
-  rescue
+  rescue StandardError
     0.0
   end
 
@@ -660,7 +665,7 @@ class PerformanceMonitoringController < ApplicationController
     else
       0
     end
-  rescue
+  rescue StandardError
     0
   end
 
@@ -669,7 +674,7 @@ class PerformanceMonitoringController < ApplicationController
   # @return [Integer] number of CPUs
   def get_cpu_count
     `nproc`.to_i
-  rescue
+  rescue StandardError
     1
   end
 
@@ -681,11 +686,11 @@ class PerformanceMonitoringController < ApplicationController
       suite.measure('database_connection') do
         ActiveRecord::Base.connection.execute('SELECT 1')
       end
-      
+
       suite.measure('memory_allocation') do
         1000.times { |i| "test_string_#{i}" }
       end
-      
+
       suite.measure('simple_computation') do
         (1..1000).map(&:to_s).join(',')
       end
@@ -717,7 +722,7 @@ class PerformanceMonitoringController < ApplicationController
       monitoring_status: monitoring_system_active? ? 'active' : 'inactive',
       active_alerts_count: gather_active_alerts.length,
       recommendations_count: gather_optimization_recommendations.length,
-      last_updated: Time.current.iso8601
+      last_updated: Time.current.iso8601,
     }
   end
 
@@ -729,7 +734,7 @@ class PerformanceMonitoringController < ApplicationController
       response_monitoring: gather_response_metrics,
       resource_usage: gather_resource_metrics,
       benchmark_status: gather_benchmark_metrics,
-      system_info: gather_system_info
+      system_info: gather_system_info,
     }
   end
 
@@ -743,7 +748,7 @@ class PerformanceMonitoringController < ApplicationController
       response_time_trend: 'stable',
       memory_usage_trend: 'stable',
       error_rate_trend: 'stable',
-      performance_trend: 'stable'
+      performance_trend: 'stable',
     }
   end
 
@@ -752,7 +757,7 @@ class PerformanceMonitoringController < ApplicationController
   # @return [Hash] system health assessment
   def assess_system_health
     health_score = assess_system_health_score
-    
+
     status = case health_score
              when 90..100 then 'excellent'
              when 75..89 then 'good'
@@ -760,12 +765,12 @@ class PerformanceMonitoringController < ApplicationController
              when 40..59 then 'poor'
              else 'critical'
              end
-    
+
     {
       overall_score: health_score,
       status: status,
       components_healthy: component_health_check,
-      recommendations_count: gather_optimization_recommendations.length
+      recommendations_count: gather_optimization_recommendations.length,
     }
   end
 
@@ -777,7 +782,7 @@ class PerformanceMonitoringController < ApplicationController
       response_monitoring: monitoring_system_active?,
       resource_monitoring: defined?(PerformanceMonitoring::ResourceMonitor),
       benchmarking: File.exist?(Rails.root.join('config/performance_baseline.json')),
-      alerting: gather_active_alerts.count { |a| a[:severity] == :critical } == 0
+      alerting: gather_active_alerts.count { |a| a[:severity] == :critical }.zero?,
     }
   end
 
@@ -785,7 +790,7 @@ class PerformanceMonitoringController < ApplicationController
   # Gather response time history
   # @param hours [Integer] hours of history to gather
   # @return [Array] response time history data
-  def gather_response_time_history(hours)
+  def gather_response_time_history(_hours)
     # Simplified implementation - in production, this would query stored metrics
     []
   end
@@ -794,7 +799,7 @@ class PerformanceMonitoringController < ApplicationController
   # Gather resource usage history
   # @param hours [Integer] hours of history to gather
   # @return [Array] resource usage history data
-  def gather_resource_usage_history(hours)
+  def gather_resource_usage_history(_hours)
     # Simplified implementation - in production, this would query stored metrics
     []
   end
@@ -803,7 +808,7 @@ class PerformanceMonitoringController < ApplicationController
   # Gather benchmark history
   # @param hours [Integer] hours of history to gather
   # @return [Array] benchmark history data
-  def gather_benchmark_history(hours)
+  def gather_benchmark_history(_hours)
     # Simplified implementation - in production, this would query stored results
     []
   end
@@ -813,12 +818,12 @@ class PerformanceMonitoringController < ApplicationController
   # @return [Hash] priority summary
   def generate_priority_summary
     recommendations = gather_optimization_recommendations
-    
+
     {
       critical: recommendations.count { |r| r[:priority] == 'critical' },
       high: recommendations.count { |r| r[:priority] == 'high' },
       medium: recommendations.count { |r| r[:priority] == 'medium' },
-      low: recommendations.count { |r| r[:priority] == 'low' }
+      low: recommendations.count { |r| r[:priority] == 'low' },
     }
   end
 
@@ -831,21 +836,22 @@ class PerformanceMonitoringController < ApplicationController
         step: 1,
         title: 'Address Critical Issues First',
         description: 'Focus on critical and high-priority recommendations that have immediate impact on performance.',
-        estimated_time: '1-2 hours'
+        estimated_time: '1-2 hours',
       },
       {
         step: 2,
         title: 'Establish Baselines',
         description: 'Run performance benchmarks to establish baseline metrics for future comparison.',
         estimated_time: '30 minutes',
-        command: 'rake performance:benchmark:create_baseline'
+        command: 'rake performance:benchmark:create_baseline',
       },
       {
         step: 3,
         title: 'Monitor and Validate',
         description: 'Monitor the system after implementing changes to validate improvements.',
-        estimated_time: 'Ongoing'
-      }
+        estimated_time: 'Ongoing',
+      },
     ]
   end
+
 end

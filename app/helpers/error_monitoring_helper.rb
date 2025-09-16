@@ -2,6 +2,7 @@
 
 # Helper methods for Error Monitoring Dashboard views
 module ErrorMonitoringHelper
+
   ##
   # Determine CSS color class based on system health status
   def health_status_color(status)
@@ -87,20 +88,19 @@ module ErrorMonitoringHelper
     # Simplified uptime calculation based on error rate compliance
     if dashboard_data[:threshold_compliance]
       uptime_percentage = 99.9 - (dashboard_data[:current_error_rate] * 100)
-      "#{uptime_percentage.round(2)}%"
     else
       # Calculate based on breach severity
       breach_multiplier = dashboard_data[:current_error_rate] / dashboard_data[:error_rate_threshold]
       uptime_percentage = [99.9 - (breach_multiplier * 10), 95.0].max
-      "#{uptime_percentage.round(2)}%"
     end
+"#{uptime_percentage.round(2)}%"
   end
 
   ##
   # Format error rate as percentage with appropriate precision
   def format_error_rate(rate)
     if rate < 0.0001
-      "< 0.01%"
+      '< 0.01%'
     else
       number_to_percentage(rate * 100, precision: 4)
     end
@@ -113,10 +113,10 @@ module ErrorMonitoringHelper
       "#{seconds.round}s"
     elsif seconds < 3600
       "#{(seconds / 60).round}m"
-    elsif seconds < 86400
+    elsif seconds < 86_400
       "#{(seconds / 3600).round(1)}h"
     else
-      "#{(seconds / 86400).round(1)}d"
+      "#{(seconds / 86_400).round(1)}d"
     end
   end
 
@@ -135,13 +135,13 @@ module ErrorMonitoringHelper
   def trend_arrow(direction)
     case direction
     when :increasing, :up
-      content_tag(:i, '', class: "fa fa-arrow-up text-danger", title: "Increasing")
+      content_tag(:i, '', class: 'fa fa-arrow-up text-danger', title: 'Increasing')
     when :decreasing, :down
-      content_tag(:i, '', class: "fa fa-arrow-down text-success", title: "Decreasing")
+      content_tag(:i, '', class: 'fa fa-arrow-down text-success', title: 'Decreasing')
     when :stable, :neutral
-      content_tag(:i, '', class: "fa fa-minus text-muted", title: "Stable")
+      content_tag(:i, '', class: 'fa fa-minus text-muted', title: 'Stable')
     else
-      content_tag(:i, '', class: "fa fa-question text-secondary", title: "Unknown")
+      content_tag(:i, '', class: 'fa fa-question text-secondary', title: 'Unknown')
     end
   end
 
@@ -174,10 +174,10 @@ module ErrorMonitoringHelper
                   end
 
     content_tag(:div, class: "progress #{options[:class]}") do
-      content_tag(:div, "#{percentage}%", 
+      content_tag(:div, "#{percentage}%",
                   class: "progress-bar bg-#{color_class}",
                   style: "width: #{percentage}%",
-                  role: "progressbar",
+                  role: 'progressbar',
                   'aria-valuenow': percentage,
                   'aria-valuemin': 0,
                   'aria-valuemax': 100)
@@ -196,8 +196,8 @@ module ErrorMonitoringHelper
         borderWidth: options[:border_width] || 2,
         pointRadius: options[:point_radius] || 0,
         tension: options[:tension] || 0.4,
-        fill: options[:fill] || true
-      }]
+        fill: options[:fill] || true,
+      }],
     }.to_json.html_safe
   end
 
@@ -210,7 +210,7 @@ module ErrorMonitoringHelper
       ['Last 24 hours', 24],
       ['Last 3 days', 72],
       ['Last 7 days', 168],
-      ['Last 30 days', 720]
+      ['Last 30 days', 720],
     ]
   end
 
@@ -221,7 +221,7 @@ module ErrorMonitoringHelper
       ['JSON Format', 'json'],
       ['CSV Format', 'csv'],
       ['YAML Format', 'yaml'],
-      ['PDF Format', 'pdf']
+      ['PDF Format', 'pdf'],
     ]
   end
 
@@ -252,22 +252,22 @@ module ErrorMonitoringHelper
   # Format recovery strategy with description
   def format_recovery_strategy(strategy)
     strategy_descriptions = {
-      simple_retry: "Simple Retry with Linear Backoff",
-      exponential_backoff: "Exponential Backoff Retry",
-      circuit_breaker_reset: "Circuit Breaker Reset",
-      credential_refresh: "Credential Refresh",
-      connection_pool_reset: "Database Connection Pool Reset",
-      agent_restart: "Agent Restart",
-      graceful_degradation: "Graceful Service Degradation",
-      resource_scaling: "Resource Scaling"
+      simple_retry: 'Simple Retry with Linear Backoff',
+      exponential_backoff: 'Exponential Backoff Retry',
+      circuit_breaker_reset: 'Circuit Breaker Reset',
+      credential_refresh: 'Credential Refresh',
+      connection_pool_reset: 'Database Connection Pool Reset',
+      agent_restart: 'Agent Restart',
+      graceful_degradation: 'Graceful Service Degradation',
+      resource_scaling: 'Resource Scaling',
     }
 
     description = strategy_descriptions[strategy] || strategy.to_s.humanize
-    
+
     content_tag(:div) do
       content_tag(:strong, strategy.to_s.humanize) +
-      content_tag(:br) +
-      content_tag(:small, description, class: "text-muted")
+        content_tag(:br) +
+        content_tag(:small, description, class: 'text-muted')
     end
   end
 
@@ -284,14 +284,14 @@ module ErrorMonitoringHelper
   # Format degradation level with impact description
   def format_degradation_level(level)
     level_descriptions = {
-      none: "Full functionality available",
-      minimal: "Slight performance reduction",
-      moderate: "Noticeable feature limitations",
-      significant: "Major functionality restricted",
-      severe: "Emergency mode - critical functions only"
+      none: 'Full functionality available',
+      minimal: 'Slight performance reduction',
+      moderate: 'Noticeable feature limitations',
+      significant: 'Major functionality restricted',
+      severe: 'Emergency mode - critical functions only',
     }
 
-    description = level_descriptions[level] || "Unknown degradation level"
+    description = level_descriptions[level] || 'Unknown degradation level'
     color_class = case level
                   when :none
                     'success'
@@ -307,8 +307,8 @@ module ErrorMonitoringHelper
 
     content_tag(:div) do
       content_tag(:span, level.to_s.humanize, class: "badge badge-#{color_class}") +
-      content_tag(:br) +
-      content_tag(:small, description, class: "text-muted")
+        content_tag(:br) +
+        content_tag(:small, description, class: 'text-muted')
     end
   end
 
@@ -327,9 +327,9 @@ module ErrorMonitoringHelper
                    'question-circle'
                  end
 
-    content_tag(:div, class: "health-indicator") do
+    content_tag(:div, class: 'health-indicator') do
       content_tag(:i, '', class: "fa fa-#{icon_class} text-#{color_class} mr-2") +
-      (label || status.to_s.humanize)
+        (label || status.to_s.humanize)
     end
   end
 
@@ -338,7 +338,7 @@ module ErrorMonitoringHelper
   def format_timestamp_with_relative(timestamp)
     content_tag(:div) do
       content_tag(:div, l(timestamp, format: :short)) +
-      content_tag(:small, "(#{time_ago_in_words(timestamp)} ago)", class: "text-muted")
+        content_tag(:small, "(#{time_ago_in_words(timestamp)} ago)", class: 'text-muted')
     end
   end
 
@@ -348,12 +348,12 @@ module ErrorMonitoringHelper
     return content_tag(:span, '—', class: 'text-muted') if previous.nil? || previous.zero?
 
     change_percentage = ((current - previous) / previous.to_f * 100).round(1)
-    
-    if change_percentage > 0
+
+    if change_percentage.positive?
       icon = 'arrow-up'
       color = higher_is_better ? 'success' : 'danger'
       prefix = '+'
-    elsif change_percentage < 0
+    elsif change_percentage.negative?
       icon = 'arrow-down'
       color = higher_is_better ? 'danger' : 'success'
       prefix = ''
@@ -365,7 +365,7 @@ module ErrorMonitoringHelper
 
     content_tag(:span, class: "text-#{color}") do
       content_tag(:i, '', class: "fa fa-#{icon} mr-1") +
-      "#{prefix}#{change_percentage}%"
+        "#{prefix}#{change_percentage}%"
     end
   end
 
@@ -374,11 +374,11 @@ module ErrorMonitoringHelper
   def config_status_indicator(config_valid)
     if config_valid
       content_tag(:span, class: 'text-success') do
-        content_tag(:i, '', class: 'fa fa-check-circle mr-1') + 'Valid'
+        "#{content_tag(:i, '', class: 'fa fa-check-circle mr-1')}Valid"
       end
     else
       content_tag(:span, class: 'text-danger') do
-        content_tag(:i, '', class: 'fa fa-exclamation-triangle mr-1') + 'Invalid'
+        "#{content_tag(:i, '', class: 'fa fa-exclamation-triangle mr-1')}Invalid"
       end
     end
   end
@@ -389,35 +389,35 @@ module ErrorMonitoringHelper
     default_options = {
       class: 'btn btn-sm',
       method: :post,
-      confirm: options.delete(:confirm)
+      confirm: options.delete(:confirm),
     }
 
     button_config = {
       reset: {
         class: 'btn btn-sm btn-warning',
         icon: 'sync-alt',
-        text: 'Reset'
+        text: 'Reset',
       },
       enable: {
         class: 'btn btn-sm btn-success',
         icon: 'play',
-        text: 'Enable'
+        text: 'Enable',
       },
       disable: {
         class: 'btn btn-sm btn-danger',
         icon: 'pause',
-        text: 'Disable'
+        text: 'Disable',
       },
       force_open: {
         class: 'btn btn-sm btn-danger',
         icon: 'lock-open',
-        text: 'Force Open'
+        text: 'Force Open',
       },
       force_close: {
         class: 'btn btn-sm btn-success',
         icon: 'lock',
-        text: 'Force Close'
-      }
+        text: 'Force Close',
+      },
     }
 
     config = button_config[action] || {}
@@ -427,4 +427,5 @@ module ErrorMonitoringHelper
       content_tag(:i, '', class: "fa fa-#{config[:icon]} mr-1") + config[:text]
     end
   end
+
 end

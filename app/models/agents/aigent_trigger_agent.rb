@@ -4,6 +4,7 @@ require_relative '../../lib/security/security_monitor'
 require_relative '../../lib/security/security_integration'
 
 module Agents
+
   # AIgent Trigger Agent - Integration with AIgent Orchestrator System
   #
   # This agent provides intelligent trigger capabilities by integrating with
@@ -20,6 +21,7 @@ module Agents
   # Configuration validates all required parameters with comprehensive error
   # checking and provides user-friendly defaults with examples.
   class AigentTriggerAgent < Agent
+
     include WebRequestConcern
     include LiquidInterpolatable
     include FormConfigurable
@@ -54,7 +56,7 @@ module Agents
 
     # Form configuration for Huginn UI
     form_configurable :orchestrator_url, type: :string
-    form_configurable :target_agent, type: :string  
+    form_configurable :target_agent, type: :string
     form_configurable :goal, type: :text, ace: { mode: 'liquid', theme: 'textmate' }
     form_configurable :priority, type: :array, values: VALID_PRIORITY_LEVELS
     form_configurable :execution_mode, type: :array, values: VALID_EXECUTION_MODES
@@ -72,17 +74,17 @@ module Agents
     form_configurable :include_original_event, type: :boolean
     form_configurable :headers, type: :json
     form_configurable :security_monitoring_enabled, type: :boolean
-    form_configurable :encryption_enabled, type: :boolean  
+    form_configurable :encryption_enabled, type: :boolean
     form_configurable :compliance_frameworks, type: :json
     form_configurable :threat_detection_enabled, type: :boolean
     form_configurable :security_classification, type: :array, values: %w[public internal confidential restricted]
 
     description do
       <<~MD
-        The AIgent Trigger Agent integrates with the AIgent orchestrator system to execute intelligent, 
+        The AIgent Trigger Agent integrates with the AIgent orchestrator system to execute intelligent,#{' '}
         AI-powered workflows based on sophisticated trigger conditions and context-aware decision making.
 
-        This agent acts as a bridge between Huginn's event processing capabilities and the AIgent orchestrator's 
+        This agent acts as a bridge between Huginn's event processing capabilities and the AIgent orchestrator's#{' '}
         advanced automation framework, enabling:
 
         - **Smart Trigger Conditions**: AI-powered pattern recognition and anomaly detection
@@ -93,17 +95,17 @@ module Agents
         ## Configuration Options
 
         ### Core Configuration
-        
+
         * **`orchestrator_url`** (required): Complete URL to the AIgent orchestrator API endpoint
           - Must be a valid HTTP/HTTPS URL with proper scheme, host, and port
           - Example: `http://localhost:8080` or `https://aigent.example.com:8443`
           - The agent validates URL accessibility and SSL certificate validity for HTTPS URLs
-        
+
         * **`target_agent`** (required): Identifier of the target AIgent to execute
           - Must be a non-empty string matching valid agent naming conventions
           - Example: `browser_automation_agent`, `data_processing_specialist`, `email_coordinator`
           - The agent validates that the specified target agent exists and is available
-        
+
         * **`goal`** (required): Liquid template defining the execution goal for the AIgent
           - Supports full Liquid templating syntax with access to incoming event data
           - Can reference any field from the triggering event using `{{ event.field_name }}`
@@ -116,13 +118,13 @@ module Agents
           - Valid values: `#{VALID_PRIORITY_LEVELS.join(', ')}`
           - Determines AIgent task queue priority and resource allocation
           - Higher priority tasks are executed first and receive more system resources
-        
+
         * **`execution_mode`**: How the AIgent task should be executed (default: `asynchronous`)
           - Valid values: `#{VALID_EXECUTION_MODES.join(', ')}`
           - `synchronous`: Wait for completion before processing next events
           - `asynchronous`: Submit task and continue processing immediately
           - `background`: Low-priority background execution with extended timeouts
-        
+
         * **`timeout_seconds`**: Maximum execution time in seconds (default: `300`)
           - Valid range: 30 to 3600 seconds (30 seconds to 1 hour)
           - Prevents runaway tasks from consuming excessive resources
@@ -133,7 +135,7 @@ module Agents
         * **`trigger_condition`**: Type of condition that should trigger AIgent execution (default: `on_event`)
           - Valid values: `#{VALID_TRIGGER_CONDITIONS.join(', ')}`
           - Enables sophisticated conditional logic beyond simple event reception
-        
+
         * **`condition_rules`**: Array of rules for conditional triggering (optional)
           - Each rule can be a Liquid template string or structured condition object
           - Supports complex boolean logic, pattern matching, and threshold comparisons
@@ -145,11 +147,11 @@ module Agents
           - Hash of key-value pairs providing environmental context
           - Supports Liquid templating for dynamic context generation
           - Example: `{"source_system": "monitoring", "environment": "production"}`
-        
+
         * **`tags`**: Array of tags for categorization and filtering (optional)
           - Helps organize and track related AIgent executions
           - Example: `["automation", "incident_response", "high_priority"]`
-        
+
         * **`expected_receive_period_in_days`**: Expected event frequency for health monitoring
           - Used to determine if the agent is functioning correctly
           - Default: 1 day
@@ -159,7 +161,7 @@ module Agents
         * **`api_key`**: Authentication key for orchestrator API access (optional)
           - If required by your orchestrator configuration
           - Stored securely and never logged or exposed in event data
-        
+
         * **`verify_ssl`**: Whether to verify SSL certificates for HTTPS connections (default: `true`)
           - Set to `false` only for development with self-signed certificates
           - Production deployments should always use `true` for security
@@ -169,11 +171,11 @@ module Agents
         * **`retry_attempts`**: Number of retry attempts on failure (default: `3`)
           - Valid range: 0 to 10 attempts
           - Exponential backoff applied between retry attempts
-        
+
         * **`emit_events`**: Whether to emit events about AIgent execution (default: `true`)
           - When `true`, creates events for success, failure, and status updates
           - Useful for monitoring and downstream processing
-        
+
         * **`include_execution_metadata`**: Include detailed execution metadata in events (default: `false`)
           - When `true`, includes timing, resource usage, and debug information
           - Useful for performance monitoring and troubleshooting
@@ -300,60 +302,60 @@ module Agents
         'orchestrator_url' => 'http://localhost:8080',
         'target_agent' => 'general_purpose_agent',
         'goal' => 'Process the incoming event data: {{ event | jsonify }}',
-        
+
         # Execution control
         'priority' => 'normal',
         'execution_mode' => 'asynchronous',
         'timeout_seconds' => '300',
-        
+
         # Trigger conditions
         'trigger_condition' => 'on_event',
         'condition_rules' => [],
-        
+
         # Context and metadata
         'context_data' => {
           'source' => 'huginn_agent',
           'environment' => 'development',
-          'version' => '1.0.0'
+          'version' => '1.0.0',
         },
         'tags' => ['automation', 'aigent_integration'],
-        
+
         # Monitoring and health
         'expected_receive_period_in_days' => '1',
-        
+
         # Security settings
         'verify_ssl' => true,
-        
+
         # Advanced options
         'retry_attempts' => '3',
         'emit_events' => true,
         'include_execution_metadata' => false,
         'include_original_event' => false,
-        
+
         # Optional authentication (uncomment if needed)
         # 'api_key' => 'your-api-key-here',
-        
+
         # Optional HTTP headers for custom authentication
         'headers' => {
           'User-Agent' => 'Huginn-AIgent-Trigger-Agent/1.0',
-          'Content-Type' => 'application/json'
+          'Content-Type' => 'application/json',
         },
-        
+
         # Security configuration
         'security_monitoring_enabled' => true,
         'encryption_enabled' => true,
         'compliance_frameworks' => ['owasp_top_10', 'pci_dss', 'soc2'],
         'threat_detection_enabled' => true,
-        'security_classification' => 'internal'
+        'security_classification' => 'internal',
       }
     end
 
     def working?
       return false if recent_error_logs?
 
-      if interpolated['expected_receive_period_in_days'].present?
-        return false unless last_receive_at && 
-                           last_receive_at > interpolated['expected_receive_period_in_days'].to_i.days.ago
+      if interpolated['expected_receive_period_in_days'].present? && !(last_receive_at &&
+                            last_receive_at > interpolated['expected_receive_period_in_days'].to_i.days.ago)
+        return false
       end
 
       true
@@ -362,64 +364,62 @@ module Agents
     def validate_options
       # Core required fields validation
       validate_required_fields
-      
+
       # URL validation with accessibility check
       validate_orchestrator_url
-      
+
       # Target agent validation
       validate_target_agent
-      
+
       # Goal template validation
       validate_goal_template
-      
+
       # Priority and execution mode validation
       validate_execution_settings
-      
+
       # Trigger condition validation
       validate_trigger_conditions
-      
+
       # Timeout and retry validation
       validate_numeric_ranges
-      
+
       # Security and SSL validation
       validate_security_settings
-      
+
       # Context data and tags validation
       validate_metadata_settings
-      
+
       # Headers validation
       validate_headers
-      
+
       # Boolean options validation
       validate_boolean_options
     end
 
     def receive(incoming_events)
       incoming_events.each do |event|
-        begin
           # Apply trigger condition filtering
           next unless should_trigger?(event)
-          
+
           # Process the event with the AIgent orchestrator
           process_event_with_aigent(event)
-          
-        rescue StandardError => e
+
+      rescue StandardError => e
           error_message = "Failed to process event with AIgent: #{e.message}"
           error(error_message)
-          
+
           # Emit error event if configured
           emit_error_event(event, e) if boolify(interpolated['emit_events'])
-        end
       end
     end
 
     def check
       # Perform health check of orchestrator connectivity
       orchestrator_url = interpolated['orchestrator_url']
-      
+
       begin
         response = perform_health_check(orchestrator_url)
-        
+
         if boolify(interpolated['emit_events'])
           create_event(
             payload: {
@@ -427,14 +427,13 @@ module Agents
               orchestrator_url: orchestrator_url,
               response_time_ms: response[:response_time_ms],
               orchestrator_status: response[:status],
-              timestamp: Time.current.iso8601
+              timestamp: Time.current.iso8601,
             }
           )
         end
-        
       rescue StandardError => e
         error("Health check failed for orchestrator at #{orchestrator_url}: #{e.message}")
-        
+
         if boolify(interpolated['emit_events'])
           create_event(
             payload: {
@@ -442,9 +441,9 @@ module Agents
               orchestrator_url: orchestrator_url,
               error: {
                 type: e.class.name,
-                message: e.message
+                message: e.message,
               },
-              timestamp: Time.current.iso8601
+              timestamp: Time.current.iso8601,
             }
           )
         end
@@ -457,14 +456,12 @@ module Agents
         goal = interpolated['goal']
         target_agent = interpolated['target_agent']
         priority = interpolated['priority']
-        
+
         log("DRY RUN: Would trigger AIgent '#{target_agent}' with goal: #{goal}")
         log("DRY RUN: Priority: #{priority}, Mode: #{interpolated['execution_mode']}")
-        
-        if interpolated['context_data'].present?
-          log("DRY RUN: Context data: #{interpolated['context_data'].to_json}")
-        end
-        
+
+        log("DRY RUN: Context data: #{interpolated['context_data'].to_json}") if interpolated['context_data'].present?
+
         # Simulate successful execution
         {
           status: 'dry_run_success',
@@ -473,7 +470,7 @@ module Agents
           processed_goal: goal,
           priority: priority,
           context_data: interpolated['context_data'],
-          timestamp: Time.current.iso8601
+          timestamp: Time.current.iso8601,
         }
       end
     end
@@ -500,7 +497,7 @@ module Agents
       return unless options['orchestrator_url'].present?
 
       url = options['orchestrator_url']
-      
+
       # Basic URL format validation
       begin
         uri = URI.parse(url)
@@ -508,89 +505,81 @@ module Agents
           errors.add(:base, "orchestrator_url must use http or https scheme, got: #{uri.scheme}")
           return
         end
-        
+
         unless uri.host.present?
-          errors.add(:base, "orchestrator_url must include a valid host")
+          errors.add(:base, 'orchestrator_url must include a valid host')
           return
         end
-        
       rescue URI::InvalidURIError => e
         errors.add(:base, "orchestrator_url is not a valid URL: #{e.message}")
         return
       end
 
       # Accessibility validation (skip in test environments)
-      unless Rails.env.test?
-        validate_orchestrator_accessibility(url)
-      end
+      validate_orchestrator_accessibility(url) unless Rails.env.test?
     end
 
     def validate_orchestrator_accessibility(url)
-      begin
         # Perform lightweight connectivity check
         uri = URI.parse(url)
         timeout_seconds = 5
-        
+
         # Create HTTP client with timeout
         http = Net::HTTP.new(uri.host, uri.port)
         http.use_ssl = (uri.scheme == 'https')
         http.verify_mode = boolify(options['verify_ssl']) ? OpenSSL::SSL::VERIFY_PEER : OpenSSL::SSL::VERIFY_NONE
         http.open_timeout = timeout_seconds
         http.read_timeout = timeout_seconds
-        
+
         # Attempt connection
         response = http.request_get('/health')
-        
+
         unless response.is_a?(Net::HTTPSuccess) || response.is_a?(Net::HTTPNotFound)
           log("Warning: Orchestrator at #{url} returned status #{response.code}. Service may not be ready.")
         end
-        
-      rescue Net::TimeoutError, Errno::ECONNREFUSED, Errno::EHOSTUNREACH => e
+    rescue Net::TimeoutError, Errno::ECONNREFUSED, Errno::EHOSTUNREACH => e
         errors.add(:base, "Cannot connect to orchestrator at #{url}: #{e.message}. Please verify the service is running and accessible.")
-      rescue OpenSSL::SSL::SSLError => e
+    rescue OpenSSL::SSL::SSLError => e
         errors.add(:base, "SSL connection failed for #{url}: #{e.message}. Check SSL configuration or set verify_ssl to false for development.")
-      rescue StandardError => e
+    rescue StandardError => e
         log("Warning: Could not validate orchestrator accessibility at #{url}: #{e.message}")
-      end
     end
 
     def validate_target_agent
       return unless options['target_agent'].present?
 
       target_agent = options['target_agent'].to_s.strip
-      
+
       if target_agent.empty?
         errors.add(:base, 'target_agent cannot be empty - provide a valid agent identifier')
         return
       end
-      
+
       # Validate naming conventions
       unless target_agent.match?(/\A[a-z0-9_]+\z/)
         errors.add(:base, 'target_agent must contain only lowercase letters, numbers, and underscores')
       end
-      
-      if target_agent.length > 100
-        errors.add(:base, 'target_agent must be 100 characters or less')
-      end
+
+      errors.add(:base, 'target_agent must be 100 characters or less') if target_agent.length > 100
     end
 
     def validate_goal_template
       return unless options['goal'].present?
 
       goal = options['goal'].to_s
-      
+
       if goal.strip.empty?
         errors.add(:base, 'goal cannot be empty - provide a meaningful execution goal')
         return
       end
-      
+
       # Validate Liquid template syntax
       begin
         Liquid::Template.parse(goal)
       rescue Liquid::SyntaxError => e
         errors.add(:base, "goal contains invalid Liquid template syntax: #{e.message}")
       end
-      
+
       # Check for potential security issues
       if goal.include?('system(') || goal.include?('exec(') || goal.include?('eval(')
         errors.add(:base, 'goal template contains potentially dangerous function calls')
@@ -626,7 +615,7 @@ module Agents
           errors.add(:base, 'condition_rules must be an array')
           return
         end
-        
+
         options['condition_rules'].each_with_index do |rule, index|
           validate_condition_rule(rule, index)
         end
@@ -646,7 +635,7 @@ module Agents
         # Validate structured condition
         required_keys = %w[field operator value]
         missing_keys = required_keys - rule.keys.map(&:to_s)
-        
+
         unless missing_keys.empty?
           errors.add(:base, "condition_rules[#{index}] missing required keys: #{missing_keys.join(', ')}")
         end
@@ -665,43 +654,33 @@ module Agents
 
       if options['retry_attempts'].present?
         retries = options['retry_attempts'].to_i
-        unless retries.between?(0, 10)
-          errors.add(:base, 'retry_attempts must be between 0 and 10')
-        end
+        errors.add(:base, 'retry_attempts must be between 0 and 10') unless retries.between?(0, 10)
       end
     end
 
     def validate_security_settings
-      if options['verify_ssl'].present?
-        unless %w[true false].include?(options['verify_ssl'].to_s)
-          errors.add(:base, 'verify_ssl must be true or false')
-        end
+      if options['verify_ssl'].present? && !%w[true false].include?(options['verify_ssl'].to_s)
+        errors.add(:base, 'verify_ssl must be true or false')
       end
 
       if options['api_key'].present?
         api_key = options['api_key'].to_s
-        if api_key.length < 10
-          errors.add(:base, 'api_key appears to be too short for security')
-        end
+        errors.add(:base, 'api_key appears to be too short for security') if api_key.length < 10
       end
     end
 
     def validate_metadata_settings
-      if options['context_data'].present?
-        unless options['context_data'].is_a?(Hash)
-          errors.add(:base, 'context_data must be a hash/object')
-        end
+      if options['context_data'].present? && !options['context_data'].is_a?(Hash)
+        errors.add(:base, 'context_data must be a hash/object')
       end
 
       if options['tags'].present?
-        unless options['tags'].is_a?(Array)
-          errors.add(:base, 'tags must be an array')
-        else
+        if options['tags'].is_a?(Array)
           options['tags'].each_with_index do |tag, index|
-            unless tag.is_a?(String)
-              errors.add(:base, "tags[#{index}] must be a string")
-            end
+            errors.add(:base, "tags[#{index}] must be a string") unless tag.is_a?(String)
           end
+        else
+          errors.add(:base, 'tags must be an array')
         end
       end
     end
@@ -712,7 +691,7 @@ module Agents
           errors.add(:base, 'headers must be a hash/object')
           return
         end
-        
+
         options['headers'].each do |key, value|
           unless key.is_a?(String) && value.is_a?(String)
             errors.add(:base, 'all headers keys and values must be strings')
@@ -724,13 +703,11 @@ module Agents
 
     def validate_boolean_options
       boolean_options = %w[emit_events include_execution_metadata include_original_event]
-      
+
       boolean_options.each do |option|
-        if options[option].present?
-          unless %w[true false].include?(options[option].to_s)
-            errors.add(:base, "#{option} must be true or false")
-          end
-        end
+        next unless options[option].present?
+
+        errors.add(:base, "#{option} must be true or false") unless %w[true false].include?(options[option].to_s)
       end
     end
 
@@ -739,7 +716,7 @@ module Agents
     def should_trigger?(event)
       trigger_condition = interpolated(event.payload)['trigger_condition']
       condition_rules = interpolated(event.payload)['condition_rules']
-      
+
       case trigger_condition
       when 'on_event'
         # Always trigger on event reception
@@ -811,24 +788,24 @@ module Agents
       # - Threshold monitoring with historical data
       # - Pattern matching with ML-based detection
       # - Anomaly detection using statistical methods
-      
+
       case condition_type
       when 'on_threshold_exceeded'
         # Simple threshold check for demonstration
         threshold_rule = rules.find { |r| r.is_a?(Hash) && r['type'] == 'threshold' }
         return true unless threshold_rule
-        
+
         field_value = Utils.value_at(event.payload, threshold_rule['field'])
         field_value.to_f > threshold_rule['threshold'].to_f
-        
+
       when 'on_pattern_match'
         # Pattern matching logic
         pattern_rule = rules.find { |r| r.is_a?(Hash) && r['type'] == 'pattern' }
         return true unless pattern_rule
-        
+
         field_value = Utils.value_at(event.payload, pattern_rule['field'])
         field_value.to_s.match?(Regexp.new(pattern_rule['pattern']))
-        
+
       else
         true
       end
@@ -838,10 +815,10 @@ module Agents
       interpolate_with(event) do
         # Prepare request data
         request_data = build_aigent_request(event)
-        
+
         # Submit to orchestrator with retry logic
         response = submit_with_retries(request_data)
-        
+
         # Process response and emit events
         handle_aigent_response(event, request_data, response)
       end
@@ -860,38 +837,36 @@ module Agents
           source: 'huginn_aigent_trigger_agent',
           agent_id: id,
           event_id: event.id,
-          timestamp: Time.current.iso8601
-        }
+          timestamp: Time.current.iso8601,
+        },
       }.compact
     end
 
     def build_context_data(event)
       base_context = interpolated['context_data'] || {}
-      
+
       # Add event data to context
       event_context = {
         'triggering_event' => event.payload,
         'event_timestamp' => event.created_at&.iso8601,
-        'agent_name' => name
+        'agent_name' => name,
       }
-      
+
       # Include original event if requested
-      if boolify(interpolated['include_original_event'])
-        event_context['original_event_data'] = event.payload
-      end
-      
+      event_context['original_event_data'] = event.payload if boolify(interpolated['include_original_event'])
+
       base_context.merge(event_context)
     end
 
     def submit_with_retries(request_data)
       max_retries = interpolated['retry_attempts']&.to_i || 3
       retry_count = 0
-      
+
       begin
         submit_to_orchestrator(request_data)
       rescue StandardError => e
         retry_count += 1
-        
+
         if retry_count <= max_retries
           # Exponential backoff
           sleep_time = 2**retry_count
@@ -906,7 +881,7 @@ module Agents
     def submit_to_orchestrator(request_data)
       url = "#{interpolated['orchestrator_url']}/api/v1/aigent/execute"
       headers = build_request_headers
-      
+
       # Create HTTP client
       uri = URI.parse(url)
       http = Net::HTTP.new(uri.host, uri.port)
@@ -914,29 +889,27 @@ module Agents
       http.verify_mode = boolify(interpolated['verify_ssl']) ? OpenSSL::SSL::VERIFY_PEER : OpenSSL::SSL::VERIFY_NONE
       http.open_timeout = 30
       http.read_timeout = interpolated['timeout_seconds']&.to_i || 300
-      
+
       # Create request
       request = Net::HTTP::Post.new(uri.path)
       headers.each { |key, value| request[key] = value }
       request.body = request_data.to_json
-      
+
       # Submit request
       start_time = Time.current
       response = http.request(request)
       end_time = Time.current
-      
+
       # Process response
       response_data = {
         status: response.code.to_i,
         headers: response.to_hash,
         body: response.body,
-        response_time_ms: ((end_time - start_time) * 1000).round(2)
+        response_time_ms: ((end_time - start_time) * 1000).round(2),
       }
-      
-      unless response.is_a?(Net::HTTPSuccess)
-        raise "HTTP #{response.code}: #{response.message}"
-      end
-      
+
+      raise "HTTP #{response.code}: #{response.message}" unless response.is_a?(Net::HTTPSuccess)
+
       # Parse JSON response
       begin
         parsed_body = JSON.parse(response.body)
@@ -944,7 +917,7 @@ module Agents
       rescue JSON::ParserError
         response_data[:parsed_body] = nil
       end
-      
+
       response_data
     end
 
@@ -952,19 +925,15 @@ module Agents
       headers = {
         'Content-Type' => 'application/json',
         'User-Agent' => 'Huginn-AIgent-Trigger-Agent/1.0',
-        'Accept' => 'application/json'
+        'Accept' => 'application/json',
       }
-      
+
       # Add API key if configured
-      if interpolated['api_key'].present?
-        headers['Authorization'] = "Bearer #{interpolated['api_key']}"
-      end
-      
+      headers['Authorization'] = "Bearer #{interpolated['api_key']}" if interpolated['api_key'].present?
+
       # Add custom headers
-      if interpolated['headers'].present?
-        headers.merge!(interpolated['headers'])
-      end
-      
+      headers.merge!(interpolated['headers']) if interpolated['headers'].present?
+
       headers
     end
 
@@ -979,22 +948,16 @@ module Agents
         priority: request_data[:priority],
         execution_mode: request_data[:execution_mode],
         response_time_ms: response[:response_time_ms],
-        timestamp: Time.current.iso8601
+        timestamp: Time.current.iso8601,
       }
 
       # Add execution results if available
-      if response[:parsed_body]&.is_a?(Hash)
-        if response[:parsed_body]['execution_id']
-          event_payload[:execution_id] = response[:parsed_body]['execution_id']
-        end
-        
-        if response[:parsed_body]['result']
-          event_payload[:result] = response[:parsed_body]['result']
-        end
-        
-        if response[:parsed_body]['status']
-          event_payload[:aigent_status] = response[:parsed_body]['status']
-        end
+      if response[:parsed_body].is_a?(Hash)
+        event_payload[:execution_id] = response[:parsed_body]['execution_id'] if response[:parsed_body]['execution_id']
+
+        event_payload[:result] = response[:parsed_body]['result'] if response[:parsed_body]['result']
+
+        event_payload[:aigent_status] = response[:parsed_body]['status'] if response[:parsed_body]['status']
       end
 
       # Add execution metadata if requested
@@ -1003,14 +966,12 @@ module Agents
           request_data: request_data,
           response_status: response[:status],
           response_headers: response[:headers],
-          full_response_body: response[:body]
+          full_response_body: response[:body],
         }
       end
 
       # Include original event data if requested
-      if boolify(interpolated['include_original_event'])
-        event_payload[:original_event] = original_event.payload
-      end
+      event_payload[:original_event] = original_event.payload if boolify(interpolated['include_original_event'])
 
       # Create success event
       create_event(payload: event_payload)
@@ -1025,27 +986,23 @@ module Agents
         goal: interpolated['goal'],
         error: {
           type: error.class.name,
-          message: error.message
+          message: error.message,
         },
-        timestamp: Time.current.iso8601
+        timestamp: Time.current.iso8601,
       }
 
       # Include original event data if requested
-      if boolify(interpolated['include_original_event'])
-        error_payload[:original_event] = original_event.payload
-      end
+      error_payload[:original_event] = original_event.payload if boolify(interpolated['include_original_event'])
 
       # Add stack trace in development
-      if Rails.env.development? && error.backtrace
-        error_payload[:error][:backtrace] = error.backtrace.first(10)
-      end
+      error_payload[:error][:backtrace] = error.backtrace.first(10) if Rails.env.development? && error.backtrace
 
       create_event(payload: error_payload)
     end
 
     def perform_health_check(orchestrator_url)
       start_time = Time.current
-      
+
       # Attempt to connect to health endpoint
       uri = URI.parse("#{orchestrator_url}/health")
       http = Net::HTTP.new(uri.host, uri.port)
@@ -1053,14 +1010,14 @@ module Agents
       http.verify_mode = boolify(interpolated['verify_ssl']) ? OpenSSL::SSL::VERIFY_PEER : OpenSSL::SSL::VERIFY_NONE
       http.open_timeout = 10
       http.read_timeout = 10
-      
+
       response = http.request_get(uri.path)
       end_time = Time.current
-      
+
       {
         status: response.code.to_i,
         response_time_ms: ((end_time - start_time) * 1000).round(2),
-        message: response.message
+        message: response.message,
       }
     end
 
@@ -1075,5 +1032,7 @@ module Agents
         !!value
       end
     end
+
   end
+
 end

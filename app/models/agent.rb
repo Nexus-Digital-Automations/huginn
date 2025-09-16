@@ -172,7 +172,7 @@ class Agent < ActiveRecord::Base
 
   def trigger_web_request(request)
     params = extract_web_request_params(request)
-    
+
     handled_request = if respond_to?(:receive_webhook)
                         handle_deprecated_webhook(params)
                       else
@@ -451,7 +451,7 @@ class Agent < ActiveRecord::Base
               .joins('JOIN agents AS sources ON (links.source_id = sources.id)')
               .joins('JOIN events ON (events.agent_id = sources.id AND events.id > links.event_id_at_creation)')
               .where('NOT agents.disabled AND NOT agents.deactivated AND (agents.last_checked_event_id IS NULL OR events.id > agents.last_checked_event_id)')
-      
+
       scope = scope.where('agents.id in (?)', options[:only_receivers]) if options[:only_receivers].present?
       scope
     end

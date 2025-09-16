@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # ApplicationController serves as the base controller for all Huginn application controllers.
-# 
+#
 # This controller provides common functionality including:
 # * User authentication via Devise
 # * CSRF protection for all actions

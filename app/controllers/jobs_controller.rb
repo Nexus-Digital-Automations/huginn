@@ -6,7 +6,7 @@
 # queue system that powers Huginn's background processing. It provides:
 #
 # * Job queue monitoring and status viewing
-# * Failed job inspection and analysis  
+# * Failed job inspection and analysis
 # * Job retry and management capabilities
 # * Performance metrics and queue health
 #
